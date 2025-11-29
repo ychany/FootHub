@@ -20,6 +20,10 @@ class SportsDbService {
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
+        // 빈 응답 처리
+        if (response.body.isEmpty || response.body.trim().isEmpty) {
+          return null;
+        }
         return json.decode(response.body) as Map<String, dynamic>;
       }
       return null;
@@ -338,6 +342,32 @@ class SportsDbService {
     return (data['tvevent'] as List)
         .map((json) => SportsDbTv.fromJson(json))
         .toList();
+  }
+
+  // ============ 리그 순위 ============
+
+  /// 리그 순위표 조회
+  Future<List<SportsDbStanding>> getLeagueStandings(String leagueId, {String? season}) async {
+    String endpoint = 'lookuptable.php?l=$leagueId';
+    if (season != null) {
+      endpoint += '&s=${Uri.encodeComponent(season)}';
+    }
+
+    final data = await _get(endpoint);
+    if (data == null || data['table'] == null) return [];
+
+    return (data['table'] as List)
+        .map((json) => SportsDbStanding.fromJson(json))
+        .toList();
+  }
+
+  /// 리그 ID 조회 (리그 이름으로)
+  Future<String?> getLeagueId(String leagueName) async {
+    final data = await _get('search_all_leagues.php?l=${Uri.encodeComponent(leagueName)}');
+    if (data == null || data['leagues'] == null || (data['leagues'] as List).isEmpty) {
+      return null;
+    }
+    return (data['leagues'] as List).first['idLeague']?.toString();
   }
 }
 
@@ -1014,5 +1044,59 @@ class SportsDbFormerTeam {
     if (joined == null && departed == null) return '-';
     if (departed == null) return '$joined - ?';
     return '$joined - $departed';
+  }
+}
+
+/// 리그 순위 모델
+class SportsDbStanding {
+  final String? teamId;
+  final String? teamName;
+  final String? teamBadge;
+  final int rank;
+  final int played;
+  final int wins;
+  final int draws;
+  final int losses;
+  final int goalsFor;
+  final int goalsAgainst;
+  final int goalDifference;
+  final int points;
+  final String? form;
+  final String? description;
+
+  SportsDbStanding({
+    this.teamId,
+    this.teamName,
+    this.teamBadge,
+    required this.rank,
+    required this.played,
+    required this.wins,
+    required this.draws,
+    required this.losses,
+    required this.goalsFor,
+    required this.goalsAgainst,
+    required this.goalDifference,
+    required this.points,
+    this.form,
+    this.description,
+  });
+
+  factory SportsDbStanding.fromJson(Map<String, dynamic> json) {
+    return SportsDbStanding(
+      teamId: json['idTeam']?.toString(),
+      teamName: json['strTeam'],
+      teamBadge: json['strBadge'],
+      rank: int.tryParse(json['intRank']?.toString() ?? '') ?? 0,
+      played: int.tryParse(json['intPlayed']?.toString() ?? '') ?? 0,
+      wins: int.tryParse(json['intWin']?.toString() ?? '') ?? 0,
+      draws: int.tryParse(json['intDraw']?.toString() ?? '') ?? 0,
+      losses: int.tryParse(json['intLoss']?.toString() ?? '') ?? 0,
+      goalsFor: int.tryParse(json['intGoalsFor']?.toString() ?? '') ?? 0,
+      goalsAgainst: int.tryParse(json['intGoalsAgainst']?.toString() ?? '') ?? 0,
+      goalDifference: int.tryParse(json['intGoalDifference']?.toString() ?? '') ?? 0,
+      points: int.tryParse(json['intPoints']?.toString() ?? '') ?? 0,
+      form: json['strForm'],
+      description: json['strDescription'],
+    );
   }
 }

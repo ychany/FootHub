@@ -13,6 +13,8 @@ import 'features/schedule/screens/schedule_screen.dart';
 import 'features/schedule/screens/match_detail_screen.dart';
 import 'features/schedule/screens/player_detail_screen.dart';
 import 'features/favorites/screens/favorites_screen.dart';
+import 'features/standings/screens/standings_screen.dart';
+import 'features/team/screens/team_detail_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
 import 'features/profile/screens/profile_edit_screen.dart';
 
@@ -63,6 +65,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // Team Detail (outside shell - full screen)
+      GoRoute(
+        path: '/team/:teamId',
+        builder: (context, state) {
+          final teamId = state.pathParameters['teamId']!;
+          return TeamDetailScreen(teamId: teamId);
+        },
+      ),
+
       // Main Shell with Bottom Navigation
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
@@ -107,7 +118,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Favorites
+          // Standings (리그 순위)
+          GoRoute(
+            path: '/standings',
+            builder: (context, state) => const StandingsScreen(),
+          ),
+
+          // Favorites (즐겨찾기 - 프로필에서 접근)
           GoRoute(
             path: '/favorites',
             builder: (context, state) => const FavoritesScreen(),
@@ -171,9 +188,9 @@ class MainShell extends StatelessWidget {
             label: '직관 일기',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_outline),
-            activeIcon: Icon(Icons.favorite),
-            label: '즐겨찾기',
+            icon: Icon(Icons.leaderboard_outlined),
+            activeIcon: Icon(Icons.leaderboard),
+            label: '순위',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
@@ -191,7 +208,7 @@ class MainShell extends StatelessWidget {
     if (location.startsWith('/home')) return 0;
     if (location.startsWith('/schedule')) return 1;
     if (location.startsWith('/attendance')) return 2;
-    if (location.startsWith('/favorites')) return 3;
+    if (location.startsWith('/standings')) return 3;
     if (location.startsWith('/profile')) return 4;
 
     return 0; // Default to home
@@ -209,7 +226,7 @@ class MainShell extends StatelessWidget {
         context.go('/attendance');
         break;
       case 3:
-        context.go('/favorites');
+        context.go('/standings');
         break;
       case 4:
         context.go('/profile');

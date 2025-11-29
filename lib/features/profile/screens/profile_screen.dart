@@ -299,9 +299,9 @@ class _MenuSection extends StatelessWidget {
       child: Card(
         child: Column(
           children: [
-            _MenuItem(icon: Icons.favorite, title: '즐겨찾기', subtitle: '팔로우한 팀과 선수', onTap: () => context.go('/favorites')),
+            _MenuItem(icon: Icons.favorite, title: '즐겨찾기', subtitle: '팔로우한 팀과 선수', onTap: () => context.push('/favorites')),
             const Divider(height: 1),
-            _MenuItem(icon: Icons.calendar_today, title: '경기 일정', subtitle: '다가오는 경기 확인', onTap: () => context.go('/schedule')),
+            _MenuItem(icon: Icons.leaderboard, title: '리그 순위', subtitle: '각 리그 순위표 확인', onTap: () => context.go('/standings')),
             const Divider(height: 1),
             _MenuItem(icon: Icons.menu_book, title: '직관 일기', subtitle: '나의 직관 기록들', onTap: () => context.go('/attendance')),
           ],
