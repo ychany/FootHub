@@ -11,6 +11,8 @@ import 'features/attendance/screens/attendance_add_screen.dart';
 import 'features/attendance/screens/attendance_edit_screen.dart';
 import 'features/schedule/screens/schedule_screen.dart';
 import 'features/favorites/screens/favorites_screen.dart';
+import 'features/profile/screens/profile_screen.dart';
+import 'features/profile/screens/profile_edit_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -88,6 +90,18 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const FavoritesScreen(),
           ),
 
+          // Profile
+          GoRoute(
+            path: '/profile',
+            builder: (context, state) => const ProfileScreen(),
+            routes: [
+              GoRoute(
+                path: 'edit',
+                builder: (context, state) => const ProfileEditScreen(),
+              ),
+            ],
+          ),
+
           // Diary routes redirect to attendance (backwards compatibility)
           GoRoute(
             path: '/diary',
@@ -138,6 +152,11 @@ class MainShell extends StatelessWidget {
             activeIcon: Icon(Icons.favorite),
             label: '즐겨찾기',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: '내 정보',
+          ),
         ],
       ),
     );
@@ -150,6 +169,7 @@ class MainShell extends StatelessWidget {
     if (location.startsWith('/schedule')) return 1;
     if (location.startsWith('/attendance')) return 2;
     if (location.startsWith('/favorites')) return 3;
+    if (location.startsWith('/profile')) return 4;
 
     return 0; // Default to home
   }
@@ -167,6 +187,9 @@ class MainShell extends StatelessWidget {
         break;
       case 3:
         context.go('/favorites');
+        break;
+      case 4:
+        context.go('/profile');
         break;
     }
   }

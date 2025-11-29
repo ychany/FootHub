@@ -423,7 +423,7 @@ class SportsDbEvent {
     return 'vs';
   }
 
-  /// 경기 날짜 DateTime
+  /// 경기 날짜 DateTime (API는 UTC 시간 반환, 로컬 시간으로 변환)
   DateTime? get dateTime {
     if (date == null) return null;
     try {
@@ -432,13 +432,19 @@ class SportsDbEvent {
       final month = int.parse(parts[1]);
       final day = int.parse(parts[2]);
 
+      int hour = 0;
+      int minute = 0;
+
       if (time != null && time!.isNotEmpty) {
         final timeParts = time!.split(':');
-        final hour = int.parse(timeParts[0]);
-        final minute = int.parse(timeParts[1]);
-        return DateTime(year, month, day, hour, minute);
+        hour = int.parse(timeParts[0]);
+        minute = int.parse(timeParts[1]);
       }
-      return DateTime(year, month, day);
+
+      // UTC로 파싱 후 로컬 시간으로 변환 (한국: UTC+9)
+      // 시간 변환 시 날짜도 자동으로 변경됨
+      final utcTime = DateTime.utc(year, month, day, hour, minute);
+      return utcTime.toLocal();
     } catch (e) {
       return null;
     }
