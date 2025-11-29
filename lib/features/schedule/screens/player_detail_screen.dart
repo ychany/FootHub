@@ -13,6 +13,13 @@ final playerDetailProvider = FutureProvider.family<SportsDbPlayer?, String>((ref
   return service.getPlayerById(playerId);
 });
 
+// 선수의 팀 정보를 가져오는 provider
+final playerTeamProvider = FutureProvider.family<SportsDbTeam?, String?>((ref, teamId) async {
+  if (teamId == null || teamId.isEmpty) return null;
+  final service = SportsDbService();
+  return service.getTeamById(teamId);
+});
+
 final playerContractsProvider = FutureProvider.family<List<SportsDbContract>, String>((ref, playerId) async {
   final service = SportsDbService();
   return service.getPlayerContracts(playerId);
@@ -123,13 +130,16 @@ class _PlayerDetailContent extends ConsumerWidget {
   }
 }
 
-class _PlayerHeader extends StatelessWidget {
+class _PlayerHeader extends ConsumerWidget {
   final SportsDbPlayer player;
 
   const _PlayerHeader({required this.player});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final teamAsync = ref.watch(playerTeamProvider(player.teamId));
+    final teamBadge = teamAsync.valueOrNull?.badge;
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -199,6 +209,28 @@ class _PlayerHeader extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  if (teamBadge != null) ...[
+                    CachedNetworkImage(
+                      imageUrl: teamBadge,
+                      width: 24,
+                      height: 24,
+                      fit: BoxFit.contain,
+                      placeholder: (_, __) => const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54),
+                      ),
+                      errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 24, color: Colors.white54),
+                    ),
+                    const SizedBox(width: 6),
+                  ] else if (teamAsync.isLoading) ...[
+                    const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
                   if (player.team != null)
                     Text(
                       player.team!,

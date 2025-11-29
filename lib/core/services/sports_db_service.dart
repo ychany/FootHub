@@ -484,6 +484,7 @@ class SportsDbPlayer {
   final String? nameKr;
   final String? team;
   final String? teamId;
+  final String? teamBadge;
   final String? nationality;
   final String? position;
   final String? number;
@@ -500,6 +501,7 @@ class SportsDbPlayer {
     this.nameKr,
     this.team,
     this.teamId,
+    this.teamBadge,
     this.nationality,
     this.position,
     this.number,
@@ -518,6 +520,7 @@ class SportsDbPlayer {
       nameKr: json['strPlayerAlternate'],
       team: json['strTeam'],
       teamId: json['idTeam'],
+      teamBadge: json['strTeamBadge'],
       nationality: json['strNationality'],
       position: json['strPosition'],
       number: json['strNumber'],
@@ -1088,7 +1091,7 @@ class SportsDbFormerTeam {
       playerId: json['idPlayer']?.toString(),
       teamId: json['idFormerTeam']?.toString(),
       teamName: json['strFormerTeam'],
-      teamBadge: json['strTeamBadge'],
+      teamBadge: json['strBadge'],
       sport: json['strSport'],
       joined: json['strJoined'],
       departed: json['strDeparted'],
