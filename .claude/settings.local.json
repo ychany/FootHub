@@ -22,7 +22,8 @@
       "Bash(iconv:*)",
       "Bash(for f in \"/Users/joyeongchan/matchlog_app/lib/features/diary/models/diary_entry.dart\" \"/Users/joyeongchan/matchlog_app/lib/features/diary/services/diary_service.dart\" \"/Users/joyeongchan/matchlog_app/lib/shared/models/team_model.dart\" \"/Users/joyeongchan/matchlog_app/lib/shared/models/match_model.dart\" \"/Users/joyeongchan/matchlog_app/lib/shared/widgets/stadium_info_tile.dart\" \"/Users/joyeongchan/matchlog_app/lib/shared/widgets/match_stat_chip.dart\" \"/Users/joyeongchan/matchlog_app/lib/shared/widgets/photo_carousel.dart\" \"/Users/joyeongchan/matchlog_app/lib/shared/widgets/favorite_toggle_button.dart\")",
       "Bash(do cat \"$f\")",
-      "Bash(flutter run:*)"
+      "Bash(flutter run:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

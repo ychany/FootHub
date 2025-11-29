@@ -21,15 +21,28 @@ final leagueIdMapping = <String, String>{
 };
 
 /// 리그별 시즌 포맷 (K리그 등 일부 리그는 단일 연도 시즌)
+/// 현재 날짜를 기준으로 자동 계산
 String getSeasonForLeague(String leagueName) {
+  final now = DateTime.now();
+  final year = now.year;
+  final month = now.month;
+
   // K리그는 단일 연도 시즌 (3월~11월)
-  // 2025 시즌은 3월 시작 예정이므로 아직 2024 데이터 사용
   if (leagueName == 'Korean K League 1') {
-    return '2024'; // 가장 최근 완료된 시즌
+    // 1-2월은 이전 시즌, 3월부터 현재 연도 시즌
+    if (month < 3) {
+      return '${year - 1}';
+    }
+    return '$year';
   }
 
-  // 유럽 리그 - 현재 2024-2025 시즌 진행 중
-  return '2024-2025';
+  // 유럽 리그 - 8월 시작, 다음해 5월 종료
+  // 8월~12월: 현재연도-다음연도 시즌 (예: 2025-2026)
+  // 1월~7월: 이전연도-현재연도 시즌 (예: 2024-2025)
+  if (month >= 8) {
+    return '$year-${year + 1}';
+  }
+  return '${year - 1}-$year';
 }
 
 /// 순위표 미지원 대회 확인
