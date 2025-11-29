@@ -4,10 +4,17 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/sports_db_service.dart';
 import '../../attendance/models/attendance_record.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../schedule/providers/schedule_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+
+/// 축구 라이브스코어 Provider
+final soccerLivescoresProvider = FutureProvider<List<SportsDbLiveEvent>>((ref) async {
+  final service = SportsDbService();
+  return service.getSoccerLivescores();
+});
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -28,6 +35,11 @@ class HomeScreen extends ConsumerWidget {
               // Header
               SliverToBoxAdapter(
                 child: _buildHeader(context, user),
+              ),
+
+              // Live Scores
+              SliverToBoxAdapter(
+                child: _LiveScoresSection(),
               ),
 
               // Quick Stats
@@ -214,6 +226,165 @@ class _StatCard extends StatelessWidget {
             label,
             style: AppTextStyles.caption.copyWith(color: Colors.grey),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LiveScoresSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final livescoresAsync = ref.watch(soccerLivescoresProvider);
+
+    return livescoresAsync.when(
+      data: (events) {
+        // 진행 중인 경기만 필터링
+        final liveEvents = events.where((e) => e.isLive).toList();
+
+        if (liveEvents.isEmpty) {
+          return const SizedBox.shrink(); // 진행 중인 경기 없으면 숨김
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text('LIVE', style: AppTextStyles.subtitle1.copyWith(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  )),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 20),
+                    onPressed: () => ref.invalidate(soccerLivescoresProvider),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 100,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: liveEvents.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final event = liveEvents[index];
+                    return _LiveMatchCard(event: event);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _LiveMatchCard extends StatelessWidget {
+  final SportsDbLiveEvent event;
+
+  const _LiveMatchCard({required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 200,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // 리그명 + 진행 시간
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  event.league ?? '',
+                  style: AppTextStyles.caption.copyWith(color: Colors.grey),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  event.statusDisplay,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          // 팀 vs 팀 + 스코어
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  event.homeTeam ?? '',
+                  style: AppTextStyles.body2,
+                  textAlign: TextAlign.right,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  event.scoreDisplay,
+                  style: AppTextStyles.subtitle1.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  event.awayTeam ?? '',
+                  style: AppTextStyles.body2,
+                  textAlign: TextAlign.left,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
         ],
       ),
     );

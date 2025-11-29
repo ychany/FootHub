@@ -3,9 +3,11 @@ import 'package:http/http.dart' as http;
 
 /// TheSportsDB API 서비스
 /// API Key: 869004 (Premium)
+/// v1: 일반 API, v2: 라이브스코어 전용
 /// 문서: https://www.thesportsdb.com/api.php
 class SportsDbService {
-  static const String _baseUrl = 'https://www.thesportsdb.com/api/v1/json';
+  static const String _baseUrlV1 = 'https://www.thesportsdb.com/api/v1/json';
+  static const String _baseUrlV2 = 'https://www.thesportsdb.com/api/v2/json';
   static const String _apiKey = '869004';
 
   // 싱글톤 패턴
@@ -13,10 +15,10 @@ class SportsDbService {
   factory SportsDbService() => _instance;
   SportsDbService._internal();
 
-  /// API 호출 헬퍼
+  /// v1 API 호출 헬퍼
   Future<Map<String, dynamic>?> _get(String endpoint) async {
     try {
-      final url = '$_baseUrl/$_apiKey/$endpoint';
+      final url = '$_baseUrlV1/$_apiKey/$endpoint';
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
@@ -28,7 +30,29 @@ class SportsDbService {
       }
       return null;
     } catch (e) {
-      print('SportsDB API Error: $e');
+      print('SportsDB v1 API Error: $e');
+      return null;
+    }
+  }
+
+  /// v2 API 호출 헬퍼 (라이브스코어용, 헤더 인증)
+  Future<Map<String, dynamic>?> _getV2(String endpoint) async {
+    try {
+      final url = '$_baseUrlV2/$endpoint';
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'X-API-KEY': _apiKey},
+      );
+
+      if (response.statusCode == 200) {
+        if (response.body.isEmpty || response.body.trim().isEmpty) {
+          return null;
+        }
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('SportsDB v2 API Error: $e');
       return null;
     }
   }
@@ -368,6 +392,38 @@ class SportsDbService {
       return null;
     }
     return (data['leagues'] as List).first['idLeague']?.toString();
+  }
+
+  // ============ 라이브스코어 (v2 API 전용) ============
+
+  /// 축구 라이브스코어
+  Future<List<SportsDbLiveEvent>> getSoccerLivescores() async {
+    final data = await _getV2('livescore/soccer');
+    if (data == null || data['events'] == null) return [];
+
+    return (data['events'] as List)
+        .map((json) => SportsDbLiveEvent.fromJson(json))
+        .toList();
+  }
+
+  /// 리그별 라이브스코어
+  Future<List<SportsDbLiveEvent>> getLivescoresByLeague(String leagueId) async {
+    final data = await _getV2('livescore/$leagueId');
+    if (data == null || data['events'] == null) return [];
+
+    return (data['events'] as List)
+        .map((json) => SportsDbLiveEvent.fromJson(json))
+        .toList();
+  }
+
+  /// 전체 스포츠 라이브스코어
+  Future<List<SportsDbLiveEvent>> getAllLivescores() async {
+    final data = await _getV2('livescore/all');
+    if (data == null || data['events'] == null) return [];
+
+    return (data['events'] as List)
+        .map((json) => SportsDbLiveEvent.fromJson(json))
+        .toList();
   }
 }
 
@@ -1098,5 +1154,94 @@ class SportsDbStanding {
       form: json['strForm'],
       description: json['strDescription'],
     );
+  }
+}
+
+/// 라이브스코어 이벤트 모델 (v2 API)
+class SportsDbLiveEvent {
+  final String id;
+  final String name;
+  final String? league;
+  final String? leagueId;
+  final String? homeTeam;
+  final String? homeTeamId;
+  final String? awayTeam;
+  final String? awayTeamId;
+  final String? homeBadge;
+  final String? awayBadge;
+  final int? homeScore;
+  final int? awayScore;
+  final String? status;       // 경기 상태 (예: "1H", "HT", "2H", "FT")
+  final String? progress;     // 진행 시간 (예: "45'", "90+3'")
+  final String? date;
+  final String? time;
+
+  SportsDbLiveEvent({
+    required this.id,
+    required this.name,
+    this.league,
+    this.leagueId,
+    this.homeTeam,
+    this.homeTeamId,
+    this.awayTeam,
+    this.awayTeamId,
+    this.homeBadge,
+    this.awayBadge,
+    this.homeScore,
+    this.awayScore,
+    this.status,
+    this.progress,
+    this.date,
+    this.time,
+  });
+
+  factory SportsDbLiveEvent.fromJson(Map<String, dynamic> json) {
+    return SportsDbLiveEvent(
+      id: json['idEvent']?.toString() ?? '',
+      name: json['strEvent'] ?? '',
+      league: json['strLeague'],
+      leagueId: json['idLeague']?.toString(),
+      homeTeam: json['strHomeTeam'],
+      homeTeamId: json['idHomeTeam']?.toString(),
+      awayTeam: json['strAwayTeam'],
+      awayTeamId: json['idAwayTeam']?.toString(),
+      homeBadge: json['strHomeTeamBadge'],
+      awayBadge: json['strAwayTeamBadge'],
+      homeScore: int.tryParse(json['intHomeScore']?.toString() ?? ''),
+      awayScore: int.tryParse(json['intAwayScore']?.toString() ?? ''),
+      status: json['strStatus'],
+      progress: json['strProgress'],
+      date: json['dateEvent'],
+      time: json['strTime'],
+    );
+  }
+
+  /// 스코어 표시
+  String get scoreDisplay {
+    if (homeScore != null && awayScore != null) {
+      return '$homeScore - $awayScore';
+    }
+    return 'vs';
+  }
+
+  /// 경기 진행 중 여부
+  bool get isLive {
+    final s = status?.toUpperCase() ?? '';
+    return s == '1H' || s == '2H' || s == 'HT' ||
+           s == 'ET' || s == 'P' || s.contains('LIVE');
+  }
+
+  /// 경기 종료 여부
+  bool get isFinished {
+    final s = status?.toUpperCase() ?? '';
+    return s == 'FT' || s == 'AET' || s == 'AP' || s.contains('FINISHED');
+  }
+
+  /// 상태 표시 텍스트
+  String get statusDisplay {
+    if (progress != null && progress!.isNotEmpty) {
+      return progress!;
+    }
+    return status ?? '';
   }
 }
