@@ -43,3 +43,22 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# iOS/macOS
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/Generated.xcconfig
+**/ios/Pods/
+**/ios/Podfile.lock
+**/ios/.symlinks/
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS (not used for this project)
+macos/
+
+# Xcode
+**/xcuserdata/
+*.xcworkspace
+
+# DevTools
+devtools_options.yaml

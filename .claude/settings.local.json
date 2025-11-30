@@ -24,7 +24,10 @@
       "Bash(do cat \"$f\")",
       "Bash(flutter run:*)",
       "Bash(curl:*)",
-      "Bash(python3 -m json.tool:*)"
+      "Bash(python3 -m json.tool:*)",
+      "Bash(git rm:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
