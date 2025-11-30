@@ -12,7 +12,9 @@ import '../models/attendance_record.dart';
 import '../providers/attendance_provider.dart';
 
 class AttendanceAddScreen extends ConsumerStatefulWidget {
-  const AttendanceAddScreen({super.key});
+  final String? matchId;
+
+  const AttendanceAddScreen({super.key, this.matchId});
 
   @override
   ConsumerState<AttendanceAddScreen> createState() => _AttendanceAddScreenState();
@@ -65,6 +67,36 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   bool _isManualMode = false;
 
   final List<String> _weatherOptions = ['맑음 ☀️', '흐림 ☁️', '비 🌧️', '눈 ❄️', '바람 💨'];
+
+  @override
+  void initState() {
+    super.initState();
+    // matchId가 전달되면 경기 정보를 로드
+    if (widget.matchId != null) {
+      _loadMatchById(widget.matchId!);
+    }
+  }
+
+  Future<void> _loadMatchById(String matchId) async {
+    final event = await _sportsDbService.getEventById(matchId);
+    if (event != null && mounted) {
+      setState(() {
+        _selectedEvent = event;
+        if (event.dateTime != null) {
+          _selectedDate = event.dateTime!;
+        }
+        if (event.homeScore != null) {
+          _homeScoreController.text = event.homeScore.toString();
+        }
+        if (event.awayScore != null) {
+          _awayScoreController.text = event.awayScore.toString();
+        }
+        if (event.venue != null) {
+          _stadiumController.text = event.venue!;
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -896,10 +928,10 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
         league: _selectedEvent?.league ?? _selectedLeague ?? '',
         homeTeamId: _selectedEvent?.homeTeamId ?? _selectedHomeTeam?.id ?? '',
         homeTeamName: _selectedEvent?.homeTeam ?? _selectedHomeTeam?.name ?? '',
-        homeTeamLogo: _selectedHomeTeam?.badge,
+        homeTeamLogo: _selectedEvent?.homeTeamBadge ?? _selectedHomeTeam?.badge,
         awayTeamId: _selectedEvent?.awayTeamId ?? _selectedAwayTeam?.id ?? '',
         awayTeamName: _selectedEvent?.awayTeam ?? _selectedAwayTeam?.name ?? '',
-        awayTeamLogo: _selectedAwayTeam?.badge,
+        awayTeamLogo: _selectedEvent?.awayTeamBadge ?? _selectedAwayTeam?.badge,
         stadium: _stadiumController.text.isNotEmpty ? _stadiumController.text : (_selectedEvent?.venue ?? _selectedHomeTeam?.stadium ?? ''),
         seatInfo: _seatController.text.isEmpty ? null : _seatController.text,
         homeScore: homeScore,

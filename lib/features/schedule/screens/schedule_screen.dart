@@ -582,81 +582,84 @@ class _ScheduleLiveCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 180,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // 리그 + 시간
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  event.league ?? '',
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                child: Text(
-                  event.statusDisplay,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onTap: () => context.push('/match/${event.id}'),
+      child: Container(
+        width: 180,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // 리그 + 시간
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    event.league ?? '',
+                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          // 팀 스코어
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  event.homeTeam ?? '',
-                  style: const TextStyle(fontSize: 11),
-                  textAlign: TextAlign.right,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Text(
-                  event.scoreDisplay,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: Text(
+                    event.statusDisplay,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: Text(
-                  event.awayTeam ?? '',
-                  style: const TextStyle(fontSize: 11),
-                  textAlign: TextAlign.left,
-                  overflow: TextOverflow.ellipsis,
+              ],
+            ),
+            const Spacer(),
+            // 팀 스코어
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    event.homeTeam ?? '',
+                    style: const TextStyle(fontSize: 11),
+                    textAlign: TextAlign.right,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const Spacer(),
-        ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Text(
+                    event.scoreDisplay,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    event.awayTeam ?? '',
+                    style: const TextStyle(fontSize: 11),
+                    textAlign: TextAlign.left,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+          ],
+        ),
       ),
     );
   }

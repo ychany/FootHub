@@ -97,7 +97,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: 'add',
-                builder: (context, state) => const AttendanceAddScreen(),
+                builder: (context, state) {
+                  final matchId = state.uri.queryParameters['matchId'];
+                  return AttendanceAddScreen(matchId: matchId);
+                },
               ),
               GoRoute(
                 path: ':id',

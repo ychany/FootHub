@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/sports_db_service.dart';
@@ -85,27 +86,27 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
   Widget build(BuildContext context) {
     final match = widget.match;
 
-    return NestedScrollView(
-      headerSliverBuilder: (context, innerBoxIsScrolled) {
-        return [
-          SliverAppBar(
-            expandedHeight: 200,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              background: _MatchHeader(match: match),
-            ),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => context.pop(),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.edit_note, color: Colors.white),
-                onPressed: () => _addToDiary(context),
-                tooltip: '직관 기록',
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _addToDiary(context),
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('직관 기록', style: TextStyle(color: Colors.white)),
+      ),
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverAppBar(
+              expandedHeight: 200,
+              pinned: true,
+              flexibleSpace: FlexibleSpaceBar(
+                background: _MatchHeader(match: match),
               ),
-            ],
-          ),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => context.pop(),
+              ),
+            ),
           SliverPersistentHeader(
             pinned: true,
             delegate: _TabBarDelegate(
@@ -125,20 +126,21 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
           ),
         ];
       },
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _InfoTab(match: match),
-          _LineupTab(eventId: match.id, match: match),
-          _StatsTab(eventId: match.id, match: match),
-          _TimelineTab(eventId: match.id),
-        ],
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            _InfoTab(match: match),
+            _LineupTab(eventId: match.id, match: match),
+            _StatsTab(eventId: match.id, match: match),
+            _TimelineTab(eventId: match.id),
+          ],
+        ),
       ),
     );
   }
 
   void _addToDiary(BuildContext context) {
-    context.push('/attendance/add', extra: widget.match);
+    context.push('/attendance/add?matchId=${widget.match.id}');
   }
 }
 
@@ -196,11 +198,23 @@ class _MatchHeader extends StatelessWidget {
                   Expanded(
                     child: Column(
                       children: [
+                        if (match.homeTeamBadge != null)
+                          CachedNetworkImage(
+                            imageUrl: match.homeTeamBadge!,
+                            width: 48,
+                            height: 48,
+                            fit: BoxFit.contain,
+                            placeholder: (_, __) => const Icon(Icons.shield, size: 48, color: Colors.white54),
+                            errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 48, color: Colors.white54),
+                          )
+                        else
+                          const Icon(Icons.shield, size: 48, color: Colors.white54),
+                        const SizedBox(height: 8),
                         Text(
                           match.homeTeam ?? '',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
                           textAlign: TextAlign.center,
@@ -243,11 +257,23 @@ class _MatchHeader extends StatelessWidget {
                   Expanded(
                     child: Column(
                       children: [
+                        if (match.awayTeamBadge != null)
+                          CachedNetworkImage(
+                            imageUrl: match.awayTeamBadge!,
+                            width: 48,
+                            height: 48,
+                            fit: BoxFit.contain,
+                            placeholder: (_, __) => const Icon(Icons.shield, size: 48, color: Colors.white54),
+                            errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 48, color: Colors.white54),
+                          )
+                        else
+                          const Icon(Icons.shield, size: 48, color: Colors.white54),
+                        const SizedBox(height: 8),
                         Text(
                           match.awayTeam ?? '',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
                           textAlign: TextAlign.center,

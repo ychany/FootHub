@@ -399,9 +399,9 @@ class SportsDbService {
   /// 축구 라이브스코어
   Future<List<SportsDbLiveEvent>> getSoccerLivescores() async {
     final data = await _getV2('livescore/soccer');
-    if (data == null || data['events'] == null) return [];
+    if (data == null || data['livescore'] == null) return [];
 
-    return (data['events'] as List)
+    return (data['livescore'] as List)
         .map((json) => SportsDbLiveEvent.fromJson(json))
         .toList();
   }
@@ -409,9 +409,9 @@ class SportsDbService {
   /// 리그별 라이브스코어
   Future<List<SportsDbLiveEvent>> getLivescoresByLeague(String leagueId) async {
     final data = await _getV2('livescore/$leagueId');
-    if (data == null || data['events'] == null) return [];
+    if (data == null || data['livescore'] == null) return [];
 
-    return (data['events'] as List)
+    return (data['livescore'] as List)
         .map((json) => SportsDbLiveEvent.fromJson(json))
         .toList();
   }
@@ -419,9 +419,9 @@ class SportsDbService {
   /// 전체 스포츠 라이브스코어
   Future<List<SportsDbLiveEvent>> getAllLivescores() async {
     final data = await _getV2('livescore/all');
-    if (data == null || data['events'] == null) return [];
+    if (data == null || data['livescore'] == null) return [];
 
-    return (data['events'] as List)
+    return (data['livescore'] as List)
         .map((json) => SportsDbLiveEvent.fromJson(json))
         .toList();
   }
@@ -582,8 +582,10 @@ class SportsDbEvent {
   final String? season;
   final String? homeTeam;
   final String? homeTeamId;
+  final String? homeTeamBadge;
   final String? awayTeam;
   final String? awayTeamId;
+  final String? awayTeamBadge;
   final int? homeScore;
   final int? awayScore;
   final String? date;
@@ -602,8 +604,10 @@ class SportsDbEvent {
     this.season,
     this.homeTeam,
     this.homeTeamId,
+    this.homeTeamBadge,
     this.awayTeam,
     this.awayTeamId,
+    this.awayTeamBadge,
     this.homeScore,
     this.awayScore,
     this.date,
@@ -624,8 +628,10 @@ class SportsDbEvent {
       season: json['strSeason'],
       homeTeam: json['strHomeTeam'],
       homeTeamId: json['idHomeTeam'],
+      homeTeamBadge: json['strHomeTeamBadge'],
       awayTeam: json['strAwayTeam'],
       awayTeamId: json['idAwayTeam'],
+      awayTeamBadge: json['strAwayTeamBadge'],
       homeScore: int.tryParse(json['intHomeScore']?.toString() ?? ''),
       awayScore: int.tryParse(json['intAwayScore']?.toString() ?? ''),
       date: json['dateEvent'],
@@ -1215,7 +1221,7 @@ class SportsDbLiveEvent {
       status: json['strStatus'],
       progress: json['strProgress'],
       date: json['dateEvent'],
-      time: json['strTime'],
+      time: json['strEventTime'],
     );
   }
 
@@ -1227,11 +1233,30 @@ class SportsDbLiveEvent {
     return 'vs';
   }
 
-  /// 경기 진행 중 여부
+  /// 경기 진행 중 여부 (status + 시간 기반)
   bool get isLive {
     final s = status?.toUpperCase() ?? '';
-    return s == '1H' || s == '2H' || s == 'HT' ||
-           s == 'ET' || s == 'P' || s.contains('LIVE');
+
+    // status가 명확히 진행 중인 경우
+    if (s == '1H' || s == '2H' || s == 'HT' ||
+        s == 'ET' || s == 'P' || s.contains('LIVE')) {
+      return true;
+    }
+
+    // status가 비어있거나 불분명한 경우, 시간 기반으로 확인
+    // 경기 시작 후 약 2시간 (120분) 이내이고, 종료 상태가 아니면 라이브로 간주
+    if (!isFinished && dateTime != null) {
+      final now = DateTime.now();
+      final matchTime = dateTime!;
+      final diff = now.difference(matchTime).inMinutes;
+
+      // 경기 시작 시간 이후 ~ 120분 사이
+      if (diff >= 0 && diff <= 120) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /// 경기 종료 여부
@@ -1246,5 +1271,38 @@ class SportsDbLiveEvent {
       return progress!;
     }
     return status ?? '';
+  }
+
+  /// 경기 날짜 DateTime (API는 UTC 시간 반환, 로컬 시간으로 변환)
+  DateTime? get dateTime {
+    if (date == null) return null;
+    try {
+      final parts = date!.split('-');
+      final year = int.parse(parts[0]);
+      final month = int.parse(parts[1]);
+      final day = int.parse(parts[2]);
+
+      int hour = 0;
+      int minute = 0;
+
+      if (time != null && time!.isNotEmpty) {
+        final timeParts = time!.split(':');
+        hour = int.parse(timeParts[0]);
+        minute = int.parse(timeParts[1]);
+      }
+
+      // UTC로 파싱 후 로컬 시간으로 변환 (한국: UTC+9)
+      final utcTime = DateTime.utc(year, month, day, hour, minute);
+      return utcTime.toLocal();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// 로컬 시간 기준 경기 시간 표시
+  String get localTimeDisplay {
+    final dt = dateTime;
+    if (dt == null) return time ?? '';
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }
