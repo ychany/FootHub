@@ -15,14 +15,14 @@ class AppConstants {
   // Storage Paths
   static const String attendancePhotosPath = 'attendance_photos';
 
-  // Leagues - API에서 사용하는 실제 리그 이름
+  // Leagues - API에서 사용하는 실제 리그 이름 (TheSportsDB 기준)
   static const List<String> supportedLeagues = [
     'English Premier League',
     'Spanish La Liga',
     'Italian Serie A',
     'German Bundesliga',
     'French Ligue 1',
-    'Korean K League 1',
+    'South Korean K League 1',
     'UEFA Champions League',
     'UEFA Europa League',
   ];
@@ -34,7 +34,7 @@ class AppConstants {
     'Italian Serie A': '세리에 A',
     'German Bundesliga': '분데스리가',
     'French Ligue 1': '리그 1',
-    'Korean K League 1': 'K리그',
+    'South Korean K League 1': 'K리그',
     'UEFA Champions League': 'UCL',
     'UEFA Europa League': 'UEL',
   };
