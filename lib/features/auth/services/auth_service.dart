@@ -184,6 +184,9 @@ class AuthService {
         .collection(AppConstants.usersCollection)
         .doc(user.uid)
         .update(updates);
+
+    // Firebase User 객체 갱신
+    await user.reload();
   }
 
   // Delete account

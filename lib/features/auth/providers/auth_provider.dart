@@ -108,6 +108,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
         displayName: displayName,
         photoUrl: photoUrl,
       );
+      // auth state를 갱신하여 UI 업데이트
+      _ref.invalidate(authStateProvider);
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

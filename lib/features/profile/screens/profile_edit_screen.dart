@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class ProfileEditScreen extends ConsumerStatefulWidget {
@@ -65,10 +64,14 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   CircleAvatar(
                     radius: 60,
                     backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                    backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+                    backgroundImage: photoUrl != null
+                        ? NetworkImage(photoUrl)
+                        : null,
                     child: photoUrl == null
                         ? Text(
-                            displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                            displayName.isNotEmpty
+                                ? displayName[0].toUpperCase()
+                                : '?',
                             style: const TextStyle(
                               fontSize: 48,
                               fontWeight: FontWeight.bold,
@@ -87,7 +90,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
-                      child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
@@ -145,9 +152,18 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     ),
                     const Divider(height: 1),
                     ListTile(
-                      leading: const Icon(Icons.delete_outline, color: Colors.red),
-                      title: const Text('계정 삭제', style: TextStyle(color: Colors.red)),
-                      trailing: const Icon(Icons.chevron_right, color: Colors.red),
+                      leading: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.red,
+                      ),
+                      title: const Text(
+                        '계정 삭제',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: Colors.red,
+                      ),
                       onTap: () => _showDeleteAccountDialog(),
                     ),
                   ],
@@ -166,21 +182,21 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     setState(() => _isSaving = true);
 
     try {
-      await ref.read(authNotifierProvider.notifier).updateProfile(
-        displayName: _nameController.text.trim(),
-      );
+      await ref
+          .read(authNotifierProvider.notifier)
+          .updateProfile(displayName: _nameController.text.trim());
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('프로필이 수정되었습니다')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('프로필이 수정되었습니다')));
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('수정 실패: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('수정 실패: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -235,9 +251,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('비밀번호 변경 기능 준비 중')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('비밀번호 변경 기능 준비 중')));
             },
             child: const Text('변경'),
           ),
@@ -263,9 +279,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('계정 삭제 기능 준비 중')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('계정 삭제 기능 준비 중')));
             },
             child: const Text('삭제', style: TextStyle(color: Colors.red)),
           ),
