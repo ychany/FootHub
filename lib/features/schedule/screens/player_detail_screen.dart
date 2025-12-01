@@ -394,83 +394,91 @@ class _ContractItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: contract.isCurrent
-            ? AppColors.primary.withValues(alpha: 0.1)
-            : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
-        border: contract.isCurrent
-            ? Border.all(color: AppColors.primary.withValues(alpha: 0.3))
-            : null,
-      ),
-      child: Row(
-        children: [
-          // Team Badge
-          if (contract.teamBadge != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: CachedNetworkImage(
-                imageUrl: contract.teamBadge!,
-                width: 40,
-                height: 40,
-                fit: BoxFit.contain,
-                errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 40),
-              ),
-            )
-          else
-            const Icon(Icons.shield, size: 40, color: Colors.grey),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        contract.teamName ?? '-',
-                        style: AppTextStyles.body2.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    if (contract.isCurrent)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          '현재',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+    return InkWell(
+      onTap: contract.teamId != null
+          ? () => context.push('/team/${contract.teamId}')
+          : null,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: contract.isCurrent
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+          border: contract.isCurrent
+              ? Border.all(color: AppColors.primary.withValues(alpha: 0.3))
+              : null,
+        ),
+        child: Row(
+          children: [
+            // Team Badge
+            if (contract.teamBadge != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: CachedNetworkImage(
+                  imageUrl: contract.teamBadge!,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.contain,
+                  errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 40),
+                ),
+              )
+            else
+              const Icon(Icons.shield, size: 40, color: Colors.grey),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          contract.teamName ?? '-',
+                          style: AppTextStyles.body2.copyWith(
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  contract.period,
-                  style: AppTextStyles.caption.copyWith(color: Colors.grey),
-                ),
-                if (contract.wage != null && contract.wage!.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    '연봉: ${contract.wage}',
-                    style: AppTextStyles.caption.copyWith(color: Colors.grey.shade600),
+                      if (contract.isCurrent)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            '현재',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    contract.period,
+                    style: AppTextStyles.caption.copyWith(color: Colors.grey),
+                  ),
+                  if (contract.wage != null && contract.wage!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      '연봉: ${contract.wage}',
+                      style: AppTextStyles.caption.copyWith(color: Colors.grey.shade600),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+            if (contract.teamId != null)
+              Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+          ],
+        ),
       ),
     );
   }
@@ -522,49 +530,57 @@ class _FormerTeamItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          // Team Badge
-          if (team.teamBadge != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: CachedNetworkImage(
-                imageUrl: team.teamBadge!,
-                width: 36,
-                height: 36,
-                fit: BoxFit.contain,
-                errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 36),
-              ),
-            )
-          else
-            const Icon(Icons.shield, size: 36, color: Colors.grey),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  team.teamName ?? '-',
-                  style: AppTextStyles.body2.copyWith(
-                    fontWeight: FontWeight.w500,
+    return InkWell(
+      onTap: team.teamId != null
+          ? () => context.push('/team/${team.teamId}')
+          : null,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            // Team Badge
+            if (team.teamBadge != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: CachedNetworkImage(
+                  imageUrl: team.teamBadge!,
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.contain,
+                  errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 36),
+                ),
+              )
+            else
+              const Icon(Icons.shield, size: 36, color: Colors.grey),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    team.teamName ?? '-',
+                    style: AppTextStyles.body2.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  team.period,
-                  style: AppTextStyles.caption.copyWith(color: Colors.grey),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    team.period,
+                    style: AppTextStyles.caption.copyWith(color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            if (team.teamId != null)
+              Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+          ],
+        ),
       ),
     );
   }
