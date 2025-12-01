@@ -52,6 +52,9 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   String? _selectedLeague;
   final List<File> _photos = [];
 
+  // 직접 입력용 경기명 (리그명 대신 사용)
+  final _matchNameController = TextEditingController();
+
   // 일기 데이터
   double _rating = 3.0;
   MatchMood? _selectedMood;
@@ -119,6 +122,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
     _companionController.dispose();
     _ticketPriceController.dispose();
     _foodReviewController.dispose();
+    _matchNameController.dispose();
     super.dispose();
   }
 
@@ -200,7 +204,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
           _buildModeSelector(),
           const SizedBox(height: 16),
           if (_isManualMode) _buildManualEntryForm() else _buildEventSearch(),
-          if (_searchResults.isNotEmpty) ...[
+          if (!_isManualMode && _searchResults.isNotEmpty) ...[
             const SizedBox(height: 16),
             Text('검색 결과', style: AppTextStyles.subtitle2),
             const SizedBox(height: 8),
@@ -317,7 +321,13 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
             icon: Icons.search,
             label: '경기 검색',
             isSelected: !_isManualMode,
-            onTap: () => setState(() => _isManualMode = false),
+            onTap: () => setState(() {
+              _isManualMode = false;
+              // 직접 입력 모드에서 선택한 팀 초기화
+              _selectedHomeTeam = null;
+              _selectedAwayTeam = null;
+              _matchNameController.clear();
+            }),
           ),
         ),
         const SizedBox(width: 12),
@@ -326,7 +336,12 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
             icon: Icons.edit,
             label: '직접 입력',
             isSelected: _isManualMode,
-            onTap: () => setState(() => _isManualMode = true),
+            onTap: () => setState(() {
+              _isManualMode = true;
+              // 경기 검색 결과 초기화
+              _searchResults = [];
+              _searchController.clear();
+            }),
           ),
         ),
       ],
@@ -411,26 +426,22 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
       children: [
         _buildDateSelector(),
         const SizedBox(height: 16),
-        Text('리그', style: AppTextStyles.subtitle1),
+        Text('경기명', style: AppTextStyles.subtitle1),
+        const SizedBox(height: 4),
+        Text('예: 친선경기, 프리시즌, FA컵 등', style: AppTextStyles.caption.copyWith(color: Colors.grey)),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: _selectedLeague,
-          decoration: const InputDecoration(hintText: '리그 선택'),
-          items: const [
-            DropdownMenuItem(value: 'English Premier League', child: Text('프리미어리그')),
-            DropdownMenuItem(value: 'Spanish La Liga', child: Text('라리가')),
-            DropdownMenuItem(value: 'German Bundesliga', child: Text('분데스리가')),
-            DropdownMenuItem(value: 'Italian Serie A', child: Text('세리에 A')),
-            DropdownMenuItem(value: 'French Ligue 1', child: Text('리그 1')),
-            DropdownMenuItem(value: 'South Korean K League 1', child: Text('K리그 1')),
-            DropdownMenuItem(value: 'UEFA Champions League', child: Text('챔피언스리그')),
-          ],
-          onChanged: (value) => setState(() => _selectedLeague = value),
+        TextFormField(
+          controller: _matchNameController,
+          decoration: InputDecoration(
+            hintText: '경기명을 입력하세요',
+            hintStyle: TextStyle(color: Colors.grey.shade400),
+            prefixIcon: const Icon(Icons.sports_soccer),
+          ),
         ),
         const SizedBox(height: 16),
-        _buildTeamSearchSection('홈팀', _selectedHomeTeam, (team) => setState(() => _selectedHomeTeam = team)),
+        _buildTeamSearchWithLeagueFilter('홈팀', _selectedHomeTeam, (team) => setState(() => _selectedHomeTeam = team)),
         const SizedBox(height: 16),
-        _buildTeamSearchSection('원정팀', _selectedAwayTeam, (team) => setState(() => _selectedAwayTeam = team)),
+        _buildTeamSearchWithLeagueFilter('원정팀', _selectedAwayTeam, (team) => setState(() => _selectedAwayTeam = team)),
       ],
     );
   }
@@ -457,7 +468,8 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
     );
   }
 
-  Widget _buildTeamSearchSection(String label, SportsDbTeam? selectedTeam, Function(SportsDbTeam?) onSelect) {
+  // 리그 필터가 있는 팀 검색 섹션
+  Widget _buildTeamSearchWithLeagueFilter(String label, SportsDbTeam? selectedTeam, Function(SportsDbTeam?) onSelect) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -466,20 +478,30 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
         if (selectedTeam != null)
           _buildSelectedTeamChip(selectedTeam, () => onSelect(null))
         else
-          TextField(
-            decoration: InputDecoration(
-              hintText: '$label 검색',
-              hintStyle: TextStyle(color: Colors.grey.shade400),
-              prefixIcon: const Icon(Icons.search),
+          OutlinedButton.icon(
+            onPressed: () => _showTeamSearchSheet(label, onSelect),
+            icon: const Icon(Icons.search),
+            label: Text('$label 검색'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 48),
             ),
-            onChanged: (value) async {
-              if (value.length >= 2) {
-                final teams = await _sportsDbService.searchTeams(value);
-                if (mounted && teams.isNotEmpty) _showTeamSelectionDialog(teams, onSelect);
-              }
-            },
           ),
       ],
+    );
+  }
+
+  void _showTeamSearchSheet(String label, Function(SportsDbTeam?) onSelect) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _TeamSearchSheet(
+        label: label,
+        sportsDbService: _sportsDbService,
+        onTeamSelected: (team) {
+          onSelect(team);
+          Navigator.pop(context);
+        },
+      ),
     );
   }
 
@@ -516,7 +538,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   Widget _buildSelectedMatchCard() {
     final homeTeam = _selectedEvent?.homeTeam ?? _selectedHomeTeam?.name ?? '';
     final awayTeam = _selectedEvent?.awayTeam ?? _selectedAwayTeam?.name ?? '';
-    final league = _selectedEvent?.league ?? _selectedLeague ?? '';
+    final league = _selectedEvent?.league ?? (_isManualMode ? _matchNameController.text : _selectedLeague) ?? '';
     final homeBadge = _selectedEvent?.homeTeamBadge ?? _selectedHomeTeam?.badge;
     final awayBadge = _selectedEvent?.awayTeamBadge ?? _selectedAwayTeam?.badge;
 
@@ -1064,42 +1086,6 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
     });
   }
 
-  void _showTeamSelectionDialog(List<SportsDbTeam> teams, Function(SportsDbTeam?) onSelect) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.3,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) => Column(
-          children: [
-            Padding(padding: const EdgeInsets.all(16), child: Text('팀 선택', style: AppTextStyles.headline3)),
-            Expanded(
-              child: ListView.builder(
-                controller: scrollController,
-                itemCount: teams.length,
-                itemBuilder: (context, index) {
-                  final team = teams[index];
-                  return ListTile(
-                    leading: team.badge != null ? Image.network(team.badge!, width: 40, height: 40, errorBuilder: (_, __, ___) => const Icon(Icons.sports_soccer)) : const Icon(Icons.sports_soccer),
-                    title: Text(team.name),
-                    subtitle: Text(team.league ?? ''),
-                    onTap: () {
-                      onSelect(team);
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final image = await picker.pickImage(source: source);
@@ -1141,7 +1127,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
         id: '',
         userId: userId,
         date: _selectedDate,
-        league: _selectedEvent?.league ?? _selectedLeague ?? '',
+        league: _selectedEvent?.league ?? (_isManualMode ? _matchNameController.text : _selectedLeague) ?? '',
         homeTeamId: _selectedEvent?.homeTeamId ?? _selectedHomeTeam?.id ?? '',
         homeTeamName: _selectedEvent?.homeTeam ?? _selectedHomeTeam?.name ?? '',
         homeTeamLogo: _selectedEvent?.homeTeamBadge ?? _selectedHomeTeam?.badge,
@@ -1573,6 +1559,288 @@ class _TeamPlayersDialogState extends State<_TeamPlayersDialog> with SingleTicke
           onTap: () => widget.onPlayerSelected(player),
         );
       },
+    );
+  }
+}
+
+class _TeamSearchSheet extends StatefulWidget {
+  final String label;
+  final SportsDbService sportsDbService;
+  final Function(SportsDbTeam) onTeamSelected;
+
+  const _TeamSearchSheet({
+    required this.label,
+    required this.sportsDbService,
+    required this.onTeamSelected,
+  });
+
+  @override
+  State<_TeamSearchSheet> createState() => _TeamSearchSheetState();
+}
+
+class _TeamSearchSheetState extends State<_TeamSearchSheet> {
+  final _searchController = TextEditingController();
+  final _manualTeamNameController = TextEditingController();
+  String? _selectedLeague;
+  List<SportsDbTeam> _searchResults = [];
+  List<SportsDbTeam> _leagueTeams = []; // 리그별 팀 목록
+  bool _isSearching = false;
+  bool _isLoadingLeagueTeams = false;
+  bool _showManualEntry = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _manualTeamNameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _searchTeams(String query) async {
+    if (query.length < 2) return;
+
+    setState(() => _isSearching = true);
+    try {
+      final teams = await widget.sportsDbService.searchTeams(query);
+
+      // 리그 필터 적용
+      final filteredTeams = _selectedLeague != null
+          ? teams.where((t) => t.league == _selectedLeague).toList()
+          : teams;
+
+      if (mounted) {
+        setState(() => _searchResults = filteredTeams);
+      }
+    } finally {
+      if (mounted) setState(() => _isSearching = false);
+    }
+  }
+
+  Future<void> _loadLeagueTeams(String leagueId) async {
+    setState(() {
+      _isLoadingLeagueTeams = true;
+      _leagueTeams = [];
+    });
+
+    try {
+      final teams = await widget.sportsDbService.getTeamsByLeague(leagueId);
+      if (mounted) {
+        setState(() => _leagueTeams = teams);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingLeagueTeams = false);
+    }
+  }
+
+  void _createManualTeam() {
+    final teamName = _manualTeamNameController.text.trim();
+    if (teamName.isEmpty) return;
+
+    // 수동으로 팀 객체 생성
+    final manualTeam = SportsDbTeam(
+      id: 'manual_${DateTime.now().millisecondsSinceEpoch}',
+      name: teamName,
+      league: _selectedLeague,
+      badge: null,
+      stadium: null,
+    );
+
+    widget.onTeamSelected(manualTeam);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('${widget.label} 검색', style: AppTextStyles.headline3),
+                TextButton.icon(
+                  onPressed: () => setState(() => _showManualEntry = !_showManualEntry),
+                  icon: Icon(_showManualEntry ? Icons.search : Icons.edit, size: 18),
+                  label: Text(_showManualEntry ? '검색으로' : '직접 입력'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            if (_showManualEntry) ...[
+              // 직접 입력 모드
+              Text('팀 이름을 직접 입력하세요', style: AppTextStyles.caption.copyWith(color: Colors.grey)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _manualTeamNameController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: '팀 이름',
+                  hintStyle: TextStyle(color: Colors.grey.shade400),
+                  prefixIcon: const Icon(Icons.shield),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _manualTeamNameController.text.trim().isNotEmpty ? _createManualTeam : null,
+                  child: const Text('이 팀으로 선택'),
+                ),
+              ),
+            ] else ...[
+              // 검색 모드
+              // 리그 선택
+              Text('리그 선택', style: AppTextStyles.caption.copyWith(color: Colors.grey)),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: AppConstants.supportedLeagues.map((league) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _LeagueFilterChip(
+                      label: AppConstants.getLeagueDisplayName(league),
+                      isSelected: _selectedLeague == league,
+                      onTap: () {
+                        setState(() {
+                          _selectedLeague = league;
+                          _searchController.clear();
+                          _searchResults = [];
+                        });
+                        _loadLeagueTeams(league);
+                      },
+                    ),
+                  )).toList(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 검색 필드
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: '팀 이름으로 검색',
+                  hintStyle: TextStyle(color: Colors.grey.shade400),
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _isSearching
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                        )
+                      : null,
+                ),
+                onChanged: (value) {
+                  if (value.length >= 2) {
+                    _searchTeams(value);
+                  } else {
+                    setState(() => _searchResults = []);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              // 팀 목록
+              Expanded(
+                child: _buildTeamList(scrollController),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTeamList(ScrollController scrollController) {
+    // 검색 결과가 있으면 검색 결과 표시
+    if (_searchResults.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('검색 결과', style: AppTextStyles.caption.copyWith(color: AppColors.primary)),
+          const SizedBox(height: 8),
+          Expanded(
+            child: ListView.builder(
+              controller: scrollController,
+              itemCount: _searchResults.length,
+              itemBuilder: (context, index) => _buildTeamTile(_searchResults[index]),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // 리그 팀 목록 로딩 중
+    if (_isLoadingLeagueTeams) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // 리그가 선택되고 팀 목록이 있으면 표시
+    if (_leagueTeams.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${AppConstants.getLeagueDisplayName(_selectedLeague!)} 팀 목록',
+            style: AppTextStyles.caption.copyWith(color: AppColors.primary),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: ListView.builder(
+              controller: scrollController,
+              itemCount: _leagueTeams.length,
+              itemBuilder: (context, index) => _buildTeamTile(_leagueTeams[index]),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // 기본 상태: 리그 선택 안내
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.sports_soccer, size: 48, color: Colors.grey.shade400),
+          const SizedBox(height: 16),
+          Text(
+            '리그를 선택하거나\n팀 이름을 검색하세요',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTeamTile(SportsDbTeam team) {
+    return ListTile(
+      leading: team.badge != null
+          ? CachedNetworkImage(
+              imageUrl: team.badge!,
+              width: 40,
+              height: 40,
+              fit: BoxFit.contain,
+              errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 40),
+            )
+          : const Icon(Icons.shield, size: 40),
+      title: Text(team.name, style: const TextStyle(color: Colors.black87)),
+      subtitle: Text(team.league ?? '', style: TextStyle(color: Colors.grey.shade600)),
+      onTap: () => widget.onTeamSelected(team),
     );
   }
 }
