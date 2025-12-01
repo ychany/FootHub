@@ -275,8 +275,9 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
           TextFormField(
             controller: _contentController,
             maxLines: 6,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: '오늘 경기는 어땠나요? 자유롭게 기록해보세요.',
+              hintStyle: TextStyle(color: Colors.grey.shade400),
               alignLabelWithHint: true,
             ),
           ),
@@ -405,7 +406,48 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
       children: [
         Text(label, style: AppTextStyles.subtitle1),
         const SizedBox(height: 8),
-        TextFormField(controller: controller, decoration: InputDecoration(hintText: hintText, prefixIcon: Icon(icon))),
+        TextFormField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: TextStyle(color: Colors.grey.shade400),
+            prefixIcon: Icon(icon),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTicketPriceField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('티켓 가격', style: AppTextStyles.subtitle1),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _ticketPriceController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            hintText: '예: 50,000',
+            hintStyle: TextStyle(color: Colors.grey.shade400),
+            prefixIcon: const Icon(Icons.confirmation_number),
+            suffixText: '원',
+          ),
+          onChanged: (value) {
+            // 숫자만 추출
+            final numericValue = value.replaceAll(RegExp(r'[^0-9]'), '');
+            if (numericValue.isNotEmpty) {
+              final number = int.parse(numericValue);
+              final formatted = NumberFormat('#,###').format(number);
+              if (formatted != value) {
+                _ticketPriceController.value = TextEditingValue(
+                  text: formatted,
+                  selection: TextSelection.collapsed(offset: formatted.length),
+                );
+              }
+            }
+          },
+        ),
       ],
     );
   }
@@ -613,9 +655,25 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
               ],
             ),
           )
+        else if (_homeTeamId.isNotEmpty || _awayTeamId.isNotEmpty)
+          // 경기가 있는 경우: 두 팀 선수 중에서 선택
+          OutlinedButton.icon(
+            onPressed: () => _showTeamPlayersDialog(
+              homeTeamId: _homeTeamId.isNotEmpty ? _homeTeamId : null,
+              awayTeamId: _awayTeamId.isNotEmpty ? _awayTeamId : null,
+              homeTeamName: _homeTeamName,
+              awayTeamName: _awayTeamName,
+            ),
+            icon: const Icon(Icons.person_search),
+            label: const Text('선수 선택'),
+          )
         else
           TextField(
-            decoration: const InputDecoration(hintText: '선수 이름 검색', prefixIcon: Icon(Icons.person_search)),
+            decoration: InputDecoration(
+              hintText: '선수 이름 검색',
+              hintStyle: TextStyle(color: Colors.grey.shade400),
+              prefixIcon: const Icon(Icons.person_search),
+            ),
             onChanged: (value) async {
               if (value.length >= 2) {
                 final players = await _sportsDbService.searchPlayers(value);
@@ -624,6 +682,28 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
             },
           ),
       ],
+    );
+  }
+
+  Future<void> _showTeamPlayersDialog({
+    String? homeTeamId,
+    String? awayTeamId,
+    String? homeTeamName,
+    String? awayTeamName,
+  }) async {
+    showDialog(
+      context: context,
+      builder: (context) => _TeamPlayersDialog(
+        homeTeamId: homeTeamId,
+        awayTeamId: awayTeamId,
+        homeTeamName: homeTeamName,
+        awayTeamName: awayTeamName,
+        sportsDbService: _sportsDbService,
+        onPlayerSelected: (player) {
+          setState(() => _selectedMvp = player);
+          Navigator.pop(context);
+        },
+      ),
     );
   }
 
@@ -638,7 +718,7 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
           runSpacing: 8,
           children: [
             ..._tags.map((tag) => Chip(
-              label: Text('#$tag'),
+              label: Text('#$tag', style: const TextStyle(color: Colors.black87)),
               deleteIcon: const Icon(Icons.close, size: 18),
               onDeleted: () => setState(() => _tags.remove(tag)),
             )),
@@ -646,7 +726,13 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
               width: 120,
               child: TextField(
                 controller: _tagController,
-                decoration: const InputDecoration(hintText: '태그 추가', isDense: true, border: InputBorder.none, prefixText: '#'),
+                decoration: InputDecoration(
+                  hintText: '태그 추가',
+                  hintStyle: TextStyle(color: Colors.grey.shade400),
+                  isDense: true,
+                  border: InputBorder.none,
+                  prefixText: '#',
+                ),
                 onSubmitted: (value) {
                   if (value.isNotEmpty && !_tags.contains(value)) {
                     setState(() {
@@ -664,7 +750,7 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
           spacing: 8,
           children: ['승리', '역전', '골잔치', '클린시트', '첫직관', '원정'].map((tag) {
             return ActionChip(
-              label: Text('#$tag', style: AppTextStyles.caption),
+              label: Text('#$tag', style: AppTextStyles.caption.copyWith(color: Colors.black87)),
               onPressed: () {
                 if (!_tags.contains(tag)) setState(() => _tags.add(tag));
               },
@@ -688,17 +774,28 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
           spacing: 8,
           children: _weatherOptions.map((weather) {
             final isSelected = _selectedWeather == weather;
-            return ChoiceChip(label: Text(weather), selected: isSelected, onSelected: (selected) => setState(() => _selectedWeather = selected ? weather : null));
+            return ChoiceChip(
+              label: Text(weather, style: TextStyle(color: isSelected ? Colors.white : Colors.black87)),
+              selected: isSelected,
+              onSelected: (selected) => setState(() => _selectedWeather = selected ? weather : null),
+            );
           }).toList(),
         ),
         const SizedBox(height: 16),
         _buildTextField(controller: _companionController, label: '함께 간 사람', icon: Icons.people, hintText: '예: 친구들, 가족'),
         const SizedBox(height: 16),
-        _buildTextField(controller: _ticketPriceController, label: '티켓 가격', icon: Icons.confirmation_number, hintText: '원'),
+        _buildTicketPriceField(),
         const SizedBox(height: 16),
         Text('경기장 음식', style: AppTextStyles.subtitle2),
         const SizedBox(height: 8),
-        TextFormField(controller: _foodReviewController, maxLines: 2, decoration: const InputDecoration(hintText: '먹은 음식, 맛 평가 등')),
+        TextFormField(
+          controller: _foodReviewController,
+          maxLines: 2,
+          decoration: InputDecoration(
+            hintText: '먹은 음식, 맛 평가 등',
+            hintStyle: TextStyle(color: Colors.grey.shade400),
+          ),
+        ),
       ],
     );
   }
@@ -904,6 +1001,153 @@ class _TeamSelectButton extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _TeamPlayersDialog extends StatefulWidget {
+  final String? homeTeamId;
+  final String? awayTeamId;
+  final String? homeTeamName;
+  final String? awayTeamName;
+  final SportsDbService sportsDbService;
+  final Function(SportsDbPlayer) onPlayerSelected;
+
+  const _TeamPlayersDialog({
+    this.homeTeamId,
+    this.awayTeamId,
+    this.homeTeamName,
+    this.awayTeamName,
+    required this.sportsDbService,
+    required this.onPlayerSelected,
+  });
+
+  @override
+  State<_TeamPlayersDialog> createState() => _TeamPlayersDialogState();
+}
+
+class _TeamPlayersDialogState extends State<_TeamPlayersDialog> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  List<SportsDbPlayer> _homePlayers = [];
+  List<SportsDbPlayer> _awayPlayers = [];
+  bool _isLoading = true;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _loadPlayers();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadPlayers() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final futures = <Future>[];
+
+      if (widget.homeTeamId != null) {
+        futures.add(widget.sportsDbService.getPlayersByTeam(widget.homeTeamId!).then((players) {
+          _homePlayers = players;
+        }));
+      }
+
+      if (widget.awayTeamId != null) {
+        futures.add(widget.sportsDbService.getPlayersByTeam(widget.awayTeamId!).then((players) {
+          _awayPlayers = players;
+        }));
+      }
+
+      await Future.wait(futures);
+    } catch (e) {
+      // 에러 무시
+    }
+
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  List<SportsDbPlayer> _filterPlayers(List<SportsDbPlayer> players) {
+    if (_searchQuery.isEmpty) return players;
+    return players.where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        height: MediaQuery.of(context).size.height * 0.7,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('MVP 선택', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              decoration: InputDecoration(
+                hintText: '선수 이름 검색',
+                hintStyle: TextStyle(color: Colors.grey.shade400),
+                prefixIcon: const Icon(Icons.search),
+                isDense: true,
+              ),
+              onChanged: (value) => setState(() => _searchQuery = value),
+            ),
+            const SizedBox(height: 12),
+            TabBar(
+              controller: _tabController,
+              labelColor: AppColors.primary,
+              tabs: [
+                Tab(text: widget.homeTeamName ?? '홈팀'),
+                Tab(text: widget.awayTeamName ?? '원정팀'),
+              ],
+            ),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildPlayerList(_filterPlayers(_homePlayers)),
+                        _buildPlayerList(_filterPlayers(_awayPlayers)),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlayerList(List<SportsDbPlayer> players) {
+    if (players.isEmpty) {
+      return const Center(child: Text('선수 정보가 없습니다'));
+    }
+
+    return ListView.builder(
+      itemCount: players.length,
+      itemBuilder: (context, index) {
+        final player = players[index];
+        return ListTile(
+          leading: player.thumb != null
+              ? CircleAvatar(backgroundImage: NetworkImage(player.thumb!))
+              : const CircleAvatar(child: Icon(Icons.person)),
+          title: Text(player.name, style: const TextStyle(color: Colors.black87)),
+          subtitle: Text(player.position ?? '', style: TextStyle(color: Colors.grey.shade600)),
+          trailing: player.number != null ? Text('#${player.number}') : null,
+          onTap: () => widget.onPlayerSelected(player),
+        );
+      },
     );
   }
 }
