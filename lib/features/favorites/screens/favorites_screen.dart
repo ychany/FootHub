@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
@@ -212,15 +213,19 @@ class _TeamCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
+        onTap: () => context.push('/team/${team.id}'),
         leading: TeamLogo(
           logoUrl: team.logoUrl,
           teamName: team.name,
           size: 48,
         ),
-        title: Text(team.nameKr, style: AppTextStyles.subtitle1),
+        title: Text(
+          team.nameKr,
+          style: AppTextStyles.subtitle1.copyWith(color: Colors.black87),
+        ),
         subtitle: Text(
           '${team.league} | ${team.stadiumName ?? ""}',
-          style: AppTextStyles.caption,
+          style: AppTextStyles.caption.copyWith(color: Colors.grey.shade600),
         ),
         trailing: IconButton(
           icon: const Icon(Icons.favorite, color: AppColors.error),
@@ -268,18 +273,25 @@ class _PlayerCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
+        onTap: () => context.push('/player/${player.id}'),
         leading: CircleAvatar(
           radius: 24,
           backgroundImage:
               player.photoUrl != null ? NetworkImage(player.photoUrl!) : null,
           child: player.photoUrl == null
-              ? Text(player.name.substring(0, 1))
+              ? Text(
+                  player.name.isNotEmpty ? player.name.substring(0, 1) : '?',
+                  style: const TextStyle(color: Colors.white),
+                )
               : null,
         ),
-        title: Text(player.nameKr, style: AppTextStyles.subtitle1),
+        title: Text(
+          player.nameKr,
+          style: AppTextStyles.subtitle1.copyWith(color: Colors.black87),
+        ),
         subtitle: Text(
           '${player.teamName} | ${player.position}',
-          style: AppTextStyles.caption,
+          style: AppTextStyles.caption.copyWith(color: Colors.grey.shade600),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -447,39 +459,95 @@ class _AddTeamSheetState extends ConsumerState<_AddTeamSheet> {
       return const Center(child: Text('팀을 찾을 수 없습니다'));
     }
 
+    // StreamProvider를 사용하여 실시간으로 즐겨찾기 상태 확인
+    final favoriteTeamIdsAsync = ref.watch(favoriteTeamIdsProvider);
+
     return ListView.builder(
       controller: widget.scrollController,
       itemCount: teams.length,
       itemBuilder: (context, index) {
         final team = teams[index];
-        final isFollowedAsync = ref.watch(isTeamFollowedProvider(team.id));
 
-        return ListTile(
-          leading: TeamLogo(
-            logoUrl: team.logoUrl,
-            teamName: team.name,
-            size: 40,
-          ),
-          title: Text(team.nameKr),
-          subtitle: Text(team.league),
-          trailing: isFollowedAsync.when(
-            data: (isFollowed) => IconButton(
-              icon: Icon(
-                isFollowed ? Icons.favorite : Icons.favorite_border,
-                color: isFollowed ? AppColors.error : null,
+        return favoriteTeamIdsAsync.when(
+          data: (favoriteIds) {
+            final isFollowed = favoriteIds.contains(team.id);
+            return ListTile(
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/team/${team.id}');
+              },
+              leading: TeamLogo(
+                logoUrl: team.logoUrl,
+                teamName: team.name,
+                size: 40,
               ),
+              title: Text(
+                team.nameKr,
+                style: const TextStyle(color: Colors.black87),
+              ),
+              subtitle: Text(
+                team.league,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+              trailing: IconButton(
+                icon: Icon(
+                  isFollowed ? Icons.favorite : Icons.favorite_border,
+                  color: isFollowed ? AppColors.error : Colors.grey,
+                ),
+                onPressed: () {
+                  ref
+                      .read(favoritesNotifierProvider.notifier)
+                      .toggleTeamFollow(team.id);
+                },
+              ),
+            );
+          },
+          loading: () => ListTile(
+            leading: TeamLogo(
+              logoUrl: team.logoUrl,
+              teamName: team.name,
+              size: 40,
+            ),
+            title: Text(
+              team.nameKr,
+              style: const TextStyle(color: Colors.black87),
+            ),
+            subtitle: Text(
+              team.league,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            trailing: const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+          error: (_, __) => ListTile(
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/team/${team.id}');
+            },
+            leading: TeamLogo(
+              logoUrl: team.logoUrl,
+              teamName: team.name,
+              size: 40,
+            ),
+            title: Text(
+              team.nameKr,
+              style: const TextStyle(color: Colors.black87),
+            ),
+            subtitle: Text(
+              team.league,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            trailing: IconButton(
+              icon: const Icon(Icons.favorite_border, color: Colors.grey),
               onPressed: () {
                 ref
                     .read(favoritesNotifierProvider.notifier)
                     .toggleTeamFollow(team.id);
               },
             ),
-            loading: () => const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            error: (_, __) => const Icon(Icons.error),
           ),
         );
       },
@@ -507,8 +575,6 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final searchResults = ref.watch(playerSearchResultsProvider);
-
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -543,61 +609,137 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
 
           // Results
           Expanded(
-            child: searchResults.when(
-              data: (players) {
-                if (players.isEmpty) {
-                  return const Center(
-                    child: Text('선수 이름으로 검색하세요'),
-                  );
-                }
-                return ListView.builder(
-                  controller: widget.scrollController,
-                  itemCount: players.length,
-                  itemBuilder: (context, index) {
-                    final player = players[index];
-                    final isFollowedAsync =
-                        ref.watch(isPlayerFollowedProvider(player.id));
-
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: player.photoUrl != null
-                            ? NetworkImage(player.photoUrl!)
-                            : null,
-                        child: player.photoUrl == null
-                            ? Text(player.name.substring(0, 1))
-                            : null,
-                      ),
-                      title: Text(player.nameKr),
-                      subtitle: Text('${player.teamName} | ${player.position}'),
-                      trailing: isFollowedAsync.when(
-                        data: (isFollowed) => IconButton(
-                          icon: Icon(
-                            isFollowed ? Icons.favorite : Icons.favorite_border,
-                            color: isFollowed ? AppColors.error : null,
-                          ),
-                          onPressed: () {
-                            ref
-                                .read(favoritesNotifierProvider.notifier)
-                                .togglePlayerFollow(player.id);
-                          },
-                        ),
-                        loading: () => const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        error: (_, __) => const Icon(Icons.error),
-                      ),
-                    );
-                  },
-                );
-              },
-              loading: () => const LoadingIndicator(),
-              error: (e, _) => Center(child: Text('Error: $e')),
-            ),
+            child: _buildPlayerResults(),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPlayerResults() {
+    final searchQuery = ref.watch(playerSearchQueryProvider);
+
+    if (searchQuery.isEmpty) {
+      return const Center(
+        child: Text('선수 이름으로 검색하세요'),
+      );
+    }
+
+    final searchResults = ref.watch(playerSearchResultsProvider);
+    final favoritePlayerIdsAsync = ref.watch(favoritePlayerIdsProvider);
+
+    return searchResults.when(
+      data: (players) {
+        if (players.isEmpty) {
+          return const Center(child: Text('선수를 찾을 수 없습니다'));
+        }
+        return ListView.builder(
+          controller: widget.scrollController,
+          itemCount: players.length,
+          itemBuilder: (context, index) {
+            final player = players[index];
+
+            return favoritePlayerIdsAsync.when(
+              data: (favoriteIds) {
+                final isFollowed = favoriteIds.contains(player.id);
+                return ListTile(
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/player/${player.id}');
+                  },
+                  leading: CircleAvatar(
+                    backgroundImage: player.photoUrl != null
+                        ? NetworkImage(player.photoUrl!)
+                        : null,
+                    child: player.photoUrl == null
+                        ? Text(
+                            player.name.isNotEmpty ? player.name.substring(0, 1) : '?',
+                            style: const TextStyle(color: Colors.white),
+                          )
+                        : null,
+                  ),
+                  title: Text(
+                    player.nameKr,
+                    style: const TextStyle(color: Colors.black87),
+                  ),
+                  subtitle: Text(
+                    '${player.teamName} | ${player.position}',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                  trailing: IconButton(
+                    icon: Icon(
+                      isFollowed ? Icons.favorite : Icons.favorite_border,
+                      color: isFollowed ? AppColors.error : Colors.grey,
+                    ),
+                    onPressed: () {
+                      ref
+                          .read(favoritesNotifierProvider.notifier)
+                          .togglePlayerFollow(player.id);
+                    },
+                  ),
+                );
+              },
+              loading: () => ListTile(
+                leading: CircleAvatar(
+                  backgroundImage: player.photoUrl != null
+                      ? NetworkImage(player.photoUrl!)
+                      : null,
+                  child: player.photoUrl == null
+                      ? Text(
+                          player.name.isNotEmpty ? player.name.substring(0, 1) : '?',
+                          style: const TextStyle(color: Colors.white),
+                        )
+                      : null,
+                ),
+                title: Text(
+                  player.nameKr,
+                  style: const TextStyle(color: Colors.black87),
+                ),
+                subtitle: Text(
+                  '${player.teamName} | ${player.position}',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+                trailing: const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+              error: (_, __) => ListTile(
+                leading: CircleAvatar(
+                  backgroundImage: player.photoUrl != null
+                      ? NetworkImage(player.photoUrl!)
+                      : null,
+                  child: player.photoUrl == null
+                      ? Text(
+                          player.name.isNotEmpty ? player.name.substring(0, 1) : '?',
+                          style: const TextStyle(color: Colors.white),
+                        )
+                      : null,
+                ),
+                title: Text(
+                  player.nameKr,
+                  style: const TextStyle(color: Colors.black87),
+                ),
+                subtitle: Text(
+                  '${player.teamName} | ${player.position}',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.favorite_border, color: Colors.grey),
+                  onPressed: () {
+                    ref
+                        .read(favoritesNotifierProvider.notifier)
+                        .togglePlayerFollow(player.id);
+                  },
+                ),
+              ),
+            );
+          },
+        );
+      },
+      loading: () => const LoadingIndicator(),
+      error: (e, _) => Center(child: Text('Error: $e')),
     );
   }
 }
@@ -618,10 +760,17 @@ class _LeagueFilterChip extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
-        label: Text(label),
+        label: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? AppColors.primary : Colors.black87,
+          ),
+        ),
         selected: isSelected,
         onSelected: (_) => onTap(),
         selectedColor: AppColors.primary.withValues(alpha: 0.2),
+        backgroundColor: Colors.grey.shade200,
+        checkmarkColor: AppColors.primary,
       ),
     );
   }

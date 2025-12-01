@@ -455,18 +455,44 @@ class _FavoriteTeamSchedulesSection extends ConsumerWidget {
                 return _EmptyFavoriteTeamsCard();
               }
 
-              return Column(
-                children: teamEvents.map((te) => _FavoriteTeamScheduleCard(
-                  team: te.team,
-                  events: te.events,
-                )).toList(),
+              // 모든 경기를 하나의 리스트로 플래튼
+              final allMatches = <_MatchWithTeam>[];
+              for (final te in teamEvents) {
+                for (final event in te.events) {
+                  allMatches.add(_MatchWithTeam(team: te.team, event: event));
+                }
+              }
+
+              // 날짜순 정렬
+              allMatches.sort((a, b) {
+                final aDate = a.event.dateTime ?? DateTime.now();
+                final bDate = b.event.dateTime ?? DateTime.now();
+                return aDate.compareTo(bDate);
+              });
+
+              return SizedBox(
+                height: 180,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: allMatches.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final match = allMatches[index];
+                    return _MatchCard(
+                      team: match.team,
+                      event: match.event,
+                      onTap: () => context.push('/team/${match.team.id}'),
+                    );
+                  },
+                ),
               );
             },
             loading: () => const SizedBox(
-              height: 120,
+              height: 180,
               child: Center(child: CircularProgressIndicator()),
             ),
             error: (_, __) => Container(
+              height: 180,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
@@ -484,6 +510,13 @@ class _FavoriteTeamSchedulesSection extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _MatchWithTeam {
+  final SportsDbTeam team;
+  final SportsDbEvent event;
+
+  _MatchWithTeam({required this.team, required this.event});
 }
 
 class _EmptyFavoriteTeamsCard extends StatelessWidget {
@@ -522,84 +555,167 @@ class _EmptyFavoriteTeamsCard extends StatelessWidget {
   }
 }
 
-class _FavoriteTeamScheduleCard extends StatelessWidget {
+class _MatchCard extends StatelessWidget {
   final SportsDbTeam team;
-  final List<SportsDbEvent> events;
+  final SportsDbEvent event;
+  final VoidCallback onTap;
 
-  const _FavoriteTeamScheduleCard({
+  const _MatchCard({
     required this.team,
-    required this.events,
+    required this.event,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () => context.push('/team/${team.id}'),
+        onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
+        child: Container(
+          width: 280,
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 팀 헤더
+              // 내 팀 표시 + 날짜
               Row(
                 children: [
                   if (team.badge != null)
                     CachedNetworkImage(
                       imageUrl: team.badge!,
-                      width: 32,
-                      height: 32,
+                      width: 24,
+                      height: 24,
                       fit: BoxFit.contain,
-                      errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 32),
+                      errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 24),
                     )
                   else
-                    const Icon(Icons.shield, size: 32, color: Colors.grey),
-                  const SizedBox(width: 10),
+                    const Icon(Icons.shield, size: 24, color: Colors.grey),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       team.name,
-                      style: AppTextStyles.subtitle2,
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      _formatDate(event.dateTime),
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 8),
-              // 다음 경기들
-              ...events.map((event) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
+              // 경기 정보 (팀 vs 팀)
+              Expanded(
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        _formatDate(event.dateTime),
-                        style: AppTextStyles.caption.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    // 홈팀
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (event.homeTeamBadge != null)
+                            CachedNetworkImage(
+                              imageUrl: event.homeTeamBadge!,
+                              width: 44,
+                              height: 44,
+                              fit: BoxFit.contain,
+                              errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 44),
+                            )
+                          else
+                            const Icon(Icons.shield, size: 44, color: Colors.grey),
+                          const SizedBox(height: 6),
+                          Text(
+                            event.homeTeam ?? '-',
+                            style: AppTextStyles.caption,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    // VS
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'VS',
+                            style: AppTextStyles.subtitle2.copyWith(
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatTime(event.dateTime),
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // 원정팀
                     Expanded(
-                      child: Text(
-                        '${event.homeTeam ?? "-"} vs ${event.awayTeam ?? "-"}',
-                        style: AppTextStyles.body2,
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (event.awayTeamBadge != null)
+                            CachedNetworkImage(
+                              imageUrl: event.awayTeamBadge!,
+                              width: 44,
+                              height: 44,
+                              fit: BoxFit.contain,
+                              errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 44),
+                            )
+                          else
+                            const Icon(Icons.shield, size: 44, color: Colors.grey),
+                          const SizedBox(height: 6),
+                          Text(
+                            event.awayTeam ?? '-',
+                            style: AppTextStyles.caption,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              )),
+              ),
+              // 리그명
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.sports_soccer, size: 12, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  Text(
+                    event.league ?? '',
+                    style: AppTextStyles.caption.copyWith(
+                      color: Colors.grey.shade600,
+                      fontSize: 11,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -609,7 +725,12 @@ class _FavoriteTeamScheduleCard extends StatelessWidget {
 
   String _formatDate(DateTime? dt) {
     if (dt == null) return '-';
-    return DateFormat('MM/dd HH:mm').format(dt);
+    return DateFormat('MM/dd (E)', 'ko').format(dt);
+  }
+
+  String _formatTime(DateTime? dt) {
+    if (dt == null) return '-';
+    return DateFormat('HH:mm').format(dt);
   }
 }
 

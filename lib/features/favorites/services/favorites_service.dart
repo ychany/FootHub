@@ -44,9 +44,23 @@ class FavoritesService {
 
     final teams = <Team>[];
     for (final teamId in teamIds) {
+      // 먼저 Firestore에서 확인
       final doc = await _teamsCollection.doc(teamId).get();
       if (doc.exists) {
         teams.add(Team.fromFirestore(doc));
+      } else {
+        // Firestore에 없으면 API에서 가져와서 저장 후 반환
+        try {
+          final sportsDbTeam = await _sportsDbService.getTeamById(teamId);
+          if (sportsDbTeam != null) {
+            final team = _convertSportsDbTeam(sportsDbTeam);
+            teams.add(team);
+            // 백그라운드로 저장
+            _saveTeamToFirestore(teamId);
+          }
+        } catch (e) {
+          // API 실패시 무시
+        }
       }
     }
     return teams;
@@ -144,9 +158,23 @@ class FavoritesService {
 
     final players = <Player>[];
     for (final playerId in playerIds) {
+      // 먼저 Firestore에서 확인
       final doc = await _playersCollection.doc(playerId).get();
       if (doc.exists) {
         players.add(Player.fromFirestore(doc));
+      } else {
+        // Firestore에 없으면 API에서 가져와서 저장 후 반환
+        try {
+          final sportsDbPlayer = await _sportsDbService.getPlayerById(playerId);
+          if (sportsDbPlayer != null) {
+            final player = _convertSportsDbPlayer(sportsDbPlayer);
+            players.add(player);
+            // 백그라운드로 저장
+            _savePlayerToFirestore(playerId);
+          }
+        } catch (e) {
+          // API 실패시 무시
+        }
       }
     }
     return players;
