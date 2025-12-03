@@ -94,10 +94,8 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildHeader(BuildContext context, dynamic user) {
     final userName = user?.displayName ?? '축구팬';
-    final hour = DateTime.now().hour;
-    final greeting = hour < 12
-        ? '좋은 아침이에요'
-        : (hour < 18 ? '좋은 오후예요' : '좋은 저녁이에요');
+    final now = DateTime.now();
+    final dateStr = DateFormat('M월 d일 EEEE', 'ko').format(now);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -134,18 +132,18 @@ class HomeScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  greeting,
+                  dateStr,
                   style: TextStyle(
                     color: _textSecondary,
-                    fontSize: 13,
+                    fontSize: 12,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$userName님',
+                  '안녕하세요, $userName님',
                   style: const TextStyle(
                     color: _textPrimary,
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -453,7 +451,7 @@ class _LiveScoresSection extends ConsumerWidget {
         if (liveEvents.isEmpty) return const SizedBox.shrink();
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -485,7 +483,7 @@ class _LiveScoresSection extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               SizedBox(
                 height: 100,
                 child: ListView.separated(
@@ -647,7 +645,7 @@ class _FavoriteScheduleSection extends ConsumerWidget {
     final teamEventsAsync = ref.watch(favoriteTeamNextEventsProvider);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -674,7 +672,7 @@ class _FavoriteScheduleSection extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           teamEventsAsync.when(
             data: (teamEvents) {
               if (teamEvents.isEmpty) {
@@ -900,7 +898,7 @@ class _RecentRecordsSection extends ConsumerWidget {
     final attendanceAsync = ref.watch(attendanceListProvider);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -927,7 +925,7 @@ class _RecentRecordsSection extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           attendanceAsync.when(
             data: (records) {
               if (records.isEmpty) {
