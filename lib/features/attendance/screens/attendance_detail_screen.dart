@@ -1,36 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_theme.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/services/sports_db_service.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/photo_carousel.dart';
-import '../../../shared/widgets/team_logo.dart';
 import '../models/attendance_record.dart';
 import '../providers/attendance_provider.dart';
 
 // Provider for match stats
-final attendanceMatchStatsProvider = FutureProvider.family<SportsDbEventStats?, String>((ref, eventId) async {
+final attendanceMatchStatsProvider =
+    FutureProvider.family<SportsDbEventStats?, String>((ref, eventId) async {
   final service = SportsDbService();
   return service.getEventStats(eventId);
 });
 
 // Provider for match timeline
-final attendanceMatchTimelineProvider = FutureProvider.family<List<SportsDbTimeline>, String>((ref, eventId) async {
+final attendanceMatchTimelineProvider =
+    FutureProvider.family<List<SportsDbTimeline>, String>((ref, eventId) async {
   final service = SportsDbService();
   return service.getEventTimeline(eventId);
 });
 
 // Provider for match lineup
-final attendanceMatchLineupProvider = FutureProvider.family<SportsDbLineup?, String>((ref, eventId) async {
+final attendanceMatchLineupProvider =
+    FutureProvider.family<SportsDbLineup?, String>((ref, eventId) async {
   final service = SportsDbService();
   return service.getEventLineup(eventId);
 });
 
 class AttendanceDetailScreen extends ConsumerWidget {
   final String recordId;
+
+  static const _background = Color(0xFFF9FAFB);
 
   const AttendanceDetailScreen({
     super.key,
@@ -41,16 +45,22 @@ class AttendanceDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final recordAsync = ref.watch(attendanceDetailProvider(recordId));
 
-    return Scaffold(
-      body: recordAsync.when(
-        data: (record) {
-          if (record == null) {
-            return const Center(child: Text('기록을 찾을 수 없습니다'));
-          }
-          return _DetailContent(record: record);
-        },
-        loading: () => const LoadingIndicator(),
-        error: (e, _) => Center(child: Text('Error: $e')),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
+      child: Scaffold(
+        backgroundColor: _background,
+        body: recordAsync.when(
+          data: (record) {
+            if (record == null) {
+              return const Center(child: Text('기록을 찾을 수 없습니다'));
+            }
+            return _DetailContent(record: record);
+          },
+          loading: () => const LoadingIndicator(),
+          error: (e, _) => Center(child: Text('Error: $e')),
+        ),
       ),
     );
   }
@@ -69,10 +79,18 @@ class _DetailContentState extends ConsumerState<_DetailContent>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  static const _primary = Color(0xFF2563EB);
+  static const _primaryLight = Color(0xFFDBEAFE);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+  static const _background = Color(0xFFF9FAFB);
+  static const _warning = Color(0xFFF59E0B);
+  static const _error = Color(0xFFEF4444);
+
   @override
   void initState() {
     super.initState();
-    // matchId가 있으면 4개 탭, 없으면 1개 탭
     _tabController = TabController(
       length: widget.record.matchId != null ? 4 : 1,
       vsync: this,
@@ -89,7 +107,6 @@ class _DetailContentState extends ConsumerState<_DetailContent>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasMatchId = record.matchId != null;
 
     return NestedScrollView(
@@ -102,9 +119,18 @@ class _DetailContentState extends ConsumerState<_DetailContent>
               delegate: _TabBarDelegate(
                 TabBar(
                   controller: _tabController,
-                  labelColor: AppColors.primary,
-                  unselectedLabelColor: Colors.grey,
-                  indicatorColor: AppColors.primary,
+                  labelColor: _primary,
+                  unselectedLabelColor: _textSecondary,
+                  indicatorColor: _primary,
+                  indicatorWeight: 3,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
                   tabs: const [
                     Tab(text: '일기'),
                     Tab(text: '통계'),
@@ -112,6 +138,7 @@ class _DetailContentState extends ConsumerState<_DetailContent>
                     Tab(text: '라인업'),
                   ],
                 ),
+                _background,
               ),
             ),
         ];
@@ -120,101 +147,126 @@ class _DetailContentState extends ConsumerState<_DetailContent>
           ? TabBarView(
               controller: _tabController,
               children: [
-                _DiaryTab(record: record, isDark: isDark),
+                _DiaryTab(record: record),
                 _StatsTab(matchId: record.matchId!, record: record),
                 _TimelineTab(matchId: record.matchId!),
                 _LineupTab(matchId: record.matchId!, record: record),
               ],
             )
-          : _DiaryTab(record: record, isDark: isDark),
+          : _DiaryTab(record: record),
     );
   }
 
   Widget _buildAppBar(BuildContext context) {
     return SliverAppBar(
-      expandedHeight: 220,
+      expandedHeight: 240,
       pinned: true,
+      backgroundColor: Colors.white,
+      foregroundColor: _textPrimary,
+      elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.primary,
-                AppColors.primary.withValues(alpha: 0.7),
-              ],
-            ),
-          ),
+          color: Colors.white,
           child: SafeArea(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 40),
-                // Teams Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: record.homeTeamId.isNotEmpty
-                          ? () => context.push('/team/${record.homeTeamId}')
-                          : null,
-                      child: Column(
-                        children: [
-                          TeamLogo(
-                            logoUrl: record.homeTeamLogo,
-                            teamName: record.homeTeamName,
-                            size: 56,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            record.homeTeamName,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
+                const SizedBox(height: 48),
+                // 리그 배지
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _primaryLight,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    record.league,
+                    style: const TextStyle(
+                      color: _primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        record.scoreDisplay,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Teams Row
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      // 홈팀
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: record.homeTeamId.isNotEmpty
+                              ? () => context.push('/team/${record.homeTeamId}')
+                              : null,
+                          child: Column(
+                            children: [
+                              _buildTeamLogo(record.homeTeamLogo, 56),
+                              const SizedBox(height: 8),
+                              Text(
+                                record.homeTeamName,
+                                style: const TextStyle(
+                                  color: _textPrimary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: record.awayTeamId.isNotEmpty
-                          ? () => context.push('/team/${record.awayTeamId}')
-                          : null,
-                      child: Column(
-                        children: [
-                          TeamLogo(
-                            logoUrl: record.awayTeamLogo,
-                            teamName: record.awayTeamName,
-                            size: 56,
+                      // 스코어 (고정 너비)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _primaryLight,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: _primary.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          record.scoreDisplay,
+                          style: const TextStyle(
+                            color: _primary,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            record.awayTeamName,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                      // 어웨이팀
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: record.awayTeamId.isNotEmpty
+                              ? () => context.push('/team/${record.awayTeamId}')
+                              : null,
+                          child: Column(
+                            children: [
+                              _buildTeamLogo(record.awayTeamLogo, 56),
+                              const SizedBox(height: 8),
+                              Text(
+                                record.awayTeamName,
+                                style: const TextStyle(
+                                  color: _textPrimary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 // Rating & Mood indicator
                 if (record.rating != null || record.mood != null)
                   Row(
@@ -222,19 +274,27 @@ class _DetailContentState extends ConsumerState<_DetailContent>
                     children: [
                       if (record.rating != null) ...[
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
+                            color: _warning.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: _warning.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.star, color: Colors.amber, size: 16),
+                              const Icon(Icons.star,
+                                  color: _warning, size: 16),
                               const SizedBox(width: 4),
                               Text(
                                 record.rating!.toStringAsFixed(1),
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  color: _warning,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
                               ),
                             ],
                           ),
@@ -244,14 +304,21 @@ class _DetailContentState extends ConsumerState<_DetailContent>
                         const SizedBox(width: 8),
                       if (record.mood != null)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
+                            color: _primaryLight,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: _primary.withValues(alpha: 0.3)),
                           ),
                           child: Text(
                             '${record.mood!.emoji} ${record.mood!.label}',
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(
+                              color: _primary,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                     ],
@@ -265,14 +332,15 @@ class _DetailContentState extends ConsumerState<_DetailContent>
         IconButton(
           icon: Icon(
             record.isFavorite ? Icons.favorite : Icons.favorite_border,
-            color: record.isFavorite ? Colors.red : Colors.white,
+            color: record.isFavorite ? _error : _textSecondary,
           ),
           onPressed: () {
             // TODO: Toggle favorite
           },
         ),
         IconButton(
-          icon: const Icon(Icons.edit),
+          icon: const Icon(Icons.edit_outlined),
+          color: _textSecondary,
           onPressed: () {
             context.push('/attendance/${record.id}/edit');
           },
@@ -280,19 +348,65 @@ class _DetailContentState extends ConsumerState<_DetailContent>
       ],
     );
   }
+
+  Widget _buildTeamLogo(String? logoUrl, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        shape: BoxShape.circle,
+        border: Border.all(color: _border, width: 2),
+      ),
+      child: logoUrl != null && logoUrl.isNotEmpty
+          ? ClipOval(
+              child: CachedNetworkImage(
+                imageUrl: logoUrl,
+                fit: BoxFit.contain,
+                placeholder: (_, __) => Icon(
+                  Icons.shield_outlined,
+                  color: _textSecondary,
+                  size: size * 0.5,
+                ),
+                errorWidget: (_, __, ___) => Icon(
+                  Icons.shield_outlined,
+                  color: _textSecondary,
+                  size: size * 0.5,
+                ),
+              ),
+            )
+          : Icon(
+              Icons.shield_outlined,
+              color: _textSecondary,
+              size: size * 0.5,
+            ),
+    );
+  }
 }
 
 // ============ Tab Bar Delegate ============
 class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
+  final Color backgroundColor;
 
-  _TabBarDelegate(this.tabBar);
+  _TabBarDelegate(this.tabBar, this.backgroundColor);
 
   @override
   Widget build(context, shrinkOffset, overlapsContent) {
     return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: tabBar,
+      color: backgroundColor,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            bottom: BorderSide(
+              color: const Color(0xFFE5E7EB),
+              width: 1,
+            ),
+          ),
+        ),
+        child: tabBar,
+      ),
     );
   }
 
@@ -303,18 +417,28 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   double get minExtent => tabBar.preferredSize.height;
 
   @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => false;
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) =>
+      false;
 }
 
-// ============ Diary Tab (기존 내용) ============
+// ============ Diary Tab ============
 class _DiaryTab extends StatelessWidget {
   final AttendanceRecord record;
-  final bool isDark;
 
-  const _DiaryTab({required this.record, required this.isDark});
+  static const _primary = Color(0xFF2563EB);
+  static const _primaryLight = Color(0xFFDBEAFE);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+  static const _warning = Color(0xFFF59E0B);
+  static const _success = Color(0xFF10B981);
+
+  const _DiaryTab({required this.record});
 
   bool _hasAdditionalInfo() {
-    return record.weather != null || record.companion != null || record.ticketPrice != null;
+    return record.weather != null ||
+        record.companion != null ||
+        record.ticketPrice != null;
   }
 
   @override
@@ -335,7 +459,7 @@ class _DiaryTab extends StatelessWidget {
             ),
           ],
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           // Diary Title (한 줄 요약)
           if (record.diaryTitle != null && record.diaryTitle!.isNotEmpty) ...[
@@ -345,19 +469,29 @@ class _DiaryTab extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                  color: _primaryLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _primary.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.format_quote, color: AppColors.primary),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child:
+                          const Icon(Icons.format_quote, color: _primary, size: 20),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         record.diaryTitle!,
-                        style: AppTextStyles.subtitle1.copyWith(
-                          color: AppColors.primary,
+                        style: const TextStyle(
+                          color: _primary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -366,7 +500,7 @@ class _DiaryTab extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
           ],
 
           // MVP Section
@@ -375,7 +509,7 @@ class _DiaryTab extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _buildMvpCard(),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
           ],
 
           // Tags
@@ -385,174 +519,161 @@ class _DiaryTab extends StatelessWidget {
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: record.tags.map((tag) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    '#$tag',
-                    style: AppTextStyles.caption.copyWith(color: AppColors.secondary),
-                  ),
-                )).toList(),
+                children: record.tags
+                    .map((tag) => Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _success.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: _success.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            '#$tag',
+                            style: const TextStyle(
+                              color: _success,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ))
+                    .toList(),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
           ],
 
           // Diary Content
-          if (record.diaryContent != null && record.diaryContent!.isNotEmpty) ...[
+          if (record.diaryContent != null &&
+              record.diaryContent!.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.menu_book, size: 20, color: AppColors.primary),
-                      const SizedBox(width: 8),
-                      Text('직관 일기', style: AppTextStyles.subtitle1),
-                    ],
+              child: _buildSectionCard(
+                icon: Icons.menu_book,
+                iconColor: _primary,
+                title: '직관 일기',
+                child: Text(
+                  record.diaryContent!,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: _textPrimary,
+                    height: 1.7,
                   ),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Text(
-                      record.diaryContent!,
-                      style: AppTextStyles.body1.copyWith(height: 1.6),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
           ],
 
           // Match Info Section
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.sports_soccer, size: 20, color: AppColors.primary),
-                    const SizedBox(width: 8),
-                    Text('경기 정보', style: AppTextStyles.subtitle1),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _InfoTile(
-                  icon: Icons.calendar_today,
-                  label: '날짜',
-                  value: DateFormat('yyyy.MM.dd (EEEE)', 'ko').format(record.date),
-                ),
-                _InfoTile(
-                  icon: Icons.emoji_events,
-                  label: '리그',
-                  value: record.league,
-                ),
-                _InfoTile(
-                  icon: Icons.stadium,
-                  label: '경기장',
-                  value: record.stadium,
-                ),
-                if (record.seatInfo != null)
-                  _InfoTile(
-                    icon: Icons.chair,
-                    label: '좌석',
-                    value: record.seatInfo!,
+            child: _buildSectionCard(
+              icon: Icons.sports_soccer,
+              iconColor: _success,
+              title: '경기 정보',
+              child: Column(
+                children: [
+                  _InfoRow(
+                    icon: Icons.calendar_today,
+                    label: '날짜',
+                    value:
+                        DateFormat('yyyy.MM.dd (EEEE)', 'ko').format(record.date),
                   ),
-              ],
+                  _InfoRow(
+                    icon: Icons.emoji_events,
+                    label: '리그',
+                    value: record.league,
+                  ),
+                  _InfoRow(
+                    icon: Icons.stadium,
+                    label: '경기장',
+                    value: record.stadium,
+                  ),
+                  if (record.seatInfo != null)
+                    _InfoRow(
+                      icon: Icons.chair,
+                      label: '좌석',
+                      value: record.seatInfo!,
+                    ),
+                ],
+              ),
             ),
           ),
 
           // Additional Info Section
           if (_hasAdditionalInfo()) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.info_outline, size: 20, color: AppColors.primary),
-                      const SizedBox(width: 8),
-                      Text('추가 정보', style: AppTextStyles.subtitle1),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (record.weather != null)
-                    _InfoTile(icon: Icons.cloud, label: '날씨', value: record.weather!),
-                  if (record.companion != null)
-                    _InfoTile(icon: Icons.people, label: '함께 간 사람', value: record.companion!),
-                  if (record.ticketPrice != null)
-                    _InfoTile(icon: Icons.confirmation_number, label: '티켓 가격', value: '${NumberFormat('#,###').format(record.ticketPrice)}원'),
-                ],
+              child: _buildSectionCard(
+                icon: Icons.info_outline,
+                iconColor: _textSecondary,
+                title: '추가 정보',
+                child: Column(
+                  children: [
+                    if (record.weather != null)
+                      _InfoRow(
+                          icon: Icons.cloud, label: '날씨', value: record.weather!),
+                    if (record.companion != null)
+                      _InfoRow(
+                          icon: Icons.people,
+                          label: '함께 간 사람',
+                          value: record.companion!),
+                    if (record.ticketPrice != null)
+                      _InfoRow(
+                          icon: Icons.confirmation_number,
+                          label: '티켓 가격',
+                          value:
+                              '${NumberFormat('#,###').format(record.ticketPrice)}원'),
+                  ],
+                ),
               ),
             ),
           ],
 
           // Food Review
           if (record.foodReview != null && record.foodReview!.isNotEmpty) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.restaurant, size: 20, color: AppColors.primary),
-                      const SizedBox(width: 8),
-                      Text('경기장 음식', style: AppTextStyles.subtitle1),
-                    ],
+              child: _buildSectionCard(
+                icon: Icons.restaurant,
+                iconColor: _warning,
+                title: '경기장 음식',
+                child: Text(
+                  record.foodReview!,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: _textPrimary,
+                    height: 1.6,
                   ),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Text(
-                      record.foodReview!,
-                      style: AppTextStyles.body2,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],
 
           // Old Memo (for backwards compatibility)
-          if (record.memo != null && record.memo!.isNotEmpty && (record.diaryContent == null || record.diaryContent!.isEmpty)) ...[
-            const SizedBox(height: 24),
+          if (record.memo != null &&
+              record.memo!.isNotEmpty &&
+              (record.diaryContent == null ||
+                  record.diaryContent!.isEmpty)) ...[
+            const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('메모', style: AppTextStyles.subtitle1),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Text(record.memo!, style: AppTextStyles.body2),
+              child: _buildSectionCard(
+                icon: Icons.note,
+                iconColor: _textSecondary,
+                title: '메모',
+                child: Text(
+                  record.memo!,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: _textPrimary,
+                    height: 1.6,
                   ),
-                ],
+                ),
               ),
             ),
           ],
@@ -563,15 +684,57 @@ class _DiaryTab extends StatelessWidget {
     );
   }
 
+  Widget _buildSectionCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required Widget child,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 18, color: iconColor),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+
   Widget _buildMvpCard() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.amber.shade100, Colors.amber.shade50],
-        ),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: Colors.amber.shade300),
+        color: _warning.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _warning.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -579,28 +742,37 @@ class _DiaryTab extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: Colors.amber,
+              color: _warning,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.amber.withValues(alpha: 0.3),
+                  color: _warning.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: const Icon(Icons.emoji_events, color: Colors.white, size: 28),
+            child:
+                const Icon(Icons.emoji_events, color: Colors.white, size: 26),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('오늘의 MVP', style: AppTextStyles.caption.copyWith(color: Colors.amber.shade800)),
+                Text(
+                  '오늘의 MVP',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _warning.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   record.mvpPlayerName!,
-                  style: AppTextStyles.subtitle1.copyWith(
+                  style: TextStyle(
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.amber.shade900,
                   ),
@@ -614,10 +786,67 @@ class _DiaryTab extends StatelessWidget {
   }
 }
 
+// ============ Info Row ============
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: _primary),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                color: _textSecondary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: _textPrimary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ============ Stats Tab ============
 class _StatsTab extends ConsumerWidget {
   final String matchId;
   final AttendanceRecord record;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+  static const _warning = Color(0xFFF59E0B);
+  static const _error = Color(0xFFEF4444);
 
   const _StatsTab({required this.matchId, required this.record});
 
@@ -628,17 +857,32 @@ class _StatsTab extends ConsumerWidget {
     return statsAsync.when(
       data: (stats) {
         if (stats == null || stats.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.analytics_outlined, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text('통계 정보가 없습니다', style: TextStyle(color: Colors.grey)),
-                SizedBox(height: 8),
-                Text(
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.analytics_outlined,
+                      size: 48, color: _textSecondary),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '통계 정보가 없습니다',
+                  style: TextStyle(
+                    color: _textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
                   '경기 종료 후 업데이트됩니다',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  style: TextStyle(color: _textSecondary, fontSize: 13),
                 ),
               ],
             ),
@@ -649,24 +893,52 @@ class _StatsTab extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           children: [
             // Team names header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _border),
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Text(
                       record.homeTeamName,
-                      style: AppTextStyles.subtitle2,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: _textPrimary,
+                      ),
                       textAlign: TextAlign.center,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(width: 60),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'VS',
+                      style: TextStyle(
+                        color: _primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
                   Expanded(
                     child: Text(
                       record.awayTeamName,
-                      style: AppTextStyles.subtitle2,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: _textPrimary,
+                      ),
                       textAlign: TextAlign.center,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -674,60 +946,73 @@ class _StatsTab extends ConsumerWidget {
                 ],
               ),
             ),
-            const Divider(),
+
+            const SizedBox(height: 16),
 
             // Stats rows
-            if (stats.homePossession != null)
-              _StatBar(
-                label: '점유율',
-                homeValue: stats.homePossession!,
-                awayValue: stats.awayPossession ?? 0,
-                isPercentage: true,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _border),
               ),
-            if (stats.homeShots != null)
-              _StatBar(
-                label: '슈팅',
-                homeValue: stats.homeShots!,
-                awayValue: stats.awayShots ?? 0,
+              child: Column(
+                children: [
+                  if (stats.homePossession != null)
+                    _StatBar(
+                      label: '점유율',
+                      homeValue: stats.homePossession!,
+                      awayValue: stats.awayPossession ?? 0,
+                      isPercentage: true,
+                    ),
+                  if (stats.homeShots != null)
+                    _StatBar(
+                      label: '슈팅',
+                      homeValue: stats.homeShots!,
+                      awayValue: stats.awayShots ?? 0,
+                    ),
+                  if (stats.homeShotsOnTarget != null)
+                    _StatBar(
+                      label: '유효 슈팅',
+                      homeValue: stats.homeShotsOnTarget!,
+                      awayValue: stats.awayShotsOnTarget ?? 0,
+                    ),
+                  if (stats.homeCorners != null)
+                    _StatBar(
+                      label: '코너킥',
+                      homeValue: stats.homeCorners!,
+                      awayValue: stats.awayCorners ?? 0,
+                    ),
+                  if (stats.homeFouls != null)
+                    _StatBar(
+                      label: '파울',
+                      homeValue: stats.homeFouls!,
+                      awayValue: stats.awayFouls ?? 0,
+                    ),
+                  if (stats.homeOffsides != null)
+                    _StatBar(
+                      label: '오프사이드',
+                      homeValue: stats.homeOffsides!,
+                      awayValue: stats.awayOffsides ?? 0,
+                    ),
+                  if (stats.homeYellowCards != null)
+                    _StatBar(
+                      label: '경고',
+                      homeValue: stats.homeYellowCards!,
+                      awayValue: stats.awayYellowCards ?? 0,
+                      color: _warning,
+                    ),
+                  if (stats.homeRedCards != null)
+                    _StatBar(
+                      label: '퇴장',
+                      homeValue: stats.homeRedCards!,
+                      awayValue: stats.awayRedCards ?? 0,
+                      color: _error,
+                    ),
+                ],
               ),
-            if (stats.homeShotsOnTarget != null)
-              _StatBar(
-                label: '유효 슈팅',
-                homeValue: stats.homeShotsOnTarget!,
-                awayValue: stats.awayShotsOnTarget ?? 0,
-              ),
-            if (stats.homeCorners != null)
-              _StatBar(
-                label: '코너킥',
-                homeValue: stats.homeCorners!,
-                awayValue: stats.awayCorners ?? 0,
-              ),
-            if (stats.homeFouls != null)
-              _StatBar(
-                label: '파울',
-                homeValue: stats.homeFouls!,
-                awayValue: stats.awayFouls ?? 0,
-              ),
-            if (stats.homeOffsides != null)
-              _StatBar(
-                label: '오프사이드',
-                homeValue: stats.homeOffsides!,
-                awayValue: stats.awayOffsides ?? 0,
-              ),
-            if (stats.homeYellowCards != null)
-              _StatBar(
-                label: '경고',
-                homeValue: stats.homeYellowCards!,
-                awayValue: stats.awayYellowCards ?? 0,
-                color: Colors.amber,
-              ),
-            if (stats.homeRedCards != null)
-              _StatBar(
-                label: '퇴장',
-                homeValue: stats.homeRedCards!,
-                awayValue: stats.awayRedCards ?? 0,
-                color: Colors.red,
-              ),
+            ),
           ],
         );
       },
@@ -744,6 +1029,10 @@ class _StatBar extends StatelessWidget {
   final bool isPercentage;
   final Color? color;
 
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+
   const _StatBar({
     required this.label,
     required this.homeValue,
@@ -757,9 +1046,10 @@ class _StatBar extends StatelessWidget {
     final total = homeValue + awayValue;
     final homeRatio = total > 0 ? homeValue / total : 0.5;
     final awayRatio = total > 0 ? awayValue / total : 0.5;
+    final barColor = color ?? _primary;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
         children: [
           Row(
@@ -767,39 +1057,53 @@ class _StatBar extends StatelessWidget {
             children: [
               Text(
                 isPercentage ? '$homeValue%' : '$homeValue',
-                style: AppTextStyles.subtitle2,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
+                ),
               ),
-              Text(label, style: AppTextStyles.caption),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: _textSecondary,
+                ),
+              ),
               Text(
                 isPercentage ? '$awayValue%' : '$awayValue',
-                style: AppTextStyles.subtitle2,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
                 flex: (homeRatio * 100).round().clamp(1, 99),
                 child: Container(
-                  height: 6,
+                  height: 8,
                   decoration: BoxDecoration(
-                    color: color ?? AppColors.primary,
+                    color: barColor,
                     borderRadius: const BorderRadius.horizontal(
-                      left: Radius.circular(3),
+                      left: Radius.circular(4),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 2),
+              const SizedBox(width: 4),
               Expanded(
                 flex: (awayRatio * 100).round().clamp(1, 99),
                 child: Container(
-                  height: 6,
+                  height: 8,
                   decoration: BoxDecoration(
-                    color: (color ?? AppColors.primary).withValues(alpha: 0.4),
+                    color: barColor.withValues(alpha: 0.3),
                     borderRadius: const BorderRadius.horizontal(
-                      right: Radius.circular(3),
+                      right: Radius.circular(4),
                     ),
                   ),
                 ),
@@ -816,6 +1120,9 @@ class _StatBar extends StatelessWidget {
 class _TimelineTab extends ConsumerWidget {
   final String matchId;
 
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+
   const _TimelineTab({required this.matchId});
 
   @override
@@ -825,17 +1132,32 @@ class _TimelineTab extends ConsumerWidget {
     return timelineAsync.when(
       data: (timeline) {
         if (timeline.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.timeline, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text('타임라인 정보가 없습니다', style: TextStyle(color: Colors.grey)),
-                SizedBox(height: 8),
-                Text(
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child:
+                      Icon(Icons.timeline, size: 48, color: _textSecondary),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '타임라인 정보가 없습니다',
+                  style: TextStyle(
+                    color: _textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
                   '경기 종료 후 업데이트됩니다',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  style: TextStyle(color: _textSecondary, fontSize: 13),
                 ),
               ],
             ),
@@ -846,7 +1168,10 @@ class _TimelineTab extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           itemCount: timeline.length,
           itemBuilder: (context, index) {
-            return _TimelineItem(event: timeline[index]);
+            return _TimelineItem(
+              event: timeline[index],
+              isLast: index == timeline.length - 1,
+            );
           },
         );
       },
@@ -858,64 +1183,106 @@ class _TimelineTab extends ConsumerWidget {
 
 class _TimelineItem extends StatelessWidget {
   final SportsDbTimeline event;
+  final bool isLast;
 
-  const _TimelineItem({required this.event});
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+  static const _success = Color(0xFF10B981);
+  static const _warning = Color(0xFFF59E0B);
+  static const _error = Color(0xFFEF4444);
+
+  const _TimelineItem({required this.event, this.isLast = false});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    return IntrinsicHeight(
       child: Row(
         children: [
           // Time
           SizedBox(
-            width: 40,
+            width: 44,
             child: Text(
               event.time ?? '',
-              style: AppTextStyles.subtitle2.copyWith(
-                color: AppColors.primary,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: _getEventColor(),
               ),
             ),
           ),
 
-          // Icon
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: _getEventColor().withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              _getEventIcon(),
-              size: 16,
-              color: _getEventColor(),
-            ),
+          // Timeline line and icon
+          Column(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _getEventColor().withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  border:
+                      Border.all(color: _getEventColor().withValues(alpha: 0.3)),
+                ),
+                child: Icon(
+                  _getEventIcon(),
+                  size: 18,
+                  color: _getEventColor(),
+                ),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: _border,
+                  ),
+                ),
+            ],
           ),
 
           const SizedBox(width: 12),
 
           // Details
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event.player ?? event.type ?? '',
-                  style: AppTextStyles.body2.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (event.detail != null)
+            child: Container(
+              margin: EdgeInsets.only(bottom: isLast ? 0 : 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    event.detail!,
-                    style: AppTextStyles.caption.copyWith(color: Colors.grey),
+                    event.player ?? event.type ?? '',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _textPrimary,
+                    ),
                   ),
-                Text(
-                  event.team ?? (event.isHome ? '홈' : '원정'),
-                  style: AppTextStyles.caption.copyWith(color: Colors.grey),
-                ),
-              ],
+                  if (event.detail != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      event.detail!,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: _textSecondary,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Text(
+                    event.team ?? (event.isHome ? '홈' : '원정'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _textSecondary.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -941,15 +1308,15 @@ class _TimelineItem extends StatelessWidget {
   Color _getEventColor() {
     switch (event.type?.toLowerCase()) {
       case 'goal':
-        return Colors.green;
+        return _success;
       case 'yellow card':
-        return Colors.amber;
+        return _warning;
       case 'red card':
-        return Colors.red;
+        return _error;
       case 'substitution':
-        return Colors.blue;
+        return const Color(0xFF2563EB);
       default:
-        return Colors.grey;
+        return _textSecondary;
     }
   }
 }
@@ -958,6 +1325,9 @@ class _TimelineItem extends StatelessWidget {
 class _LineupTab extends ConsumerWidget {
   final String matchId;
   final AttendanceRecord record;
+
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
 
   const _LineupTab({required this.matchId, required this.record});
 
@@ -968,17 +1338,32 @@ class _LineupTab extends ConsumerWidget {
     return lineupAsync.when(
       data: (lineup) {
         if (lineup == null || lineup.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.people_outline, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text('라인업 정보가 없습니다', style: TextStyle(color: Colors.grey)),
-                SizedBox(height: 8),
-                Text(
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.people_outline,
+                      size: 48, color: _textSecondary),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '라인업 정보가 없습니다',
+                  style: TextStyle(
+                    color: _textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
                   '경기 종료 후 업데이트됩니다',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  style: TextStyle(color: _textSecondary, fontSize: 13),
                 ),
               ],
             ),
@@ -1028,6 +1413,12 @@ class _TeamLineup extends StatelessWidget {
   final List<SportsDbLineupPlayer> substitutes;
   final bool isHome;
 
+  static const _primary = Color(0xFF2563EB);
+  static const _primaryLight = Color(0xFFDBEAFE);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+  static const _success = Color(0xFF10B981);
+
   const _TeamLineup({
     required this.teamName,
     this.formation,
@@ -1038,20 +1429,30 @@ class _TeamLineup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Team Name Header
-            Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Team Name Header
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isHome ? _primaryLight : _success.withValues(alpha: 0.1),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(11)),
+            ),
+            child: Row(
               children: [
                 Container(
                   width: 4,
                   height: 16,
                   decoration: BoxDecoration(
-                    color: isHome ? AppColors.primary : AppColors.secondary,
+                    color: isHome ? _primary : _success,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1059,84 +1460,110 @@ class _TeamLineup extends StatelessWidget {
                 Expanded(
                   child: Text(
                     teamName,
-                    style: AppTextStyles.subtitle2.copyWith(
+                    style: TextStyle(
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
+                      color: isHome ? _primary : _success,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-            if (formation != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                formation!,
-                style: AppTextStyles.caption.copyWith(color: Colors.grey),
-              ),
-            ],
-            const Divider(height: 16),
+          ),
 
-            // Starting XI
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.sports_soccer, size: 14, color: AppColors.primary),
-                  const SizedBox(width: 4),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (formation != null) ...[
                   Text(
-                    '선발 (${players.length})',
-                    style: AppTextStyles.caption.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                    formation!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: _textSecondary,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                  const SizedBox(height: 12),
                 ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (players.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  '선발 정보 없음',
-                  style: AppTextStyles.caption.copyWith(color: Colors.grey),
-                ),
-              )
-            else
-              ...players.map((p) => _PlayerRow(player: p)),
 
-            // Substitutes
-            if (substitutes.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
+                // Starting XI
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.sports_soccer,
+                          size: 12, color: _primary),
+                      const SizedBox(width: 4),
+                      Text(
+                        '선발 (${players.length})',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _primary,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.swap_horiz, size: 14, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(
-                      '교체 (${substitutes.length})',
-                      style: AppTextStyles.caption.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade700,
+                const SizedBox(height: 8),
+                if (players.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      '선발 정보 없음',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _textSecondary,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...substitutes.map((p) => _PlayerRow(player: p, isSubstitute: true)),
-            ],
-          ],
-        ),
+                  )
+                else
+                  ...players.map((p) => _PlayerRow(player: p)),
+
+                // Substitutes
+                if (substitutes.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.swap_horiz,
+                            size: 12, color: Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Text(
+                          '교체 (${substitutes.length})',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade600,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...substitutes
+                      .map((p) => _PlayerRow(player: p, isSubstitute: true)),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1146,13 +1573,19 @@ class _PlayerRow extends StatelessWidget {
   final SportsDbLineupPlayer player;
   final bool isSubstitute;
 
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+
   const _PlayerRow({required this.player, this.isSubstitute = false});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: player.id.isNotEmpty ? () => context.push('/player/${player.id}') : null,
-      borderRadius: BorderRadius.circular(4),
+      onTap: player.id.isNotEmpty
+          ? () => context.push('/player/${player.id}')
+          : null,
+      borderRadius: BorderRadius.circular(6),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
         child: Row(
@@ -1164,15 +1597,15 @@ class _PlayerRow extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: isSubstitute
-                    ? Colors.grey.shade200
-                    : AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(4),
+                    ? Colors.grey.shade100
+                    : _primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 player.number ?? '-',
-                style: AppTextStyles.caption.copyWith(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isSubstitute ? Colors.grey.shade600 : AppColors.primary,
+                  color: isSubstitute ? _textSecondary : _primary,
                   fontSize: 11,
                 ),
               ),
@@ -1182,8 +1615,10 @@ class _PlayerRow extends StatelessWidget {
             Expanded(
               child: Text(
                 player.name,
-                style: AppTextStyles.body2.copyWith(
-                  color: isSubstitute ? Colors.grey.shade700 : Colors.black87,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isSubstitute ? _textSecondary : _textPrimary,
+                  fontWeight: isSubstitute ? FontWeight.normal : FontWeight.w500,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -1193,12 +1628,12 @@ class _PlayerRow extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: _getPositionColor(player.position!).withValues(alpha: 0.15),
+                  color: _getPositionColor(player.position!).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   _getPositionShort(player.position!),
-                  style: AppTextStyles.caption.copyWith(
+                  style: TextStyle(
                     color: _getPositionColor(player.position!),
                     fontWeight: FontWeight.w600,
                     fontSize: 10,
@@ -1222,7 +1657,9 @@ class _PlayerRow extends StatelessWidget {
       case 'forward':
         return 'FW';
       default:
-        return position.substring(0, position.length > 3 ? 3 : position.length).toUpperCase();
+        return position
+            .substring(0, position.length > 3 ? 3 : position.length)
+            .toUpperCase();
     }
   }
 
@@ -1231,53 +1668,13 @@ class _PlayerRow extends StatelessWidget {
       case 'goalkeeper':
         return Colors.orange;
       case 'defender':
-        return Colors.blue;
+        return const Color(0xFF2563EB);
       case 'midfielder':
-        return Colors.green;
+        return const Color(0xFF10B981);
       case 'forward':
-        return Colors.red;
+        return const Color(0xFFEF4444);
       default:
-        return Colors.grey;
+        return _textSecondary;
     }
-  }
-}
-
-// ============ Info Tile ============
-class _InfoTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _InfoTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: AppColors.primary),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: AppTextStyles.caption.copyWith(
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(value, style: AppTextStyles.body2),
-          ),
-        ],
-      ),
-    );
   }
 }
