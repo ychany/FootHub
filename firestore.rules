@@ -58,9 +58,10 @@ service cloud.firestore {
       allow read: if isAuthenticated();
     }
 
-    // Players (선수 정보) - read only
+    // Players (선수 정보) - read and create for authenticated users
     match /players/{playerId} {
       allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
     }
   }
 }
