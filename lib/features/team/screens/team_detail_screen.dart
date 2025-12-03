@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/services/sports_db_service.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../providers/team_provider.dart';
@@ -13,25 +12,94 @@ import '../../favorites/providers/favorites_provider.dart';
 class TeamDetailScreen extends ConsumerWidget {
   final String teamId;
 
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _background = Color(0xFFF9FAFB);
+
   const TeamDetailScreen({super.key, required this.teamId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teamAsync = ref.watch(teamInfoProvider(teamId));
 
-    return Scaffold(
-      body: teamAsync.when(
-        data: (team) {
-          if (team == null) {
-            return const Center(child: Text('팀 정보를 찾을 수 없습니다'));
-          }
-          return _TeamDetailContent(team: team);
-        },
-        loading: () => const Scaffold(body: LoadingIndicator()),
-        error: (e, _) => Scaffold(
-          appBar: AppBar(),
-          body: Center(child: Text('오류: $e')),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
+      child: Scaffold(
+        backgroundColor: _background,
+        body: teamAsync.when(
+          data: (team) {
+            if (team == null) {
+              return SafeArea(
+                child: Column(
+                  children: [
+                    _buildAppBar(context),
+                    Expanded(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.shield_outlined,
+                                size: 64, color: _textSecondary),
+                            const SizedBox(height: 16),
+                            Text(
+                              '팀 정보를 찾을 수 없습니다',
+                              style:
+                                  TextStyle(color: _textSecondary, fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return _TeamDetailContent(team: team);
+          },
+          loading: () => const LoadingIndicator(),
+          error: (e, _) => SafeArea(
+            child: Column(
+              children: [
+                _buildAppBar(context),
+                Expanded(
+                  child: Center(
+                    child: Text('오류: $e',
+                        style: const TextStyle(color: _textSecondary)),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAppBar(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios, size: 20),
+            color: const Color(0xFF111827),
+            onPressed: () => context.pop(),
+          ),
+          const Expanded(
+            child: Text(
+              '팀 정보',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF111827),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 48),
+        ],
       ),
     );
   }
@@ -50,6 +118,13 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  static const _primary = Color(0xFF2563EB);
+  static const _primaryLight = Color(0xFFDBEAFE);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+  static const _background = Color(0xFFF9FAFB);
+
   @override
   void initState() {
     super.initState();
@@ -66,86 +141,31 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
   Widget build(BuildContext context) {
     final team = widget.team;
 
-    return NestedScrollView(
-      headerSliverBuilder: (context, innerBoxIsScrolled) {
-        return [
-          SliverAppBar(
-            expandedHeight: 200,
-            pinned: true,
-            actions: [
-              _FavoriteButton(teamId: team.id),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                team.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  shadows: [Shadow(blurRadius: 4, color: Colors.black54)],
-                ),
-              ),
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (team.banner != null)
-                    CachedNetworkImage(
-                      imageUrl: team.banner!,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => Container(
-                        color: AppColors.primary,
-                      ),
-                    )
-                  else
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppColors.primary,
-                            AppColors.primary.withValues(alpha: 0.7),
-                          ],
-                        ),
-                      ),
-                    ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.7),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Team Badge
-                  Positioned(
-                    bottom: 60,
-                    left: 16,
-                    child: team.badge != null
-                        ? CachedNetworkImage(
-                            imageUrl: team.badge!,
-                            width: 60,
-                            height: 60,
-                            errorWidget: (_, __, ___) =>
-                                const Icon(Icons.shield, size: 60, color: Colors.white),
-                          )
-                        : const Icon(Icons.shield, size: 60, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _SliverTabBarDelegate(
-              TabBar(
+    return Scaffold(
+      backgroundColor: _background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 헤더
+            _buildHeader(context, team),
+
+            // 탭바
+            Container(
+              color: Colors.white,
+              child: TabBar(
                 controller: _tabController,
-                labelColor: AppColors.primary,
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: AppColors.primary,
+                labelColor: _primary,
+                unselectedLabelColor: _textSecondary,
+                indicatorColor: _primary,
+                indicatorWeight: 2,
+                labelStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
                 tabs: const [
                   Tab(text: '정보'),
                   Tab(text: '일정'),
@@ -153,47 +173,149 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
                 ],
               ),
             ),
-          ),
-        ];
-      },
-      body: TabBarView(
-        controller: _tabController,
+
+            // 탭 내용
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _InfoTab(team: team),
+                  _ScheduleTab(teamId: team.id),
+                  _PlayersTab(teamId: team.id),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, SportsDbTeam team) {
+    return Container(
+      color: Colors.white,
+      child: Column(
         children: [
-          _InfoTab(team: team),
-          _ScheduleTab(teamId: team.id),
-          _PlayersTab(teamId: team.id),
+          // 앱바
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios, size: 20),
+                  color: _textPrimary,
+                  onPressed: () => context.pop(),
+                ),
+                const Expanded(
+                  child: Text(
+                    '팀 정보',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                _FavoriteButton(teamId: team.id),
+              ],
+            ),
+          ),
+
+          // 팀 뱃지
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: _border, width: 3),
+              color: Colors.grey.shade100,
+            ),
+            child: ClipOval(
+              child: team.badge != null
+                  ? CachedNetworkImage(
+                      imageUrl: team.badge!,
+                      fit: BoxFit.contain,
+                      placeholder: (_, __) => Icon(
+                        Icons.shield,
+                        size: 40,
+                        color: _textSecondary,
+                      ),
+                      errorWidget: (_, __, ___) => Icon(
+                        Icons.shield,
+                        size: 40,
+                        color: _textSecondary,
+                      ),
+                    )
+                  : Icon(
+                      Icons.shield,
+                      size: 40,
+                      color: _textSecondary,
+                    ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 팀 이름
+          Text(
+            team.name,
+            style: const TextStyle(
+              color: _textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+
+          // 리그 & 국가
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (team.league != null) ...[
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _primaryLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    team.league!,
+                    style: TextStyle(
+                      color: _primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (team.country != null) const SizedBox(width: 8),
+              ],
+              if (team.country != null)
+                Text(
+                  team.country!,
+                  style: const TextStyle(
+                    color: _textSecondary,
+                    fontSize: 14,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
 }
 
-class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar tabBar;
-
-  _SliverTabBarDelegate(this.tabBar);
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: tabBar,
-    );
-  }
-
-  @override
-  double get maxExtent => tabBar.preferredSize.height;
-
-  @override
-  double get minExtent => tabBar.preferredSize.height;
-
-  @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => false;
-}
-
 // ============ Info Tab ============
 class _InfoTab extends StatelessWidget {
   final SportsDbTeam team;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
 
   const _InfoTab({required this.team});
 
@@ -203,43 +325,106 @@ class _InfoTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         // Basic Info Card
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('기본 정보', style: AppTextStyles.subtitle1),
-                const Divider(),
-                _InfoRow(label: '리그', value: team.league ?? '-'),
-                _InfoRow(label: '국가', value: team.country ?? '-'),
-                _InfoRow(label: '경기장', value: team.stadium ?? '-'),
-                if (team.stadiumCapacity != null)
-                  _InfoRow(label: '수용 인원', value: '${team.stadiumCapacity}명'),
-              ],
-            ),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.info_outline, color: _primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '기본 정보',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _InfoRow(
+                  icon: Icons.sports_soccer_outlined,
+                  label: '리그',
+                  value: team.league ?? '-'),
+              _InfoRow(
+                  icon: Icons.flag_outlined,
+                  label: '국가',
+                  value: team.country ?? '-'),
+              _InfoRow(
+                  icon: Icons.stadium_outlined,
+                  label: '경기장',
+                  value: team.stadium ?? '-'),
+              if (team.stadiumCapacity != null)
+                _InfoRow(
+                    icon: Icons.people_outline,
+                    label: '수용 인원',
+                    value: '${team.stadiumCapacity}명'),
+            ],
           ),
         ),
 
         // Description
         if (team.description != null) ...[
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('소개', style: AppTextStyles.subtitle1),
-                  const Divider(),
-                  Text(
-                    team.description!,
-                    style: AppTextStyles.body2,
-                    maxLines: 10,
-                    overflow: TextOverflow.ellipsis,
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.description_outlined,
+                          color: _primary, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      '소개',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: _textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  team.description!,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: _textSecondary,
+                    height: 1.6,
                   ),
-                ],
-              ),
+                  maxLines: 15,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ],
@@ -249,27 +434,46 @@ class _InfoTab extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
+  final IconData icon;
   final String label;
   final String value;
 
-  const _InfoRow({required this.label, required this.value});
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Icon(icon, size: 18, color: _textSecondary),
+          const SizedBox(width: 12),
           SizedBox(
-            width: 80,
+            width: 70,
             child: Text(
               label,
-              style: AppTextStyles.body2.copyWith(color: Colors.grey),
+              style: const TextStyle(
+                color: _textSecondary,
+                fontSize: 14,
+              ),
             ),
           ),
           Expanded(
-            child: Text(value, style: AppTextStyles.body2),
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: _textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),
@@ -280,6 +484,11 @@ class _InfoRow extends StatelessWidget {
 // ============ Schedule Tab ============
 class _ScheduleTab extends ConsumerWidget {
   final String teamId;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
 
   const _ScheduleTab({required this.teamId});
 
@@ -292,54 +501,139 @@ class _ScheduleTab extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       children: [
         // Next Matches
-        Text('다음 경기', style: AppTextStyles.subtitle1),
-        const SizedBox(height: 8),
-        nextEventsAsync.when(
-          data: (events) {
-            if (events.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('예정된 경기가 없습니다', style: TextStyle(color: Colors.grey)),
-              );
-            }
-            return Column(
-              children: events.take(5).map((e) => _MatchCard(event: e)).toList(),
-            );
-          },
-          loading: () => const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(child: CircularProgressIndicator()),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _border),
           ),
-          error: (e, _) => Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text('오류: $e', style: const TextStyle(color: Colors.red)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.event_outlined, color: _primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '다음 경기',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              nextEventsAsync.when(
+                data: (events) {
+                  if (events.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Center(
+                        child: Text(
+                          '예정된 경기가 없습니다',
+                          style: TextStyle(color: _textSecondary, fontSize: 14),
+                        ),
+                      ),
+                    );
+                  }
+                  return Column(
+                    children: events
+                        .take(5)
+                        .map((e) => _MatchCard(event: e))
+                        .toList(),
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (e, _) => Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text('오류: $e',
+                      style: const TextStyle(color: Colors.red)),
+                ),
+              ),
+            ],
           ),
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 12),
 
         // Past Matches
-        Text('지난 경기', style: AppTextStyles.subtitle1),
-        const SizedBox(height: 8),
-        pastEventsAsync.when(
-          data: (events) {
-            if (events.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('지난 경기가 없습니다', style: TextStyle(color: Colors.grey)),
-              );
-            }
-            return Column(
-              children: events.take(5).map((e) => _MatchCard(event: e, isPast: true)).toList(),
-            );
-          },
-          loading: () => const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(child: CircularProgressIndicator()),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _border),
           ),
-          error: (e, _) => Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text('오류: $e', style: const TextStyle(color: Colors.red)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _textSecondary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child:
+                        Icon(Icons.history, color: _textSecondary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '지난 경기',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              pastEventsAsync.when(
+                data: (events) {
+                  if (events.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Center(
+                        child: Text(
+                          '지난 경기가 없습니다',
+                          style: TextStyle(color: _textSecondary, fontSize: 14),
+                        ),
+                      ),
+                    );
+                  }
+                  return Column(
+                    children: events
+                        .take(5)
+                        .map((e) => _MatchCard(event: e, isPast: true))
+                        .toList(),
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (e, _) => Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text('오류: $e',
+                      style: const TextStyle(color: Colors.red)),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -350,6 +644,12 @@ class _ScheduleTab extends ConsumerWidget {
 class _MatchCard extends StatelessWidget {
   final SportsDbEvent event;
   final bool isPast;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _primaryLight = Color(0xFFDBEAFE);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
 
   const _MatchCard({required this.event, this.isPast = false});
 
@@ -363,95 +663,131 @@ class _MatchCard extends StatelessWidget {
         ? DateFormat('HH:mm').format(dateTime)
         : event.time ?? '-';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: () => context.push('/match/${event.id}'),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              // Date & League
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '$dateStr $timeStr',
-                    style: AppTextStyles.caption.copyWith(
-                      color: isPast ? Colors.grey : AppColors.primary,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      event.league ?? '-',
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.primary,
-                        fontSize: 10,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // Teams & Score
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        _buildTeamBadge(event.homeTeamBadge, 32),
-                        const SizedBox(height: 4),
-                        Text(
-                          event.homeTeam ?? '-',
-                          style: AppTextStyles.caption,
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: event.isFinished
-                        ? Text(
-                            event.scoreDisplay,
-                            style: AppTextStyles.subtitle1.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                        : Text(
-                            'vs',
-                            style: AppTextStyles.body2.copyWith(color: Colors.grey),
-                          ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        _buildTeamBadge(event.awayTeamBadge, 32),
-                        const SizedBox(height: 4),
-                        Text(
-                          event.awayTeam ?? '-',
-                          style: AppTextStyles.caption,
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
+    return GestureDetector(
+      onTap: () => context.push('/match/${event.id}'),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isPast ? Colors.grey.shade50 : _primaryLight.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isPast ? _border : _primary.withValues(alpha: 0.2),
           ),
+        ),
+        child: Column(
+          children: [
+            // Date & League
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '$dateStr $timeStr',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: isPast ? _textSecondary : _primary,
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isPast
+                        ? Colors.grey.shade200
+                        : _primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    event.league ?? '-',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: isPast ? _textSecondary : _primary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Teams & Score
+            Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      _buildTeamBadge(event.homeTeamBadge, 28),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          event.homeTeam ?? '-',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: _textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: event.isFinished
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _textPrimary,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            event.scoreDisplay,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          'VS',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: _textSecondary,
+                          ),
+                        ),
+                ),
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          event.awayTeam ?? '-',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: _textPrimary,
+                          ),
+                          textAlign: TextAlign.right,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildTeamBadge(event.awayTeamBadge, 28),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -464,17 +800,22 @@ class _MatchCard extends StatelessWidget {
         width: size,
         height: size,
         fit: BoxFit.contain,
-        placeholder: (_, __) => Icon(Icons.shield, size: size, color: Colors.grey),
-        errorWidget: (_, __, ___) => Icon(Icons.shield, size: size, color: Colors.grey),
+        placeholder: (_, __) =>
+            Icon(Icons.shield, size: size, color: _textSecondary),
+        errorWidget: (_, __, ___) =>
+            Icon(Icons.shield, size: size, color: _textSecondary),
       );
     }
-    return Icon(Icons.shield, size: size, color: Colors.grey);
+    return Icon(Icons.shield, size: size, color: _textSecondary);
   }
 }
 
 // ============ Players Tab ============
 class _PlayersTab extends ConsumerWidget {
   final String teamId;
+
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
 
   const _PlayersTab({required this.teamId});
 
@@ -485,8 +826,18 @@ class _PlayersTab extends ConsumerWidget {
     return playersAsync.when(
       data: (players) {
         if (players.isEmpty) {
-          return const Center(
-            child: Text('선수 정보가 없습니다', style: TextStyle(color: Colors.grey)),
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.people_outline, size: 48, color: _textSecondary),
+                const SizedBox(height: 12),
+                Text(
+                  '선수 정보가 없습니다',
+                  style: TextStyle(color: _textSecondary, fontSize: 14),
+                ),
+              ],
+            ),
           );
         }
 
@@ -508,34 +859,90 @@ class _PlayersTab extends ConsumerWidget {
             return aIndex.compareTo(bIndex);
           });
 
-        return ListView.builder(
+        return ListView(
           padding: const EdgeInsets.all(16),
-          itemCount: sortedKeys.length,
-          itemBuilder: (context, index) {
-            final position = sortedKeys[index];
+          children: sortedKeys.map((position) {
             final positionPlayers = grouped[position]!;
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    _getPositionKr(position),
-                    style: AppTextStyles.subtitle2.copyWith(
-                      color: _getPositionColor(position),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Position Header
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _getPositionColor(position).withValues(alpha: 0.1),
+                      borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(11)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: _getPositionColor(position),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          _getPositionKr(position),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: _getPositionColor(position),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _getPositionColor(position)
+                                .withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${positionPlayers.length}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _getPositionColor(position),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                ...positionPlayers.map((p) => _PlayerCard(player: p)),
-                const SizedBox(height: 8),
-              ],
+                  // Players List
+                  ...positionPlayers.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final player = entry.value;
+                    return Column(
+                      children: [
+                        if (index > 0)
+                          Divider(height: 1, color: _border, indent: 16, endIndent: 16),
+                        _PlayerCard(player: player),
+                      ],
+                    );
+                  }),
+                ],
+              ),
             );
-          },
+          }).toList(),
         );
       },
       loading: () => const LoadingIndicator(),
-      error: (e, _) => Center(child: Text('오류: $e')),
+      error: (e, _) => Center(
+        child: Text('오류: $e', style: TextStyle(color: _textSecondary)),
+      ),
     );
   }
 
@@ -557,15 +964,15 @@ class _PlayersTab extends ConsumerWidget {
   Color _getPositionColor(String position) {
     switch (position.toLowerCase()) {
       case 'goalkeeper':
-        return Colors.orange;
+        return const Color(0xFFF59E0B); // warning/orange
       case 'defender':
-        return Colors.blue;
+        return const Color(0xFF2563EB); // primary/blue
       case 'midfielder':
-        return Colors.green;
+        return const Color(0xFF10B981); // success/green
       case 'forward':
-        return Colors.red;
+        return const Color(0xFFEF4444); // error/red
       default:
-        return Colors.grey;
+        return const Color(0xFF6B7280); // secondary/grey
     }
   }
 }
@@ -573,41 +980,116 @@ class _PlayersTab extends ConsumerWidget {
 class _PlayerCard extends StatelessWidget {
   final SportsDbPlayer player;
 
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+
   const _PlayerCard({required this.player});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 4),
-      child: ListTile(
-        onTap: () => context.push('/player/${player.id}'),
-        leading: CircleAvatar(
-          radius: 20,
-          backgroundImage: player.thumb != null ? NetworkImage(player.thumb!) : null,
-          child: player.thumb == null
-              ? Text(player.name.isNotEmpty ? player.name[0] : '?')
-              : null,
-        ),
-        title: Text(player.name, style: AppTextStyles.body2),
-        subtitle: player.nationality != null
-            ? Text(player.nationality!, style: AppTextStyles.caption)
-            : null,
-        trailing: player.number != null
-            ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    return InkWell(
+      onTap: () => context.push('/player/${player.id}'),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            // Player Photo
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.grey.shade100,
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: ClipOval(
+                child: player.thumb != null
+                    ? CachedNetworkImage(
+                        imageUrl: player.thumb!,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => Center(
+                          child: Text(
+                            player.name.isNotEmpty ? player.name[0] : '?',
+                            style: TextStyle(
+                              color: _textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => Center(
+                          child: Text(
+                            player.name.isNotEmpty ? player.name[0] : '?',
+                            style: TextStyle(
+                              color: _textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          player.name.isNotEmpty ? player.name[0] : '?',
+                          style: TextStyle(
+                            color: _textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Player Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    player.name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: _textPrimary,
+                    ),
+                  ),
+                  if (player.nationality != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      player.nationality!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _textSecondary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // Number
+            if (player.number != null)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
+                  color: _primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   '#${player.number}',
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: _primary,
                   ),
                 ),
-              )
-            : null,
+              ),
+
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right, color: _textSecondary, size: 20),
+          ],
+        ),
       ),
     );
   }
@@ -615,6 +1097,8 @@ class _PlayerCard extends StatelessWidget {
 
 class _FavoriteButton extends ConsumerWidget {
   final String teamId;
+
+  static const _error = Color(0xFFEF4444);
 
   const _FavoriteButton({required this.teamId});
 
@@ -624,34 +1108,65 @@ class _FavoriteButton extends ConsumerWidget {
 
     return isFollowedAsync.when(
       data: (isFollowed) => IconButton(
-        icon: Icon(
-          isFollowed ? Icons.favorite : Icons.favorite_border,
-          color: isFollowed ? Colors.red : Colors.white,
+        icon: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: isFollowed
+                ? _error.withValues(alpha: 0.1)
+                : Colors.grey.shade100,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            isFollowed ? Icons.favorite : Icons.favorite_border,
+            color: isFollowed ? _error : Colors.grey,
+            size: 20,
+          ),
         ),
         onPressed: () async {
-          await ref.read(favoritesNotifierProvider.notifier).toggleTeamFollow(teamId);
+          await ref
+              .read(favoritesNotifierProvider.notifier)
+              .toggleTeamFollow(teamId);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(isFollowed ? '즐겨찾기에서 제거되었습니다' : '즐겨찾기에 추가되었습니다'),
+                content:
+                    Text(isFollowed ? '즐겨찾기에서 제거되었습니다' : '즐겨찾기에 추가되었습니다'),
                 duration: const Duration(seconds: 1),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             );
           }
         },
       ),
-      loading: () => const Padding(
-        padding: EdgeInsets.all(12),
+      loading: () => Padding(
+        padding: const EdgeInsets.all(12),
         child: SizedBox(
           width: 24,
           height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+          child: CircularProgressIndicator(
+              strokeWidth: 2, color: Colors.grey.shade400),
         ),
       ),
       error: (_, __) => IconButton(
-        icon: const Icon(Icons.favorite_border, color: Colors.white),
+        icon: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.favorite_border,
+            color: Colors.grey,
+            size: 20,
+          ),
+        ),
         onPressed: () async {
-          await ref.read(favoritesNotifierProvider.notifier).toggleTeamFollow(teamId);
+          await ref
+              .read(favoritesNotifierProvider.notifier)
+              .toggleTeamFollow(teamId);
         },
       ),
     );
