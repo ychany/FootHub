@@ -74,6 +74,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // Attendance Add (outside shell - full screen for access from match detail)
+      GoRoute(
+        path: '/attendance/add',
+        builder: (context, state) {
+          final matchId = state.uri.queryParameters['matchId'];
+          return AttendanceAddScreen(matchId: matchId);
+        },
+      ),
+
       // Main Shell with Bottom Navigation
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
@@ -95,13 +104,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/attendance',
             builder: (context, state) => const AttendanceListScreen(),
             routes: [
-              GoRoute(
-                path: 'add',
-                builder: (context, state) {
-                  final matchId = state.uri.queryParameters['matchId'];
-                  return AttendanceAddScreen(matchId: matchId);
-                },
-              ),
               GoRoute(
                 path: ':id',
                 builder: (context, state) {
