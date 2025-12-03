@@ -76,18 +76,26 @@ class NotificationSettingsScreen extends ConsumerWidget {
 
           const SizedBox(height: 24),
 
-          // 경기 알림
+          // 즐겨찾기 팀 경기 알림
           _buildSectionHeader(
             icon: Icons.sports_soccer_rounded,
             iconColor: const Color(0xFF10B981),
-            title: '경기 알림',
+            title: '즐겨찾기 팀 경기 알림',
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '즐겨찾기한 팀의 경기에 대한 알림을 설정합니다',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 12),
           _SettingsCard(
             children: [
               _SettingsToggle(
                 title: '경기 시작 알림',
-                subtitle: '경기 시작 전 미리 알림 받기',
+                subtitle: '즐겨찾기 팀 경기 시작 전 미리 알림',
                 value: settings.matchReminder,
                 enabled: settings.pushNotifications,
                 onChanged: (value) => notifier.updateMatchReminder(value),
@@ -95,7 +103,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
               const _Divider(),
               _SettingsDropdown(
                 title: '알림 시간',
-                subtitle: '경기 시작 전 알림 시간',
+                subtitle: '즐겨찾기 팀 경기 시작 전 알림 시간',
                 value: settings.matchReminderMinutes,
                 enabled: settings.pushNotifications && settings.matchReminder,
                 options: const [15, 30, 60, 120],
@@ -104,8 +112,8 @@ class NotificationSettingsScreen extends ConsumerWidget {
               ),
               const _Divider(),
               _SettingsToggle(
-                title: '즐겨찾기 팀 경기',
-                subtitle: '즐겨찾기한 팀 경기 일정 알림',
+                title: '새 경기 일정 알림',
+                subtitle: '즐겨찾기 팀의 새로운 경기 일정 등록 알림',
                 value: settings.favoriteTeamMatches,
                 enabled: settings.pushNotifications,
                 onChanged: (value) => notifier.updateFavoriteTeamMatches(value),
@@ -115,18 +123,26 @@ class NotificationSettingsScreen extends ConsumerWidget {
 
           const SizedBox(height: 24),
 
-          // 실시간 알림
+          // 즐겨찾기 팀 실시간 알림
           _buildSectionHeader(
             icon: Icons.bolt_rounded,
             iconColor: const Color(0xFFF59E0B),
-            title: '실시간 알림',
+            title: '즐겨찾기 팀 실시간 알림',
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '즐겨찾기한 팀의 경기 중 실시간 알림을 설정합니다',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 12),
           _SettingsCard(
             children: [
               _SettingsToggle(
                 title: '라이브 스코어 업데이트',
-                subtitle: '즐겨찾기 팀 경기 중 골/이벤트 알림',
+                subtitle: '경기 중 골/이벤트 실시간 알림',
                 value: settings.liveScoreUpdates,
                 enabled: settings.pushNotifications,
                 onChanged: (value) => notifier.updateLiveScoreUpdates(value),

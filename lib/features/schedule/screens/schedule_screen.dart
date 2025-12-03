@@ -622,9 +622,13 @@ class _ScheduleMatchCard extends ConsumerWidget {
     if (currentValue) {
       ref.read(scheduleNotifierProvider.notifier).removeNotification(match.id);
     } else {
-      ref
-          .read(scheduleNotifierProvider.notifier)
-          .setNotification(matchId: match.id);
+      // 기본값: 경기 시작 알림만 설정
+      ref.read(scheduleNotifierProvider.notifier).setNotification(
+        matchId: match.id,
+        notifyKickoff: true,
+        notifyLineup: false,
+        notifyResult: false,
+      );
     }
   }
 
@@ -738,87 +742,161 @@ class _ScheduleMatchCard extends ConsumerWidget {
   }
 }
 
-class _NotificationSettingsDialog extends ConsumerWidget {
+class _NotificationSettingsDialog extends ConsumerStatefulWidget {
   final Match match;
-
-  static const _primary = Color(0xFF2563EB);
-  static const _textPrimary = Color(0xFF111827);
-  static const _border = Color(0xFFE5E7EB);
 
   const _NotificationSettingsDialog({required this.match});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final settingAsync = ref.watch(matchNotificationProvider(match.id));
+  ConsumerState<_NotificationSettingsDialog> createState() => _NotificationSettingsDialogState();
+}
+
+class _NotificationSettingsDialogState extends ConsumerState<_NotificationSettingsDialog> {
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  // 로컬 상태로 알림 설정 관리 (기본값: 경기 시작 알림만)
+  bool _notifyKickoff = true;
+  bool _notifyLineup = false;
+  bool _notifyResult = false;
+  bool _isInitialized = false;
+  bool _hasExistingSetting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final settingAsync = ref.watch(matchNotificationProvider(widget.match.id));
 
     return AlertDialog(
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
-      title: const Text(
-        '알림 설정',
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          color: _textPrimary,
-        ),
+      title: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.notifications_active, color: _primary, size: 28),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            '경기 알림 설정',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: _textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${widget.match.homeTeamName} vs ${widget.match.awayTeamName}',
+            style: TextStyle(
+              fontSize: 13,
+              color: _textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
       content: settingAsync.when(
-        data: (setting) => Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildNotificationTile(
-              '킥오프 알림 (30분 전)',
-              setting?.notifyKickoff ?? true,
-              (value) {
-                ref.read(scheduleNotifierProvider.notifier).toggleNotification(
-                      matchId: match.id,
-                      type: 'kickoff',
-                      value: value,
-                    );
-              },
-            ),
-            const Divider(height: 1, color: _border),
-            _buildNotificationTile(
-              '라인업 발표',
-              setting?.notifyLineup ?? false,
-              (value) {
-                ref.read(scheduleNotifierProvider.notifier).toggleNotification(
-                      matchId: match.id,
-                      type: 'lineup',
-                      value: value,
-                    );
-              },
-            ),
-            const Divider(height: 1, color: _border),
-            _buildNotificationTile(
-              '경기 결과',
-              setting?.notifyResult ?? true,
-              (value) {
-                ref.read(scheduleNotifierProvider.notifier).toggleNotification(
-                      matchId: match.id,
-                      type: 'result',
-                      value: value,
-                    );
-              },
-            ),
-          ],
-        ),
+        data: (setting) {
+          // 기존 설정이 있으면 로컬 상태 초기화
+          if (!_isInitialized) {
+            _isInitialized = true;
+            if (setting != null) {
+              _hasExistingSetting = true;
+              _notifyKickoff = setting.notifyKickoff;
+              _notifyLineup = setting.notifyLineup;
+              _notifyResult = setting.notifyResult;
+            }
+          }
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildNotificationTile(
+                icon: Icons.sports_soccer,
+                iconColor: Colors.green,
+                title: '경기 시작 알림',
+                subtitle: '킥오프 30분 전에 알림',
+                value: _notifyKickoff,
+                onChanged: (value) {
+                  setState(() => _notifyKickoff = value);
+                },
+              ),
+              const Divider(height: 1, color: _border),
+              _buildNotificationTile(
+                icon: Icons.people_outline,
+                iconColor: Colors.blue,
+                title: '라인업 발표',
+                subtitle: '선발 명단 공개 시 알림',
+                value: _notifyLineup,
+                onChanged: (value) {
+                  setState(() => _notifyLineup = value);
+                },
+              ),
+              const Divider(height: 1, color: _border),
+              _buildNotificationTile(
+                icon: Icons.emoji_events_outlined,
+                iconColor: Colors.amber,
+                title: '경기 결과',
+                subtitle: '경기 종료 후 결과 알림',
+                value: _notifyResult,
+                onChanged: (value) {
+                  setState(() => _notifyResult = value);
+                },
+              ),
+            ],
+          );
+        },
         loading: () => const SizedBox(
-          height: 150,
+          height: 180,
           child: Center(child: CircularProgressIndicator()),
         ),
-        error: (e, _) => Text('오류: $e'),
+        error: (e, _) => SizedBox(
+          height: 100,
+          child: Center(
+            child: Text('오류: $e', style: TextStyle(color: _textSecondary)),
+          ),
+        ),
       ),
       actions: [
+        if (_hasExistingSetting)
+          TextButton(
+            onPressed: () {
+              ref.read(scheduleNotifierProvider.notifier).removeNotification(widget.match.id);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('알림이 해제되었습니다'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            child: Text(
+              '알림 해제',
+              style: TextStyle(color: Colors.red.shade400),
+            ),
+          ),
         TextButton(
           onPressed: () => Navigator.pop(context),
+          child: Text(
+            '취소',
+            style: TextStyle(color: _textSecondary),
+          ),
+        ),
+        TextButton(
+          onPressed: _saveNotification,
           style: TextButton.styleFrom(
             foregroundColor: _primary,
           ),
           child: const Text(
-            '닫기',
+            '저장',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
@@ -826,21 +904,47 @@ class _NotificationSettingsDialog extends ConsumerWidget {
     );
   }
 
-  Widget _buildNotificationTile(
-    String title,
-    bool value,
-    ValueChanged<bool> onChanged,
-  ) {
+  Widget _buildNotificationTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              color: _textPrimary,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: _textPrimary,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _textSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
           Switch(
@@ -851,6 +955,37 @@ class _NotificationSettingsDialog extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  void _saveNotification() {
+    // 알림이 하나라도 켜져 있으면 저장, 아니면 삭제
+    if (_notifyKickoff || _notifyLineup || _notifyResult) {
+      ref.read(scheduleNotifierProvider.notifier).setNotification(
+        matchId: widget.match.id,
+        notifyKickoff: _notifyKickoff,
+        notifyLineup: _notifyLineup,
+        notifyResult: _notifyResult,
+      );
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('알림이 설정되었습니다'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      // 모든 알림이 꺼져 있으면 기존 설정 삭제
+      if (_hasExistingSetting) {
+        ref.read(scheduleNotifierProvider.notifier).removeNotification(widget.match.id);
+      }
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('알림이 해제되었습니다'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 }
 
