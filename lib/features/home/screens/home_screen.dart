@@ -512,15 +512,17 @@ class _LiveMatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 220,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.2)),
-      ),
-      child: Column(
+    return GestureDetector(
+      onTap: () => context.push('/match/${event.id}'),
+      child: Container(
+        width: 220,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.2)),
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -595,6 +597,7 @@ class _LiveMatchCard extends StatelessWidget {
           ),
           const Spacer(),
         ],
+        ),
       ),
     );
   }
@@ -743,7 +746,7 @@ class _ScheduleCard extends StatelessWidget {
         : 0;
 
     return GestureDetector(
-      onTap: () => context.push('/team/${match.team.id}'),
+      onTap: () => context.push('/match/${event.id}'),
       child: Container(
         width: 180,
         padding: const EdgeInsets.all(14),
