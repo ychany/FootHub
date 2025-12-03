@@ -792,11 +792,7 @@ class _MenuSection extends StatelessWidget {
             iconColor: const Color(0xFFEC4899),
             title: '알림 설정',
             subtitle: '경기 알림, 푸시 알림',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('알림 설정 기능 준비 중')),
-              );
-            },
+            onTap: () => context.push('/profile/notifications'),
           ),
           Container(height: 1, margin: const EdgeInsets.only(left: 72), color: const Color(0xFFE5E7EB)),
           _MenuItem(
