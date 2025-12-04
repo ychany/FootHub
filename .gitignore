@@ -44,20 +44,8 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# iOS/macOS
-**/ios/Flutter/Flutter.podspec
-**/ios/Flutter/flutter_export_environment.sh
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/ephemeral/
-**/ios/Pods/
-**/ios/Podfile.lock
-**/ios/.symlinks/
-**/ios/Runner/GeneratedPluginRegistrant.*
-**/ios/Runner.xcworkspace/
-**/ios/Runner.xcodeproj/project.xcworkspace/
-**/ios/Runner.xcodeproj/xcuserdata/
-**/ios/Runner.xcodeproj/xcshareddata/
-**/ios/Runner.xcodeproj/xcodeproj
+# iOS
+ios/
 
 # macOS (not used for this project)
 macos/
