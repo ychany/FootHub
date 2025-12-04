@@ -54,6 +54,16 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
       final service = ref.read(communityServiceProvider);
       final newState = await service.toggleLike(widget.postId);
       setState(() => _isLiked = newState);
+
+      // 목록 좋아요 상태 업데이트
+      ref.read(likedPostsProvider.notifier).setLiked(widget.postId, newState);
+
+      // 목록 좋아요 수 업데이트
+      ref.read(postsNotifierProvider.notifier).updateLikeCount(
+        widget.postId,
+        newState ? 1 : -1,
+      );
+
       ref.invalidate(postProvider(widget.postId));
     } catch (e) {
       if (mounted) {

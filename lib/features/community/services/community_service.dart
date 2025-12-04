@@ -212,6 +212,20 @@ class CommunityService {
     return likeDoc.exists;
   }
 
+  // 여러 게시글의 좋아요 여부 일괄 확인
+  Future<Map<String, bool>> getLikedStatusForPosts(List<String> postIds) async {
+    final user = _auth.currentUser;
+    if (user == null) return {};
+
+    final result = <String, bool>{};
+    for (final postId in postIds) {
+      final likeId = '${user.uid}_$postId';
+      final likeDoc = await _likesCollection.doc(likeId).get();
+      result[postId] = likeDoc.exists;
+    }
+    return result;
+  }
+
   // 댓글 목록 조회
   Future<List<Comment>> getComments(String postId) async {
     final snapshot = await _commentsCollection

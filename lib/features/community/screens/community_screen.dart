@@ -6,9 +6,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/post_model.dart';
 import '../providers/community_provider.dart';
 
-class CommunityScreen extends ConsumerWidget {
+class CommunityScreen extends ConsumerStatefulWidget {
   const CommunityScreen({super.key});
 
+  @override
+  ConsumerState<CommunityScreen> createState() => _CommunityScreenState();
+}
+
+class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   static const _primary = Color(0xFF2563EB);
   static const _primaryLight = Color(0xFFDBEAFE);
   static const _textPrimary = Color(0xFF111827);
@@ -16,8 +21,35 @@ class CommunityScreen extends ConsumerWidget {
   static const _background = Color(0xFFF9FAFB);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    // 첫 로드 시 좋아요 상태 로드
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadLikedStatus();
+    });
+  }
+
+  Future<void> _loadLikedStatus() async {
+    final posts = ref.read(postsNotifierProvider).valueOrNull;
+    if (posts != null && posts.isNotEmpty) {
+      final postIds = posts.map((p) => p.id).toList();
+      await ref.read(likedPostsProvider.notifier).loadLikedStatus(postIds);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final postsAsync = ref.watch(postsNotifierProvider);
+
+    // 게시글이 로드되면 좋아요 상태도 로드
+    ref.listen(postsNotifierProvider, (previous, next) {
+      next.whenData((posts) {
+        if (posts.isNotEmpty) {
+          final postIds = posts.map((p) => p.id).toList();
+          ref.read(likedPostsProvider.notifier).loadLikedStatus(postIds);
+        }
+      });
+    });
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
@@ -167,6 +199,9 @@ class _PostCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final likedPosts = ref.watch(likedPostsProvider);
+    final isLiked = likedPosts[post.id] ?? false;
+
     return GestureDetector(
       onTap: () => context.push('/community/post/${post.id}'),
       child: Container(
@@ -362,35 +397,6 @@ class _PostCard extends ConsumerWidget {
               ),
             ],
 
-            // 태그
-            if (post.tags.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: post.tags.map((tag) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '#$tag',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _primary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ],
-
             const SizedBox(height: 12),
 
             // 좋아요, 댓글 수
@@ -401,7 +407,7 @@ class _PostCard extends ConsumerWidget {
               ),
               child: Row(
                 children: [
-                  _buildStatItem(Icons.favorite_border, '${post.likeCount}'),
+                  _buildLikeItem(isLiked, post.likeCount),
                   const SizedBox(width: 16),
                   _buildStatItem(Icons.chat_bubble_outline, '${post.commentCount}'),
                 ],
@@ -410,6 +416,26 @@ class _PostCard extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLikeItem(bool isLiked, int count) {
+    return Row(
+      children: [
+        Icon(
+          isLiked ? Icons.favorite : Icons.favorite_border,
+          size: 18,
+          color: isLiked ? Colors.red : _textSecondary,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '$count',
+          style: TextStyle(
+            fontSize: 13,
+            color: isLiked ? Colors.red : _textSecondary,
+          ),
+        ),
+      ],
     );
   }
 
