@@ -476,7 +476,7 @@ class _ScheduleMatchCard extends ConsumerWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: _textPrimary,
+                            color: _primaryLight,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -484,7 +484,7 @@ class _ScheduleMatchCard extends ConsumerWidget {
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                              color: _primary,
                             ),
                           ),
                         )

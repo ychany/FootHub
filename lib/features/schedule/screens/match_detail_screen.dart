@@ -285,13 +285,13 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: _textPrimary,
+                            color: _primaryLight,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             match.scoreDisplay,
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: _primary,
                               fontSize: 24,
                               fontWeight: FontWeight.w700,
                             ),
