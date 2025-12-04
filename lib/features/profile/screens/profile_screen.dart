@@ -795,6 +795,14 @@ class _MenuSection extends StatelessWidget {
           ),
           Container(height: 1, margin: const EdgeInsets.only(left: 72), color: const Color(0xFFE5E7EB)),
           _MenuItem(
+            icon: Icons.forum_outlined,
+            iconColor: const Color(0xFF8B5CF6),
+            title: '커뮤니티',
+            subtitle: '직관 후기, 정보 공유',
+            onTap: () => context.push('/community'),
+          ),
+          Container(height: 1, margin: const EdgeInsets.only(left: 72), color: const Color(0xFFE5E7EB)),
+          _MenuItem(
             icon: Icons.help_outline_rounded,
             iconColor: const Color(0xFF3B82F6),
             title: '도움말 및 지원',

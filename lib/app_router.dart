@@ -19,6 +19,10 @@ import 'features/profile/screens/profile_screen.dart';
 import 'features/profile/screens/profile_edit_screen.dart';
 import 'features/profile/screens/notification_settings_screen.dart';
 import 'features/profile/screens/help_support_screen.dart';
+import 'features/community/screens/community_screen.dart';
+import 'features/community/screens/post_write_screen.dart';
+import 'features/community/screens/post_detail_screen.dart';
+import 'features/community/models/post_model.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -153,6 +157,32 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'help',
                 builder: (context, state) => const HelpSupportScreen(),
+              ),
+              GoRoute(
+                path: 'community',
+                builder: (context, state) => const CommunityScreen(),
+              ),
+            ],
+          ),
+
+          // Community routes
+          GoRoute(
+            path: '/community',
+            builder: (context, state) => const CommunityScreen(),
+            routes: [
+              GoRoute(
+                path: 'write',
+                builder: (context, state) {
+                  final post = state.extra as Post?;
+                  return PostWriteScreen(editPost: post);
+                },
+              ),
+              GoRoute(
+                path: 'post/:postId',
+                builder: (context, state) {
+                  final postId = state.pathParameters['postId']!;
+                  return PostDetailScreen(postId: postId);
+                },
               ),
             ],
           ),
