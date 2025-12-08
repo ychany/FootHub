@@ -160,6 +160,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   void _showDatePicker() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -1270,6 +1271,8 @@ class _DatePickerBottomSheet extends StatefulWidget {
   State<_DatePickerBottomSheet> createState() => _DatePickerBottomSheetState();
 }
 
+enum _PickerMode { year, month, day }
+
 class _DatePickerBottomSheetState extends State<_DatePickerBottomSheet> {
   static const _primary = Color(0xFF2563EB);
   static const _textPrimary = Color(0xFF111827);
@@ -1279,6 +1282,7 @@ class _DatePickerBottomSheetState extends State<_DatePickerBottomSheet> {
   late int _selectedYear;
   late int _selectedMonth;
   late int _selectedDay;
+  _PickerMode _mode = _PickerMode.day;
 
   @override
   void initState() {
@@ -1292,130 +1296,264 @@ class _DatePickerBottomSheetState extends State<_DatePickerBottomSheet> {
     return DateTime(year, month + 1, 0).day;
   }
 
+  String _getMonthName(int month) {
+    const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+    return months[month - 1];
+  }
+
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final years = List.generate(3, (i) => now.year - 1 + i);
-    final daysInMonth = _getDaysInMonth(_selectedYear, _selectedMonth);
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 드래그 핸들
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              '날짜 선택',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: _textPrimary,
+              const SizedBox(height: 16),
+              // 헤더 (현재 선택된 날짜 표시 + 모드 전환)
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _mode = _PickerMode.year;
+                  });
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _mode == _PickerMode.year
+                          ? '$_selectedYear년 $_selectedMonth월'
+                          : _mode == _PickerMode.month
+                              ? '$_selectedYear년 $_selectedMonth월'
+                              : '$_selectedYear년 $_selectedMonth월',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: _textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      _mode == _PickerMode.day ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                      color: _textSecondary,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                // 년도
-                Expanded(
-                  child: _buildDropdown(
-                    value: _selectedYear,
-                    items: years,
-                    suffix: '년',
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedYear = value!;
-                        final maxDay = _getDaysInMonth(_selectedYear, _selectedMonth);
-                        if (_selectedDay > maxDay) _selectedDay = maxDay;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // 월
-                Expanded(
-                  child: _buildDropdown(
-                    value: _selectedMonth,
-                    items: List.generate(12, (i) => i + 1),
-                    suffix: '월',
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedMonth = value!;
-                        final maxDay = _getDaysInMonth(_selectedYear, _selectedMonth);
-                        if (_selectedDay > maxDay) _selectedDay = maxDay;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // 일
-                Expanded(
-                  child: _buildDropdown(
-                    value: _selectedDay,
-                    items: List.generate(daysInMonth, (i) => i + 1),
-                    suffix: '일',
-                    onChanged: (value) {
-                      setState(() => _selectedDay = value!);
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: _border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 4),
+              Container(
+                height: 1,
+                color: _border,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              // 그리드 선택 영역
+              SizedBox(
+                height: 280,
+                child: _buildPickerContent(),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: _border),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                    ),
-                    child: const Text(
-                      '취소',
-                      style: TextStyle(
-                        color: _textSecondary,
-                        fontWeight: FontWeight.w600,
+                      child: const Text(
+                        '취소',
+                        style: TextStyle(
+                          color: _textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _onSelect,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _onSelect,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _primary,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                    ),
-                    child: const Text(
-                      '선택',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+                      child: const Text(
+                        '선택',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPickerContent() {
+    switch (_mode) {
+      case _PickerMode.year:
+        return _buildYearPicker();
+      case _PickerMode.month:
+        return _buildMonthPicker();
+      case _PickerMode.day:
+        return _buildDayPicker();
+    }
+  }
+
+  Widget _buildYearPicker() {
+    final years = List.generate(17, (i) => 2025 - i); // 2025 ~ 2009 (최신순)
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 2.2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: years.length,
+      itemBuilder: (context, index) {
+        final year = years[index];
+        final isSelected = year == _selectedYear;
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedYear = year;
+              _mode = _PickerMode.month;
+            });
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected ? _primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '$year',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected ? Colors.white : _textPrimary,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMonthPicker() {
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 2.2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: 12,
+      itemBuilder: (context, index) {
+        final month = index + 1;
+        final isSelected = month == _selectedMonth;
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedMonth = month;
+              // 선택된 일자가 해당 월의 최대 일수보다 크면 조정
+              final maxDay = _getDaysInMonth(_selectedYear, _selectedMonth);
+              if (_selectedDay > maxDay) _selectedDay = maxDay;
+              _mode = _PickerMode.day;
+            });
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected ? _primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              _getMonthName(month),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected ? Colors.white : _textPrimary,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDayPicker() {
+    final daysInMonth = _getDaysInMonth(_selectedYear, _selectedMonth);
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 7,
+        childAspectRatio: 1.2,
+        crossAxisSpacing: 4,
+        mainAxisSpacing: 4,
+      ),
+      itemCount: daysInMonth,
+      itemBuilder: (context, index) {
+        final day = index + 1;
+        final isSelected = day == _selectedDay;
+        final isToday = _selectedYear == DateTime.now().year &&
+            _selectedMonth == DateTime.now().month &&
+            day == DateTime.now().day;
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedDay = day;
+            });
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? _primary
+                  : isToday
+                      ? _primary.withValues(alpha: 0.2)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '$day',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected || isToday ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected ? Colors.white : _textPrimary,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1423,40 +1561,5 @@ class _DatePickerBottomSheetState extends State<_DatePickerBottomSheet> {
     final selected = DateTime(_selectedYear, _selectedMonth, _selectedDay);
     Navigator.pop(context);
     widget.onDateSelected(selected);
-  }
-
-  Widget _buildDropdown({
-    required int value,
-    required List<int> items,
-    required String suffix,
-    required ValueChanged<int?> onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        border: Border.all(color: _border),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
-          value: value,
-          isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down, color: _textSecondary),
-          items: items.map((item) {
-            return DropdownMenuItem(
-              value: item,
-              child: Text(
-                '$item$suffix',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: _textPrimary,
-                ),
-              ),
-            );
-          }).toList(),
-          onChanged: onChanged,
-        ),
-      ),
-    );
   }
 }
