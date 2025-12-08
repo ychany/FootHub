@@ -663,6 +663,7 @@ class SportsDbTeam {
   final String? logo;
   final String? banner;
   final String? description;
+  final String? formedYear;
 
   SportsDbTeam({
     required this.id,
@@ -677,6 +678,7 @@ class SportsDbTeam {
     this.logo,
     this.banner,
     this.description,
+    this.formedYear,
   });
 
   factory SportsDbTeam.fromJson(Map<String, dynamic> json) {
@@ -693,6 +695,7 @@ class SportsDbTeam {
       logo: json['strLogo'],
       banner: json['strBanner'],
       description: json['strDescriptionEN'],
+      formedYear: json['intFormedYear']?.toString(),
     );
   }
 }

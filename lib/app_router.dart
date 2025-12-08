@@ -24,6 +24,7 @@ import 'features/community/screens/post_write_screen.dart';
 import 'features/community/screens/post_detail_screen.dart';
 import 'features/community/screens/user_profile_screen.dart';
 import 'features/community/models/post_model.dart';
+import 'features/national_team/screens/national_team_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -89,6 +90,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           final teamId = state.pathParameters['teamId']!;
           return TeamDetailScreen(teamId: teamId);
         },
+      ),
+
+      // National Team (outside shell - full screen)
+      GoRoute(
+        path: '/national-team',
+        builder: (context, state) => const NationalTeamScreen(),
       ),
 
       // Attendance Add (outside shell - full screen for access from match detail)

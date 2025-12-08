@@ -9,6 +9,7 @@ import '../../attendance/models/attendance_record.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
+import '../../national_team/providers/national_team_provider.dart';
 
 /// 축구 라이브스코어 Provider
 final soccerLivescoresProvider =
@@ -74,6 +75,11 @@ class HomeScreen extends ConsumerWidget {
                 // 즐겨찾기 팀 일정
                 SliverToBoxAdapter(
                   child: _FavoriteScheduleSection(),
+                ),
+
+                // 대한민국 국가대표
+                SliverToBoxAdapter(
+                  child: _NationalTeamSection(),
                 ),
 
                 // 최근 직관 기록
@@ -1163,6 +1169,432 @@ class _EmptyCard extends StatelessWidget {
             Icon(Icons.add_rounded, color: Colors.grey.shade400),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// 대한민국 국가대표 섹션
+// ============================================================================
+class _NationalTeamSection extends ConsumerWidget {
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  // 태극기 색상
+  static const _koreaRed = Color(0xFFCD2E3A);
+  static const _koreaBlue = Color(0xFF0047A0);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final countdown = ref.watch(worldCupCountdownProvider);
+    final nextMatchesAsync = ref.watch(koreaNextMatchesProvider);
+    final formAsync = ref.watch(koreaFormProvider);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 섹션 헤더
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: _border),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(5),
+                  child: Image.network(
+                    'https://r2.thesportsdb.com/images/media/team/badge/a8nqfs1589564916.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: _koreaRed,
+                      child: const Icon(Icons.flag, color: Colors.white, size: 16),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                '대한민국 국가대표',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: _textPrimary,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => context.push('/national-team'),
+                child: Row(
+                  children: [
+                    Text(
+                      '더보기',
+                      style: TextStyle(
+                        color: _textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: _textSecondary, size: 18),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 메인 카드
+          GestureDetector(
+            onTap: () => context.push('/national-team'),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    _koreaRed,
+                    _koreaRed.withValues(alpha: 0.9),
+                    _koreaBlue.withValues(alpha: 0.8),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: _koreaRed.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // 월드컵 카운트다운
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('🏆', style: TextStyle(fontSize: 14)),
+                              const SizedBox(width: 6),
+                              Text(
+                                countdown.tournamentName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'D-${countdown.daysRemaining}',
+                                style: TextStyle(
+                                  color: _koreaRed,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 다음 경기 정보
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: nextMatchesAsync.when(
+                      data: (matches) {
+                        if (matches.isEmpty) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Text(
+                                '예정된 경기가 없습니다',
+                                style: TextStyle(color: _textSecondary, fontSize: 13),
+                              ),
+                            ),
+                          );
+                        }
+
+                        final nextMatch = matches.first;
+                        final matchDate = nextMatch.dateTime;
+                        final isHome = nextMatch.homeTeam?.toLowerCase().contains('korea') ?? false;
+                        final opponent = isHome ? nextMatch.awayTeam : nextMatch.homeTeam;
+                        final opponentBadge = isHome ? nextMatch.awayTeamBadge : nextMatch.homeTeamBadge;
+
+                        return Column(
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  '다음 경기',
+                                  style: TextStyle(
+                                    color: _textSecondary,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    nextMatch.league ?? 'A매치',
+                                    style: TextStyle(
+                                      color: _primary,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                // 대한민국
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: _border),
+                                        ),
+                                        child: ClipOval(
+                                          child: Image.network(
+                                            'https://r2.thesportsdb.com/images/media/team/badge/a8nqfs1589564916.png',
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => Container(
+                                              color: _koreaRed,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Flexible(
+                                        child: Text(
+                                          '대한민국',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: _textPrimary,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // VS
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  child: Column(
+                                    children: [
+                                      if (matchDate != null) ...[
+                                        Text(
+                                          DateFormat('M/d').format(matchDate),
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: _textPrimary,
+                                          ),
+                                        ),
+                                        Text(
+                                          DateFormat('HH:mm').format(matchDate),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: _textSecondary,
+                                          ),
+                                        ),
+                                      ] else
+                                        const Text(
+                                          'VS',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: _textSecondary,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                // 상대팀
+                                Expanded(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          opponent ?? '-',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: _textPrimary,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.end,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: _border),
+                                          color: Colors.grey.shade100,
+                                        ),
+                                        child: opponentBadge != null
+                                            ? ClipOval(
+                                                child: Image.network(
+                                                  opponentBadge,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, __, ___) => Icon(
+                                                    Icons.shield_outlined,
+                                                    color: _textSecondary,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                              )
+                                            : Icon(
+                                                Icons.shield_outlined,
+                                                color: _textSecondary,
+                                                size: 20,
+                                              ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      error: (_, __) => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text(
+                            '일정을 불러올 수 없습니다',
+                            style: TextStyle(color: _textSecondary, fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // 최근 폼
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Row(
+                      children: [
+                        Text(
+                          '최근 5경기',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        formAsync.when(
+                          data: (form) => Row(
+                            children: form.results.map((r) {
+                              Color bgColor;
+                              switch (r) {
+                                case 'W':
+                                  bgColor = const Color(0xFF10B981);
+                                  break;
+                                case 'L':
+                                  bgColor = const Color(0xFFEF4444);
+                                  break;
+                                default:
+                                  bgColor = const Color(0xFF6B7280);
+                              }
+                              return Container(
+                                width: 24,
+                                height: 24,
+                                margin: const EdgeInsets.only(right: 4),
+                                decoration: BoxDecoration(
+                                  color: bgColor,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    r,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, __) => const SizedBox.shrink(),
+                        ),
+                        const Spacer(),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white.withValues(alpha: 0.6),
+                          size: 14,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
