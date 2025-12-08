@@ -421,6 +421,95 @@ lib/
 
 ---
 
+## 최근 작업 내역 (2025-12-09)
+
+### 1. 국가대표 팀 화면 구현
+- **변경 파일**:
+  - `lib/features/national_team/screens/national_team_screen.dart` (신규)
+  - `lib/features/national_team/providers/national_team_provider.dart` (신규)
+  - `lib/app_router.dart` (라우트 추가)
+- **내용**:
+  - 대한민국 축구 국가대표팀 전용 화면 (`/national-team`)
+  - 3개 탭: 일정, 정보, 선수단
+  - 2026 월드컵 D-day 카운트다운 표시
+  - 대회별 일정 조회 (월드컵 본선/예선, 아시안컵, 친선경기)
+
+### 2. TheSportsDB API 확장
+- **변경 파일**: `lib/core/services/sports_db_service.dart`
+- **내용**:
+  - `getLeagueEventsBySeason()` - 리그 시즌별 경기 조회
+  - `getTeamFullSchedule()` - 팀 전체 시즌 일정 (V2 API 우선, V1 fallback)
+  - `getPlayersByTeam()` - 팀 선수단 조회
+
+### 3. 즐겨찾기 화면 리그 표시 수정
+- **변경 파일**: `lib/features/favorites/screens/favorites_screen.dart`
+- **내용**:
+  - 팀 추가 모달에서 "International Friendlies" → "국가" 표시
+  - 리그 필터 칩에도 한국어 표시 적용
+  - `_getLeagueDisplayName()` 헬퍼 함수 추가
+
+### 4. AppConstants 업데이트
+- **변경 파일**: `lib/core/constants/app_constants.dart`
+- **내용**:
+  - `supportedLeagues`에 `International Friendlies` 추가
+  - `leaguesWithStandings` 리스트 추가 (순위표가 있는 리그만)
+  - `leagueDisplayNames`에 `'International Friendlies': 'A매치'` 추가
+
+---
+
+## TheSportsDB API 한계 및 참고사항 (2025-12-09)
+
+### 리그 ID 정보
+| 대회명 | 리그 ID | 비고 |
+|--------|---------|------|
+| FIFA 월드컵 | 4429 | 본선 + 예선 통합 (시즌으로 구분) |
+| AFC 아시안컵 | 4866 | |
+| 친선경기 | 4562 | International Friendlies |
+| 월드컵 예선 AFC | 5513 | **데이터 없음** (빈 응답) |
+| 아시안컵 예선 | 5521 | |
+
+### API 한계점
+
+1. **월드컵 조별 순위 (lookuptable.php)**
+   - `lookuptable.php?l=4429&s=2022` 조회 시 **한국이 속한 조(Group H)만** 반환
+   - 그룹 파라미터(`g=A`, `group=A`) 작동하지 않음
+   - 전체 8개 조 데이터를 한 번에 가져올 수 없음
+
+2. **국가대표 선수단 (lookup_all_players.php)**
+   - `lookup_all_players.php?id=134517` (대한민국)
+   - 웹사이트에는 28명 표시되지만 API는 **1명만 반환** (Paulo Bento)
+   - 국가대표팀 선수단 데이터는 API로 완전히 제공되지 않음
+
+3. **월드컵 예선 데이터**
+   - 별도 리그 ID(5513)가 존재하지만 **이벤트 데이터 없음**
+   - 실제 예선 경기는 FIFA World Cup(4429) 리그에서 시즌(2023-2024 등)으로 구분
+   - 앱에서는 가상 ID(`4429_qualifying`)로 본선/예선 구분 처리
+
+### 월드컵 본선/예선 구분 로직
+```dart
+// national_team_provider.dart
+class NationalTeamLeagues {
+  static const String worldCup = '4429';           // 본선
+  static const String worldCupQualifying = '4429_qualifying'; // 예선 (가상 ID)
+
+  // 본선 시즌 목록
+  static const List<String> worldCupFinalSeasons = ['2022', '2026', '2030'];
+
+  // 예선인지 확인 (본선 시즌이 아니면 예선)
+  static bool isQualifyingSeason(String? season) {
+    if (season == null) return false;
+    return !worldCupFinalSeasons.contains(season) &&
+           !worldCupFinalSeasons.any((s) => season.contains(s));
+  }
+}
+```
+
+### 한국 대표팀 ID
+- **팀 ID**: `134517`
+- **팀명 필터링**: "South Korea" 또는 "Korea" 포함, "North Korea" 제외
+
+---
+
 ## 최근 작업 내역 (2025-12-07)
 
 ### 1. 커뮤니티 좋아요 기능 개선
@@ -551,5 +640,5 @@ flutter test
 
 ---
 
-*마지막 업데이트: 2025-12-07*
+*마지막 업데이트: 2025-12-09*
 *작성자: Claude (이전 세션에서 작업한 내용 기반)*
