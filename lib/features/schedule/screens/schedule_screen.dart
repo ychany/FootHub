@@ -420,7 +420,10 @@ class _ScheduleMatchCard extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        AppConstants.getLeagueDisplayName(match.league),
+                        // A매치는 원래 리그명 그대로, 그 외는 축약 표시
+                        match.league == 'International Friendlies'
+                            ? match.league
+                            : AppConstants.getLeagueDisplayName(match.league),
                         style: const TextStyle(
                           color: _textSecondary,
                           fontSize: 11,

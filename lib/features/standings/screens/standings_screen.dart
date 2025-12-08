@@ -72,7 +72,7 @@ class StandingsScreen extends ConsumerWidget {
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: AppConstants.supportedLeagues.map((league) {
+                          children: AppConstants.leaguesWithStandings.map((league) {
                             final isSelected = selectedLeague == league;
                             return GestureDetector(
                               onTap: () {

@@ -25,6 +25,19 @@ class AppConstants {
     'South Korean K League 1',
     'UEFA Champions League',
     'UEFA Europa League',
+    'International Friendlies',
+  ];
+
+  // 순위표가 있는 리그 (A매치 제외)
+  static const List<String> leaguesWithStandings = [
+    'English Premier League',
+    'Spanish La Liga',
+    'Italian Serie A',
+    'German Bundesliga',
+    'French Ligue 1',
+    'South Korean K League 1',
+    'UEFA Champions League',
+    'UEFA Europa League',
   ];
 
   // 리그 이름을 한국어로 표시
@@ -37,6 +50,7 @@ class AppConstants {
     'South Korean K League 1': 'K리그',
     'UEFA Champions League': 'UCL',
     'UEFA Europa League': 'UEL',
+    'International Friendlies': 'A매치',
   };
 
   // 표시 이름으로 리그 이름 가져오기 (역방향)

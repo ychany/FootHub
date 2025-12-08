@@ -268,11 +268,11 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
           ),
           const SizedBox(height: 8),
 
-          // 리그 & 국가
+          // 리그 & 국가 (국가대표 팀은 리그 표시 안함)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (team.league != null) ...[
+              if (team.league != null && team.league != 'FIFA World Cup') ...[
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -357,10 +357,12 @@ class _InfoTab extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              _InfoRow(
-                  icon: Icons.sports_soccer_outlined,
-                  label: '리그',
-                  value: team.league ?? '-'),
+              // 국가대표 팀은 리그 표시 안함
+              if (team.league != null && team.league != 'FIFA World Cup')
+                _InfoRow(
+                    icon: Icons.sports_soccer_outlined,
+                    label: '리그',
+                    value: team.league!),
               _InfoRow(
                   icon: Icons.flag_outlined,
                   label: '국가',
