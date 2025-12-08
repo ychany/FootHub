@@ -102,34 +102,74 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               color: _textPrimary,
             ),
           ),
-          GestureDetector(
-            onTap: () {
-              ref.read(selectedDateProvider.notifier).state = DateTime.now();
-              setState(() => _focusedDay = DateTime.now());
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: _primaryLight,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.today, size: 18, color: _primary),
-                  const SizedBox(width: 6),
-                  Text(
-                    '오늘',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _primary,
+          Row(
+            children: [
+              // 달력 선택 버튼
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _showDatePicker,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _border),
                     ),
+                    child: Icon(Icons.calendar_month, size: 20, color: _primary),
                   ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              // 오늘 버튼
+              GestureDetector(
+                onTap: () {
+                  ref.read(selectedDateProvider.notifier).state = DateTime.now();
+                  setState(() => _focusedDay = DateTime.now());
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _primaryLight,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.today, size: 18, color: _primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        '오늘',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: _primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _showDatePicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _DatePickerBottomSheet(
+        initialDate: ref.read(selectedDateProvider),
+        onDateSelected: (date) {
+          ref.read(selectedDateProvider.notifier).state = date;
+          setState(() => _focusedDay = date);
+        },
       ),
     );
   }
@@ -144,8 +184,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       ),
       child: TableCalendar(
         locale: 'ko_KR',
-        firstDay: DateTime.now().subtract(const Duration(days: 365)),
-        lastDay: DateTime.now().add(const Duration(days: 365)),
+        firstDay: DateTime(2020, 1, 1),
+        lastDay: DateTime(2030, 12, 31),
         focusedDay: _focusedDay,
         calendarFormat: _calendarFormat,
         selectedDayPredicate: (day) => isSameDay(selectedDate, day),
@@ -1211,6 +1251,210 @@ class _ScheduleLiveCard extends StatelessWidget {
             ),
             const Spacer(),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DatePickerBottomSheet extends StatefulWidget {
+  final DateTime initialDate;
+  final ValueChanged<DateTime> onDateSelected;
+
+  const _DatePickerBottomSheet({
+    required this.initialDate,
+    required this.onDateSelected,
+  });
+
+  @override
+  State<_DatePickerBottomSheet> createState() => _DatePickerBottomSheetState();
+}
+
+class _DatePickerBottomSheetState extends State<_DatePickerBottomSheet> {
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  late int _selectedYear;
+  late int _selectedMonth;
+  late int _selectedDay;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedYear = widget.initialDate.year;
+    _selectedMonth = widget.initialDate.month;
+    _selectedDay = widget.initialDate.day;
+  }
+
+  int _getDaysInMonth(int year, int month) {
+    return DateTime(year, month + 1, 0).day;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final years = List.generate(3, (i) => now.year - 1 + i);
+    final daysInMonth = _getDaysInMonth(_selectedYear, _selectedMonth);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              '날짜 선택',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: _textPrimary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                // 년도
+                Expanded(
+                  child: _buildDropdown(
+                    value: _selectedYear,
+                    items: years,
+                    suffix: '년',
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedYear = value!;
+                        final maxDay = _getDaysInMonth(_selectedYear, _selectedMonth);
+                        if (_selectedDay > maxDay) _selectedDay = maxDay;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // 월
+                Expanded(
+                  child: _buildDropdown(
+                    value: _selectedMonth,
+                    items: List.generate(12, (i) => i + 1),
+                    suffix: '월',
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedMonth = value!;
+                        final maxDay = _getDaysInMonth(_selectedYear, _selectedMonth);
+                        if (_selectedDay > maxDay) _selectedDay = maxDay;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // 일
+                Expanded(
+                  child: _buildDropdown(
+                    value: _selectedDay,
+                    items: List.generate(daysInMonth, (i) => i + 1),
+                    suffix: '일',
+                    onChanged: (value) {
+                      setState(() => _selectedDay = value!);
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: _border),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      '취소',
+                      style: TextStyle(
+                        color: _textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _onSelect,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      '선택',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _onSelect() {
+    final selected = DateTime(_selectedYear, _selectedMonth, _selectedDay);
+    Navigator.pop(context);
+    widget.onDateSelected(selected);
+  }
+
+  Widget _buildDropdown({
+    required int value,
+    required List<int> items,
+    required String suffix,
+    required ValueChanged<int?> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: value,
+          isExpanded: true,
+          icon: const Icon(Icons.keyboard_arrow_down, color: _textSecondary),
+          items: items.map((item) {
+            return DropdownMenuItem(
+              value: item,
+              child: Text(
+                '$item$suffix',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: _textPrimary,
+                ),
+              ),
+            );
+          }).toList(),
+          onChanged: onChanged,
         ),
       ),
     );

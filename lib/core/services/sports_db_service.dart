@@ -431,38 +431,116 @@ class SportsDbService {
 
   // ============ 상대전적 (Head to Head) ============
 
+  // 팀 이름 변형 맵 (정식 이름 -> 약어/과거 이름들)
+  static const Map<String, List<String>> _teamNameVariants = {
+    'tottenham hotspur': ['tottenham', 'spurs'],
+    'tottenham': ['tottenham hotspur', 'spurs'],
+    'manchester united': ['man united', 'man utd'],
+    'manchester city': ['man city'],
+    'newcastle united': ['newcastle'],
+    'west ham united': ['west ham'],
+    'wolverhampton wanderers': ['wolves', 'wolverhampton'],
+    'nottingham forest': ["nott'm forest", 'nottingham'],
+    'brighton & hove albion': ['brighton'],
+    'leicester city': ['leicester'],
+    'aston villa': ['villa'],
+    'crystal palace': ['palace'],
+    'athletic bilbao': ['athletic club', 'athletic'],
+    'atletico madrid': ['atletico', 'atlético madrid'],
+    'real madrid': ['real'],
+    'fc barcelona': ['barcelona', 'barca'],
+    'bayern munich': ['bayern', 'fc bayern'],
+    'borussia dortmund': ['dortmund', 'bvb'],
+    'rb leipzig': ['leipzig'],
+    'paris saint-germain': ['psg', 'paris sg'],
+    'olympique marseille': ['marseille', 'om'],
+    'olympique lyonnais': ['lyon', 'ol'],
+    'inter milan': ['inter', 'internazionale'],
+    'ac milan': ['milan'],
+    'juventus': ['juve'],
+    'as roma': ['roma'],
+    'napoli': ['ssc napoli'],
+  };
+
+  /// 팀 이름의 변형들을 가져옴
+  List<String> _getTeamNameVariants(String teamName) {
+    final lower = teamName.toLowerCase();
+    final variants = <String>{lower};
+
+    // 정확히 일치하는 변형 추가
+    if (_teamNameVariants.containsKey(lower)) {
+      variants.addAll(_teamNameVariants[lower]!);
+    }
+
+    // 역방향 검색 (변형에서 원본 찾기)
+    for (final entry in _teamNameVariants.entries) {
+      if (entry.value.any((v) => v.toLowerCase() == lower)) {
+        variants.add(entry.key);
+        variants.addAll(entry.value);
+      }
+    }
+
+    // 첫 단어만 추출 (예: "Tottenham Hotspur" -> "Tottenham")
+    final firstWord = lower.split(' ').first;
+    if (firstWord.length >= 4) {
+      variants.add(firstWord);
+    }
+
+    return variants.toList();
+  }
+
   /// 두 팀 간의 상대전적 조회
   /// homeTeam vs awayTeam 형식으로 검색하여 양쪽 경기를 모두 가져옴
   Future<List<SportsDbEvent>> getHeadToHead(String homeTeam, String awayTeam) async {
     final allEvents = <SportsDbEvent>[];
     final seenIds = <String>{};
 
-    // 팀 이름에서 공백을 언더스코어로 변환
-    final homeEncoded = homeTeam.replaceAll(' ', '_');
-    final awayEncoded = awayTeam.replaceAll(' ', '_');
+    // 팀 이름 변형들 가져오기
+    final homeVariants = _getTeamNameVariants(homeTeam);
+    final awayVariants = _getTeamNameVariants(awayTeam);
 
-    // 홈팀 vs 원정팀 검색
-    final data1 = await _get('searchevents.php?e=${Uri.encodeComponent('${homeEncoded}_vs_$awayEncoded')}');
-    if (data1 != null && data1['event'] != null) {
-      for (final json in data1['event'] as List) {
-        final event = SportsDbEvent.fromJson(json);
-        if (!seenIds.contains(event.id) && event.isFinished) {
-          seenIds.add(event.id);
-          allEvents.add(event);
-        }
-      }
-    }
+    // 모든 조합으로 검색 (최대 4개 조합만)
+    int searchCount = 0;
+    const maxSearches = 4;
 
-    // 원정팀 vs 홈팀 검색 (역방향)
-    final data2 = await _get('searchevents.php?e=${Uri.encodeComponent('${awayEncoded}_vs_$homeEncoded')}');
-    if (data2 != null && data2['event'] != null) {
-      for (final json in data2['event'] as List) {
-        final event = SportsDbEvent.fromJson(json);
-        if (!seenIds.contains(event.id) && event.isFinished) {
-          seenIds.add(event.id);
-          allEvents.add(event);
+    for (final home in homeVariants) {
+      if (searchCount >= maxSearches) break;
+      for (final away in awayVariants) {
+        if (searchCount >= maxSearches) break;
+
+        final homeEncoded = home.replaceAll(' ', '_');
+        final awayEncoded = away.replaceAll(' ', '_');
+
+        // 홈팀 vs 원정팀 검색
+        final data1 = await _get('searchevents.php?e=${Uri.encodeComponent('${homeEncoded}_vs_$awayEncoded')}');
+        if (data1 != null && data1['event'] != null) {
+          for (final json in data1['event'] as List) {
+            final event = SportsDbEvent.fromJson(json);
+            if (!seenIds.contains(event.id) && event.isFinished) {
+              seenIds.add(event.id);
+              allEvents.add(event);
+            }
+          }
         }
+
+        // 원정팀 vs 홈팀 검색 (역방향)
+        final data2 = await _get('searchevents.php?e=${Uri.encodeComponent('${awayEncoded}_vs_$homeEncoded')}');
+        if (data2 != null && data2['event'] != null) {
+          for (final json in data2['event'] as List) {
+            final event = SportsDbEvent.fromJson(json);
+            if (!seenIds.contains(event.id) && event.isFinished) {
+              seenIds.add(event.id);
+              allEvents.add(event);
+            }
+          }
+        }
+
+        searchCount++;
+
+        // 결과가 충분하면 조기 종료
+        if (allEvents.length >= 10) break;
       }
+      if (allEvents.length >= 10) break;
     }
 
     // 날짜순 정렬 (최신순)
