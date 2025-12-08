@@ -428,6 +428,52 @@ class SportsDbService {
         .map((json) => SportsDbLiveEvent.fromJson(json))
         .toList();
   }
+
+  // ============ 상대전적 (Head to Head) ============
+
+  /// 두 팀 간의 상대전적 조회
+  /// homeTeam vs awayTeam 형식으로 검색하여 양쪽 경기를 모두 가져옴
+  Future<List<SportsDbEvent>> getHeadToHead(String homeTeam, String awayTeam) async {
+    final allEvents = <SportsDbEvent>[];
+    final seenIds = <String>{};
+
+    // 팀 이름에서 공백을 언더스코어로 변환
+    final homeEncoded = homeTeam.replaceAll(' ', '_');
+    final awayEncoded = awayTeam.replaceAll(' ', '_');
+
+    // 홈팀 vs 원정팀 검색
+    final data1 = await _get('searchevents.php?e=${Uri.encodeComponent('${homeEncoded}_vs_$awayEncoded')}');
+    if (data1 != null && data1['event'] != null) {
+      for (final json in data1['event'] as List) {
+        final event = SportsDbEvent.fromJson(json);
+        if (!seenIds.contains(event.id) && event.isFinished) {
+          seenIds.add(event.id);
+          allEvents.add(event);
+        }
+      }
+    }
+
+    // 원정팀 vs 홈팀 검색 (역방향)
+    final data2 = await _get('searchevents.php?e=${Uri.encodeComponent('${awayEncoded}_vs_$homeEncoded')}');
+    if (data2 != null && data2['event'] != null) {
+      for (final json in data2['event'] as List) {
+        final event = SportsDbEvent.fromJson(json);
+        if (!seenIds.contains(event.id) && event.isFinished) {
+          seenIds.add(event.id);
+          allEvents.add(event);
+        }
+      }
+    }
+
+    // 날짜순 정렬 (최신순)
+    allEvents.sort((a, b) {
+      final aDate = a.dateTime ?? DateTime(1900);
+      final bDate = b.dateTime ?? DateTime(1900);
+      return bDate.compareTo(aDate);
+    });
+
+    return allEvents;
+  }
 }
 
 // ============ 모델 클래스들 ============

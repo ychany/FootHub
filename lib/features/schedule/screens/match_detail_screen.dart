@@ -36,6 +36,13 @@ final matchTimelineProvider =
   return service.getEventTimeline(eventId);
 });
 
+// Provider for head to head
+final matchH2HProvider =
+    FutureProvider.family<List<SportsDbEvent>, ({String homeTeam, String awayTeam})>((ref, params) async {
+  final service = SportsDbService();
+  return service.getHeadToHead(params.homeTeam, params.awayTeam);
+});
+
 class MatchDetailScreen extends ConsumerWidget {
   final String eventId;
 
@@ -115,7 +122,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -166,8 +173,9 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                 tabs: const [
                   Tab(text: '정보'),
                   Tab(text: '라인업'),
-                  Tab(text: '통계'),
-                  Tab(text: '타임라인'),
+                  Tab(text: '기록'),
+                  Tab(text: '중계'),
+                  Tab(text: '전적'),
                 ],
               ),
             ),
@@ -181,6 +189,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                   _LineupTab(eventId: match.id, match: match),
                   _StatsTab(eventId: match.id, match: match),
                   _TimelineTab(eventId: match.id),
+                  _H2HTab(match: match),
                 ],
               ),
             ),
@@ -1786,5 +1795,445 @@ class _MatchNotificationDialogState extends ConsumerState<_MatchNotificationDial
         ),
       );
     }
+  }
+}
+
+// ============ H2H Tab ============
+class _H2HTab extends ConsumerWidget {
+  final SportsDbEvent match;
+
+  static const _success = Color(0xFF10B981);
+  static const _error = Color(0xFFEF4444);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _H2HTab({required this.match});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final homeTeam = match.homeTeam ?? '';
+    final awayTeam = match.awayTeam ?? '';
+
+    if (homeTeam.isEmpty || awayTeam.isEmpty) {
+      return Center(
+        child: Text(
+          '팀 정보가 없습니다',
+          style: TextStyle(color: _textSecondary),
+        ),
+      );
+    }
+
+    final h2hAsync = ref.watch(matchH2HProvider((homeTeam: homeTeam, awayTeam: awayTeam)));
+
+    return h2hAsync.when(
+      data: (events) {
+        if (events.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.history, size: 48, color: _textSecondary),
+                const SizedBox(height: 12),
+                Text(
+                  '상대전적 기록이 없습니다',
+                  style: TextStyle(color: _textSecondary, fontSize: 14),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // 통계 계산
+        int homeWins = 0;
+        int awayWins = 0;
+        int draws = 0;
+        int homeGoals = 0;
+        int awayGoals = 0;
+
+        for (final event in events) {
+          final hScore = event.homeScore ?? 0;
+          final aScore = event.awayScore ?? 0;
+
+          // 홈팀이 현재 경기의 홈팀인 경우
+          if (event.homeTeam?.toLowerCase() == homeTeam.toLowerCase()) {
+            homeGoals += hScore;
+            awayGoals += aScore;
+            if (hScore > aScore) {
+              homeWins++;
+            } else if (hScore < aScore) {
+              awayWins++;
+            } else {
+              draws++;
+            }
+          } else {
+            // 홈팀이 현재 경기의 원정팀인 경우
+            homeGoals += aScore;
+            awayGoals += hScore;
+            if (aScore > hScore) {
+              homeWins++;
+            } else if (aScore < hScore) {
+              awayWins++;
+            } else {
+              draws++;
+            }
+          }
+        }
+
+        return Container(
+          color: Colors.white,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // 상대전적 요약
+              _buildSummaryCard(homeWins, draws, awayWins, homeGoals, awayGoals, events.length),
+              const SizedBox(height: 16),
+
+              // 최근 경기 목록
+              Text(
+                '최근 경기',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: _textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...events.take(10).map((event) => _buildMatchCard(context, event)),
+            ],
+          ),
+        );
+      },
+      loading: () => const LoadingIndicator(),
+      error: (e, _) => Center(
+        child: Text('오류: $e', style: TextStyle(color: _textSecondary)),
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(int homeWins, int draws, int awayWins, int homeGoals, int awayGoals, int totalMatches) {
+    final total = homeWins + draws + awayWins;
+    final homePercent = total > 0 ? homeWins / total : 0.0;
+    final drawPercent = total > 0 ? draws / total : 0.0;
+    final awayPercent = total > 0 ? awayWins / total : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // 팀 뱃지와 승/무/패
+          Row(
+            children: [
+              // 홈팀
+              Expanded(
+                child: Column(
+                  children: [
+                    if (match.homeTeamBadge != null)
+                      CachedNetworkImage(
+                        imageUrl: match.homeTeamBadge!,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.contain,
+                        errorWidget: (_, __, ___) => Icon(Icons.shield, size: 48, color: _textSecondary),
+                      )
+                    else
+                      Icon(Icons.shield, size: 48, color: _textSecondary),
+                    const SizedBox(height: 8),
+                    Text(
+                      match.homeTeam ?? '',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+
+              // 전적
+              Expanded(
+                flex: 2,
+                child: Column(
+                  children: [
+                    Text(
+                      '$totalMatches경기',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildWinStat('$homeWins', '승', _success),
+                        Container(
+                          width: 1,
+                          height: 30,
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          color: _border,
+                        ),
+                        _buildWinStat('$draws', '무', _textSecondary),
+                        Container(
+                          width: 1,
+                          height: 30,
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          color: _border,
+                        ),
+                        _buildWinStat('$awayWins', '승', _error),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '득점 $homeGoals : $awayGoals',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 원정팀
+              Expanded(
+                child: Column(
+                  children: [
+                    if (match.awayTeamBadge != null)
+                      CachedNetworkImage(
+                        imageUrl: match.awayTeamBadge!,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.contain,
+                        errorWidget: (_, __, ___) => Icon(Icons.shield, size: 48, color: _textSecondary),
+                      )
+                    else
+                      Icon(Icons.shield, size: 48, color: _textSecondary),
+                    const SizedBox(height: 8),
+                    Text(
+                      match.awayTeam ?? '',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // 승률 바
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: (homePercent * 100).round().clamp(1, 100),
+                  child: Container(
+                    height: 8,
+                    color: _success,
+                  ),
+                ),
+                if (drawPercent > 0)
+                  Expanded(
+                    flex: (drawPercent * 100).round().clamp(1, 100),
+                    child: Container(
+                      height: 8,
+                      color: _textSecondary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                Expanded(
+                  flex: (awayPercent * 100).round().clamp(1, 100),
+                  child: Container(
+                    height: 8,
+                    color: _error,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // 승률 퍼센트
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${(homePercent * 100).toStringAsFixed(0)}%',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: _success,
+                ),
+              ),
+              Text(
+                '${(drawPercent * 100).toStringAsFixed(0)}%',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: _textSecondary,
+                ),
+              ),
+              Text(
+                '${(awayPercent * 100).toStringAsFixed(0)}%',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: _error,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWinStat(String value, String label, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: _textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMatchCard(BuildContext context, SportsDbEvent event) {
+    final dateStr = event.dateTime != null
+        ? DateFormat('yyyy.MM.dd').format(event.dateTime!)
+        : '-';
+
+    final homeScore = event.homeScore ?? 0;
+    final awayScore = event.awayScore ?? 0;
+
+    // 현재 경기의 홈팀 기준 결과
+    String result;
+    Color resultColor;
+    if (event.homeTeam?.toLowerCase() == match.homeTeam?.toLowerCase()) {
+      if (homeScore > awayScore) {
+        result = '승';
+        resultColor = _success;
+      } else if (homeScore < awayScore) {
+        result = '패';
+        resultColor = _error;
+      } else {
+        result = '무';
+        resultColor = _textSecondary;
+      }
+    } else {
+      if (awayScore > homeScore) {
+        result = '승';
+        resultColor = _success;
+      } else if (awayScore < homeScore) {
+        result = '패';
+        resultColor = _error;
+      } else {
+        result = '무';
+        resultColor = _textSecondary;
+      }
+    }
+
+    return GestureDetector(
+      onTap: () => context.push('/match/${event.id}'),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _border),
+        ),
+        child: Row(
+          children: [
+            // 결과 뱃지
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: resultColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  result,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: resultColor,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // 경기 정보
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${event.homeTeam} $homeScore - $awayScore ${event.awayTeam}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$dateStr · ${event.league ?? ''}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: _textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 16, color: _textSecondary),
+          ],
+        ),
+      ),
+    );
   }
 }
