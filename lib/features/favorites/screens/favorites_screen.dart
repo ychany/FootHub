@@ -450,7 +450,7 @@ class _AddTeamSheetState extends ConsumerState<_AddTeamSheet> {
                   onTap: () => setState(() => selectedLeague = null),
                 ),
                 ...AppConstants.supportedLeagues.map((league) => _LeagueFilterChip(
-                  label: league,
+                  label: _getLeagueDisplayName(league),
                   isSelected: selectedLeague == league,
                   onTap: () => setState(() => selectedLeague = league),
                 )),
@@ -526,7 +526,7 @@ class _AddTeamSheetState extends ConsumerState<_AddTeamSheet> {
                 style: const TextStyle(color: Colors.black87),
               ),
               subtitle: Text(
-                team.league,
+                _getLeagueDisplayName(team.league),
                 style: TextStyle(color: Colors.grey.shade600),
               ),
               trailing: IconButton(
@@ -553,7 +553,7 @@ class _AddTeamSheetState extends ConsumerState<_AddTeamSheet> {
               style: const TextStyle(color: Colors.black87),
             ),
             subtitle: Text(
-              team.league,
+              _getLeagueDisplayName(team.league),
               style: TextStyle(color: Colors.grey.shade600),
             ),
             trailing: const SizedBox(
@@ -577,7 +577,7 @@ class _AddTeamSheetState extends ConsumerState<_AddTeamSheet> {
               style: const TextStyle(color: Colors.black87),
             ),
             subtitle: Text(
-              team.league,
+              _getLeagueDisplayName(team.league),
               style: TextStyle(color: Colors.grey.shade600),
             ),
             trailing: IconButton(
@@ -592,6 +592,13 @@ class _AddTeamSheetState extends ConsumerState<_AddTeamSheet> {
         );
       },
     );
+  }
+
+  String _getLeagueDisplayName(String league) {
+    if (league == 'International Friendlies' || league == 'FIFA World Cup') {
+      return '국가';
+    }
+    return AppConstants.leagueDisplayNames[league] ?? league;
   }
 }
 
