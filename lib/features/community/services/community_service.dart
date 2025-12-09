@@ -1,4 +1,3 @@
-import 'dart:developer' as developer;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post_model.dart';
@@ -68,12 +67,6 @@ class CommunityService {
     final user = _auth.currentUser;
     if (user == null) throw Exception('로그인이 필요합니다');
 
-    // 디버그 로그
-    developer.log('=== createPost 디버그 ===');
-    developer.log('user.uid: ${user.uid}');
-    developer.log('user.displayName: ${user.displayName}');
-    developer.log('user.email: ${user.email}');
-
     final post = Post(
       id: '',
       authorId: user.uid,
@@ -104,17 +97,8 @@ class CommunityService {
     );
 
     final firestoreData = post.toFirestore();
-    developer.log('toFirestore data: $firestoreData');
-    developer.log('authorId in data: ${firestoreData['authorId']}');
-
-    try {
-      final docRef = await _postsCollection.add(firestoreData);
-      developer.log('게시글 생성 성공! docId: ${docRef.id}');
-      return docRef.id;
-    } catch (e) {
-      developer.log('게시글 생성 실패: $e');
-      rethrow;
-    }
+    final docRef = await _postsCollection.add(firestoreData);
+    return docRef.id;
   }
 
   // 게시글 수정
@@ -237,41 +221,29 @@ class CommunityService {
     final user = _auth.currentUser;
     if (user == null) throw Exception('로그인이 필요합니다');
 
-    developer.log('=== toggleLike 디버그 ===');
-    developer.log('user.uid: ${user.uid}');
-    developer.log('postId: $postId');
-
     final likeId = '${user.uid}_$postId';
     final likeDoc = _likesCollection.doc(likeId);
     final likeSnapshot = await likeDoc.get();
 
-    try {
-      if (likeSnapshot.exists) {
-        // 좋아요 취소
-        await likeDoc.delete();
-        await _postsCollection.doc(postId).update({
-          'likeCount': FieldValue.increment(-1),
-        });
-        developer.log('좋아요 취소 성공');
-        return false;
-      } else {
-        // 좋아요 추가
-        final likeData = {
-          'userId': user.uid,
-          'postId': postId,
-          'createdAt': Timestamp.now(),
-        };
-        developer.log('좋아요 데이터: $likeData');
-        await likeDoc.set(likeData);
-        await _postsCollection.doc(postId).update({
-          'likeCount': FieldValue.increment(1),
-        });
-        developer.log('좋아요 추가 성공');
-        return true;
-      }
-    } catch (e) {
-      developer.log('좋아요 토글 실패: $e');
-      rethrow;
+    if (likeSnapshot.exists) {
+      // 좋아요 취소
+      await likeDoc.delete();
+      await _postsCollection.doc(postId).update({
+        'likeCount': FieldValue.increment(-1),
+      });
+      return false;
+    } else {
+      // 좋아요 추가
+      final likeData = {
+        'userId': user.uid,
+        'postId': postId,
+        'createdAt': Timestamp.now(),
+      };
+      await likeDoc.set(likeData);
+      await _postsCollection.doc(postId).update({
+        'likeCount': FieldValue.increment(1),
+      });
+      return true;
     }
   }
 
@@ -316,10 +288,6 @@ class CommunityService {
     final user = _auth.currentUser;
     if (user == null) throw Exception('로그인이 필요합니다');
 
-    developer.log('=== createComment 디버그 ===');
-    developer.log('user.uid: ${user.uid}');
-    developer.log('postId: $postId');
-
     final comment = Comment(
       id: '',
       postId: postId,
@@ -331,22 +299,14 @@ class CommunityService {
     );
 
     final commentData = comment.toFirestore();
-    developer.log('댓글 데이터: $commentData');
+    final docRef = await _commentsCollection.add(commentData);
 
-    try {
-      final docRef = await _commentsCollection.add(commentData);
-      developer.log('댓글 생성 성공! docId: ${docRef.id}');
+    // 댓글 수 증가
+    await _postsCollection.doc(postId).update({
+      'commentCount': FieldValue.increment(1),
+    });
 
-      // 댓글 수 증가
-      await _postsCollection.doc(postId).update({
-        'commentCount': FieldValue.increment(1),
-      });
-
-      return docRef.id;
-    } catch (e) {
-      developer.log('댓글 생성 실패: $e');
-      rethrow;
-    }
+    return docRef.id;
   }
 
   // 댓글 삭제

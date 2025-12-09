@@ -7,6 +7,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/services/sports_db_service.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../providers/schedule_provider.dart';
+import '../models/match_comment.dart';
+import '../services/match_comment_service.dart';
 
 // Provider for match detail
 final matchDetailProvider =
@@ -129,7 +131,10 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
@@ -144,16 +149,18 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
 
     return Scaffold(
       backgroundColor: _background,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _addToDiary(context),
-        backgroundColor: _primary,
-        elevation: 2,
-        icon: const Icon(Icons.edit_note, color: Colors.white),
-        label: const Text(
-          '직관 기록',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
-      ),
+      floatingActionButton: _tabController.index == 5
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _addToDiary(context),
+              backgroundColor: _primary,
+              elevation: 2,
+              icon: const Icon(Icons.edit_note, color: Colors.white),
+              label: const Text(
+                '직관 기록',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+            ),
       body: SafeArea(
         child: Column(
           children: [
@@ -183,6 +190,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                   Tab(text: '기록'),
                   Tab(text: '중계'),
                   Tab(text: '전적'),
+                  Tab(text: '댓글'),
                 ],
               ),
             ),
@@ -197,6 +205,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                   _StatsTab(eventId: match.id, match: match),
                   _TimelineTab(eventId: match.id),
                   _H2HTab(match: match),
+                  _CommentsTab(matchId: match.id),
                 ],
               ),
             ),
@@ -2250,5 +2259,432 @@ class _H2HTab extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+// ============ Comments Tab ============
+class _CommentsTab extends StatefulWidget {
+  final String matchId;
+
+  const _CommentsTab({required this.matchId});
+
+  @override
+  State<_CommentsTab> createState() => _CommentsTabState();
+}
+
+class _CommentsTabState extends State<_CommentsTab> {
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  final MatchCommentService _commentService = MatchCommentService();
+  final TextEditingController _commentController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitComment() async {
+    final content = _commentController.text.trim();
+    if (content.isEmpty) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      await _commentService.createComment(
+        matchId: widget.matchId,
+        content: content,
+      );
+      _commentController.clear();
+      // 스크롤을 맨 아래로
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('댓글 작성 실패: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<void> _deleteComment(MatchComment comment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('댓글 삭제'),
+        content: const Text('이 댓글을 삭제하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _commentService.deleteComment(comment.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('댓글이 삭제되었습니다')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('삭제 실패: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // 헤더 (새로고침 버튼 포함)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: _border)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.chat_bubble_outline, size: 18, color: _primary),
+              const SizedBox(width: 8),
+              const Text(
+                '실시간 댓글',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
+                ),
+              ),
+              const Spacer(),
+              // 수동 새로고침 버튼
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {}); // StreamBuilder가 다시 빌드됨
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('댓글을 새로고침했습니다'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('새로고침'),
+                style: TextButton.styleFrom(
+                  foregroundColor: _textSecondary,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // 댓글 목록 (실시간 스트림)
+        Expanded(
+          child: StreamBuilder<List<MatchComment>>(
+            stream: _commentService.getCommentsStream(widget.matchId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const LoadingIndicator();
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 48, color: _textSecondary),
+                      const SizedBox(height: 12),
+                      Text(
+                        '댓글을 불러올 수 없습니다',
+                        style: TextStyle(color: _textSecondary),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final comments = snapshot.data ?? [];
+
+              if (comments.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.chat_bubble_outline,
+                          size: 48,
+                          color: _textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '아직 댓글이 없습니다',
+                        style: TextStyle(
+                          color: _textSecondary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '첫 댓글을 남겨보세요!',
+                        style: TextStyle(
+                          color: _textSecondary.withValues(alpha: 0.7),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: comments.length,
+                itemBuilder: (context, index) {
+                  final comment = comments[index];
+                  return _CommentItem(
+                    comment: comment,
+                    onDelete: () => _deleteComment(comment),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+
+        // 댓글 입력창
+        Container(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 12,
+            bottom: MediaQuery.of(context).padding.bottom + 12,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: _border)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _commentController,
+                  decoration: InputDecoration(
+                    hintText: '댓글을 입력하세요...',
+                    hintStyle: TextStyle(color: _textSecondary, fontSize: 14),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                  ),
+                  style: const TextStyle(fontSize: 14),
+                  maxLines: 3,
+                  minLines: 1,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _submitComment(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Material(
+                color: _primary,
+                borderRadius: BorderRadius.circular(24),
+                child: InkWell(
+                  onTap: _isSubmitting ? null : _submitComment,
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.send_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CommentItem extends StatelessWidget {
+  final MatchComment comment;
+  final VoidCallback onDelete;
+
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+
+  const _CommentItem({
+    required this.comment,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final timeAgo = _getTimeAgo(comment.createdAt);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 프로필 이미지
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: Colors.grey.shade200,
+            backgroundImage: comment.authorProfileUrl != null
+                ? NetworkImage(comment.authorProfileUrl!)
+                : null,
+            child: comment.authorProfileUrl == null
+                ? Icon(Icons.person, size: 20, color: _textSecondary)
+                : null,
+          ),
+          const SizedBox(width: 12),
+
+          // 댓글 내용
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      comment.authorName,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      timeAgo,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  comment.content,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: _textPrimary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 삭제 버튼 (자신의 댓글만)
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, size: 16, color: _textSecondary),
+            padding: EdgeInsets.zero,
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('삭제', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+            onSelected: (value) {
+              if (value == 'delete') {
+                onDelete();
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inSeconds < 60) {
+      return '방금 전';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}분 전';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}시간 전';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}일 전';
+    } else {
+      return DateFormat('MM/dd').format(dateTime);
+    }
   }
 }
