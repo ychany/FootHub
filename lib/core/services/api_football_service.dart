@@ -281,6 +281,30 @@ class ApiFootballService {
         .toList();
   }
 
+  // ============ 예측/오즈 ============
+
+  /// 경기 예측 조회
+  Future<ApiFootballPrediction?> getFixturePrediction(int fixtureId) async {
+    final data = await _get('predictions?fixture=$fixtureId');
+    if (data == null || data['response'] == null || (data['response'] as List).isEmpty) {
+      return null;
+    }
+    return ApiFootballPrediction.fromJson((data['response'] as List).first);
+  }
+
+  /// 경기 오즈 조회
+  Future<List<ApiFootballOdds>> getFixtureOdds(int fixtureId) async {
+    final data = await _get('odds?fixture=$fixtureId');
+    if (data == null || data['response'] == null || (data['response'] as List).isEmpty) {
+      return [];
+    }
+
+    final response = (data['response'] as List).first;
+    final bookmakers = response['bookmakers'] as List? ?? [];
+
+    return bookmakers.map((b) => ApiFootballOdds.fromJson(b)).toList();
+  }
+
   // ============ 순위 ============
 
   /// 팀 시즌 통계 조회
@@ -1386,6 +1410,350 @@ class ApiFootballCardsStats {
 
   int get totalYellow => yellow['total'] ?? 0;
   int get totalRed => red['total'] ?? 0;
+}
+
+/// 경기 예측 모델
+class ApiFootballPrediction {
+  final String? winner;
+  final int? winnerId;
+  final String? winnerComment;
+  final ApiFootballPredictionPercent percent;
+  final ApiFootballPredictionComparison? comparison;
+  final ApiFootballPredictionTeamInfo? homeTeam;
+  final ApiFootballPredictionTeamInfo? awayTeam;
+
+  ApiFootballPrediction({
+    this.winner,
+    this.winnerId,
+    this.winnerComment,
+    required this.percent,
+    this.comparison,
+    this.homeTeam,
+    this.awayTeam,
+  });
+
+  factory ApiFootballPrediction.fromJson(Map<String, dynamic> json) {
+    final predictions = json['predictions'] ?? {};
+    final winner = predictions['winner'] ?? {};
+    final teams = json['teams'] ?? {};
+
+    return ApiFootballPrediction(
+      winner: winner['name'],
+      winnerId: winner['id'],
+      winnerComment: winner['comment'],
+      percent: ApiFootballPredictionPercent.fromJson(predictions['percent'] ?? {}),
+      comparison: json['comparison'] != null
+          ? ApiFootballPredictionComparison.fromJson(json['comparison'])
+          : null,
+      homeTeam: teams['home'] != null
+          ? ApiFootballPredictionTeamInfo.fromJson(teams['home'])
+          : null,
+      awayTeam: teams['away'] != null
+          ? ApiFootballPredictionTeamInfo.fromJson(teams['away'])
+          : null,
+    );
+  }
+}
+
+/// 예측 퍼센트 모델
+class ApiFootballPredictionPercent {
+  final String? home;
+  final String? draw;
+  final String? away;
+
+  ApiFootballPredictionPercent({
+    this.home,
+    this.draw,
+    this.away,
+  });
+
+  factory ApiFootballPredictionPercent.fromJson(Map<String, dynamic> json) {
+    return ApiFootballPredictionPercent(
+      home: json['home'],
+      draw: json['draw'],
+      away: json['away'],
+    );
+  }
+
+  double get homePercent => double.tryParse(home?.replaceAll('%', '') ?? '0') ?? 0;
+  double get drawPercent => double.tryParse(draw?.replaceAll('%', '') ?? '0') ?? 0;
+  double get awayPercent => double.tryParse(away?.replaceAll('%', '') ?? '0') ?? 0;
+}
+
+/// 예측 비교 모델
+class ApiFootballPredictionComparison {
+  final ApiFootballComparisonItem? form;
+  final ApiFootballComparisonItem? att;
+  final ApiFootballComparisonItem? def;
+  final ApiFootballComparisonItem? poissonDistribution;
+  final ApiFootballComparisonItem? h2h;
+  final ApiFootballComparisonItem? goals;
+  final ApiFootballComparisonItem? total;
+
+  ApiFootballPredictionComparison({
+    this.form,
+    this.att,
+    this.def,
+    this.poissonDistribution,
+    this.h2h,
+    this.goals,
+    this.total,
+  });
+
+  factory ApiFootballPredictionComparison.fromJson(Map<String, dynamic> json) {
+    return ApiFootballPredictionComparison(
+      form: json['form'] != null ? ApiFootballComparisonItem.fromJson(json['form']) : null,
+      att: json['att'] != null ? ApiFootballComparisonItem.fromJson(json['att']) : null,
+      def: json['def'] != null ? ApiFootballComparisonItem.fromJson(json['def']) : null,
+      poissonDistribution: json['poisson_distribution'] != null
+          ? ApiFootballComparisonItem.fromJson(json['poisson_distribution'])
+          : null,
+      h2h: json['h2h'] != null ? ApiFootballComparisonItem.fromJson(json['h2h']) : null,
+      goals: json['goals'] != null ? ApiFootballComparisonItem.fromJson(json['goals']) : null,
+      total: json['total'] != null ? ApiFootballComparisonItem.fromJson(json['total']) : null,
+    );
+  }
+}
+
+/// 비교 항목 모델
+class ApiFootballComparisonItem {
+  final String? home;
+  final String? away;
+
+  ApiFootballComparisonItem({this.home, this.away});
+
+  factory ApiFootballComparisonItem.fromJson(Map<String, dynamic> json) {
+    return ApiFootballComparisonItem(
+      home: json['home'],
+      away: json['away'],
+    );
+  }
+
+  double get homePercent => double.tryParse(home?.replaceAll('%', '') ?? '0') ?? 0;
+  double get awayPercent => double.tryParse(away?.replaceAll('%', '') ?? '0') ?? 0;
+}
+
+/// 예측 팀 정보 모델
+class ApiFootballPredictionTeamInfo {
+  final int id;
+  final String name;
+  final String? logo;
+  final ApiFootballTeamLastMatches? last5;
+  final ApiFootballTeamLeagueInfo? league;
+
+  ApiFootballPredictionTeamInfo({
+    required this.id,
+    required this.name,
+    this.logo,
+    this.last5,
+    this.league,
+  });
+
+  factory ApiFootballPredictionTeamInfo.fromJson(Map<String, dynamic> json) {
+    return ApiFootballPredictionTeamInfo(
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      logo: json['logo'],
+      last5: json['last_5'] != null
+          ? ApiFootballTeamLastMatches.fromJson(json['last_5'])
+          : null,
+      league: json['league'] != null
+          ? ApiFootballTeamLeagueInfo.fromJson(json['league'])
+          : null,
+    );
+  }
+}
+
+/// 최근 5경기 정보
+class ApiFootballTeamLastMatches {
+  final String? form;
+  final String? att;
+  final String? def;
+  final ApiFootballLastMatchesGoals? goals;
+
+  ApiFootballTeamLastMatches({
+    this.form,
+    this.att,
+    this.def,
+    this.goals,
+  });
+
+  factory ApiFootballTeamLastMatches.fromJson(Map<String, dynamic> json) {
+    return ApiFootballTeamLastMatches(
+      form: json['form'],
+      att: json['att'],
+      def: json['def'],
+      goals: json['goals'] != null
+          ? ApiFootballLastMatchesGoals.fromJson(json['goals'])
+          : null,
+    );
+  }
+}
+
+/// 최근 경기 골 정보
+class ApiFootballLastMatchesGoals {
+  final ApiFootballGoalAverage? goalsFor;
+  final ApiFootballGoalAverage? goalsAgainst;
+
+  ApiFootballLastMatchesGoals({this.goalsFor, this.goalsAgainst});
+
+  factory ApiFootballLastMatchesGoals.fromJson(Map<String, dynamic> json) {
+    return ApiFootballLastMatchesGoals(
+      goalsFor: json['for'] != null ? ApiFootballGoalAverage.fromJson(json['for']) : null,
+      goalsAgainst: json['against'] != null ? ApiFootballGoalAverage.fromJson(json['against']) : null,
+    );
+  }
+}
+
+/// 골 평균 정보
+class ApiFootballGoalAverage {
+  final int? total;
+  final double? average;
+
+  ApiFootballGoalAverage({this.total, this.average});
+
+  factory ApiFootballGoalAverage.fromJson(Map<String, dynamic> json) {
+    return ApiFootballGoalAverage(
+      total: json['total'],
+      average: double.tryParse(json['average']?.toString() ?? ''),
+    );
+  }
+}
+
+/// 팀 리그 정보 (예측용)
+class ApiFootballTeamLeagueInfo {
+  final String? form;
+  final int? played;
+  final int? wins;
+  final int? draws;
+  final int? loses;
+  final int? goalsFor;
+  final int? goalsAgainst;
+
+  ApiFootballTeamLeagueInfo({
+    this.form,
+    this.played,
+    this.wins,
+    this.draws,
+    this.loses,
+    this.goalsFor,
+    this.goalsAgainst,
+  });
+
+  factory ApiFootballTeamLeagueInfo.fromJson(Map<String, dynamic> json) {
+    final fixtures = json['fixtures'] ?? {};
+    final goals = json['goals'] ?? {};
+
+    return ApiFootballTeamLeagueInfo(
+      form: json['form'],
+      played: fixtures['played']?['total'],
+      wins: fixtures['wins']?['total'],
+      draws: fixtures['draws']?['total'],
+      loses: fixtures['loses']?['total'],
+      goalsFor: goals['for']?['total']?['total'],
+      goalsAgainst: goals['against']?['total']?['total'],
+    );
+  }
+}
+
+/// 배당률 모델
+class ApiFootballOdds {
+  final int bookmarkerId;
+  final String bookmakerName;
+  final List<ApiFootballBet> bets;
+
+  ApiFootballOdds({
+    required this.bookmarkerId,
+    required this.bookmakerName,
+    required this.bets,
+  });
+
+  factory ApiFootballOdds.fromJson(Map<String, dynamic> json) {
+    final bets = json['bets'] as List? ?? [];
+
+    return ApiFootballOdds(
+      bookmarkerId: json['id'] ?? 0,
+      bookmakerName: json['name'] ?? '',
+      bets: bets.map((b) => ApiFootballBet.fromJson(b)).toList(),
+    );
+  }
+
+  /// 1X2 (승무패) 배당 가져오기
+  ApiFootballBet? get matchWinner {
+    try {
+      return bets.firstWhere((b) => b.name == 'Match Winner');
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+/// 배팅 종류 모델
+class ApiFootballBet {
+  final int id;
+  final String name;
+  final List<ApiFootballOddValue> values;
+
+  ApiFootballBet({
+    required this.id,
+    required this.name,
+    required this.values,
+  });
+
+  factory ApiFootballBet.fromJson(Map<String, dynamic> json) {
+    final values = json['values'] as List? ?? [];
+
+    return ApiFootballBet(
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      values: values.map((v) => ApiFootballOddValue.fromJson(v)).toList(),
+    );
+  }
+
+  /// 홈 승리 배당
+  String? get homeOdd {
+    try {
+      return values.firstWhere((v) => v.value == 'Home').odd;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 무승부 배당
+  String? get drawOdd {
+    try {
+      return values.firstWhere((v) => v.value == 'Draw').odd;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 원정 승리 배당
+  String? get awayOdd {
+    try {
+      return values.firstWhere((v) => v.value == 'Away').odd;
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+/// 배당률 값 모델
+class ApiFootballOddValue {
+  final String value;
+  final String odd;
+
+  ApiFootballOddValue({
+    required this.value,
+    required this.odd,
+  });
+
+  factory ApiFootballOddValue.fromJson(Map<String, dynamic> json) {
+    return ApiFootballOddValue(
+      value: json['value']?.toString() ?? '',
+      odd: json['odd']?.toString() ?? '',
+    );
+  }
 }
 
 /// 순위 모델

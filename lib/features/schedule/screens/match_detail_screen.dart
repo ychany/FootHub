@@ -53,6 +53,24 @@ final matchH2HProvider =
   return service.getHeadToHead(params.homeTeamId, params.awayTeamId);
 });
 
+// Provider for match prediction (API-Football)
+final matchPredictionProvider =
+    FutureProvider.family<ApiFootballPrediction?, String>((ref, fixtureId) async {
+  final service = ApiFootballService();
+  final id = int.tryParse(fixtureId);
+  if (id == null) return null;
+  return service.getFixturePrediction(id);
+});
+
+// Provider for match odds (API-Football)
+final matchOddsProvider =
+    FutureProvider.family<List<ApiFootballOdds>, String>((ref, fixtureId) async {
+  final service = ApiFootballService();
+  final id = int.tryParse(fixtureId);
+  if (id == null) return [];
+  return service.getFixtureOdds(id);
+});
+
 class MatchDetailScreen extends ConsumerWidget {
   final String eventId;
 
@@ -132,7 +150,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     _tabController.addListener(() {
       setState(() {});
     });
@@ -150,7 +168,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
 
     return Scaffold(
       backgroundColor: _background,
-      floatingActionButton: _tabController.index == 5
+      floatingActionButton: _tabController.index == 6
           ? null
           : FloatingActionButton.extended(
               onPressed: () => _addToDiary(context),
@@ -187,6 +205,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                 ),
                 tabs: const [
                   Tab(text: '정보'),
+                  Tab(text: '예측'),
                   Tab(text: '라인업'),
                   Tab(text: '기록'),
                   Tab(text: '중계'),
@@ -202,6 +221,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                 controller: _tabController,
                 children: [
                   _InfoTab(match: match),
+                  _PredictionTab(fixtureId: match.id.toString(), match: match),
                   _LineupTab(fixtureId: match.id.toString(), match: match),
                   _StatsTab(fixtureId: match.id.toString(), match: match),
                   _TimelineTab(fixtureId: match.id.toString(), match: match),
@@ -564,6 +584,569 @@ class _InfoRow extends StatelessWidget {
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============ Prediction Tab ============
+class _PredictionTab extends ConsumerWidget {
+  final String fixtureId;
+  final ApiFootballFixture match;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _success = Color(0xFF10B981);
+  static const _warning = Color(0xFFF59E0B);
+  static const _error = Color(0xFFEF4444);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _PredictionTab({required this.fixtureId, required this.match});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final predictionAsync = ref.watch(matchPredictionProvider(fixtureId));
+    final oddsAsync = ref.watch(matchOddsProvider(fixtureId));
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // 승부 예측 섹션
+        predictionAsync.when(
+          data: (prediction) {
+            if (prediction == null) {
+              return _buildEmptyCard(
+                icon: Icons.analytics_outlined,
+                message: '예측 정보가 없습니다',
+              );
+            }
+            return _buildPredictionCard(prediction);
+          },
+          loading: () => _buildLoadingCard(),
+          error: (e, _) => _buildEmptyCard(
+            icon: Icons.error_outline,
+            message: '예측 정보를 불러올 수 없습니다',
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // 배당률 섹션
+        oddsAsync.when(
+          data: (oddsList) {
+            if (oddsList.isEmpty) {
+              return _buildEmptyCard(
+                icon: Icons.money_outlined,
+                message: '배당률 정보가 없습니다',
+              );
+            }
+            return _buildOddsCard(oddsList);
+          },
+          loading: () => _buildLoadingCard(),
+          error: (e, _) => _buildEmptyCard(
+            icon: Icons.error_outline,
+            message: '배당률 정보를 불러올 수 없습니다',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoadingCard() {
+    return Container(
+      height: 150,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  Widget _buildEmptyCard({required IconData icon, required String message}) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 48, color: _textSecondary),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: TextStyle(color: _textSecondary, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPredictionCard(ApiFootballPrediction prediction) {
+    final homePercent = prediction.percent.homePercent;
+    final drawPercent = prediction.percent.drawPercent;
+    final awayPercent = prediction.percent.awayPercent;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.analytics_outlined, color: _primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                '승부 예측',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // 예측 결과
+          if (prediction.winner != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _success.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _success.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.emoji_events, color: _success, size: 32),
+                  const SizedBox(height: 8),
+                  Text(
+                    '예상 승자',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    prediction.winner!,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: _success,
+                    ),
+                  ),
+                  if (prediction.winnerComment != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      prediction.winnerComment!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+
+          // 승률 바
+          Row(
+            children: [
+              // 홈팀
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      match.homeTeam.name,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: _textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${homePercent.toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: _primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 무승부
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      '무승부',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: _textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${drawPercent.toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: _warning,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 원정팀
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      match.awayTeam.name,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: _textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${awayPercent.toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: _error,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 승률 프로그레스 바
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: homePercent.round().clamp(1, 100),
+                  child: Container(height: 8, color: _primary),
+                ),
+                const SizedBox(width: 2),
+                Expanded(
+                  flex: drawPercent.round().clamp(1, 100),
+                  child: Container(height: 8, color: _warning),
+                ),
+                const SizedBox(width: 2),
+                Expanded(
+                  flex: awayPercent.round().clamp(1, 100),
+                  child: Container(height: 8, color: _error),
+                ),
+              ],
+            ),
+          ),
+
+          // 비교 분석
+          if (prediction.comparison != null) ...[
+            const Divider(height: 32),
+            Text(
+              '상세 분석',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: _textPrimary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (prediction.comparison!.form != null)
+              _buildComparisonRow('폼', prediction.comparison!.form!),
+            if (prediction.comparison!.att != null)
+              _buildComparisonRow('공격력', prediction.comparison!.att!),
+            if (prediction.comparison!.def != null)
+              _buildComparisonRow('수비력', prediction.comparison!.def!),
+            if (prediction.comparison!.h2h != null)
+              _buildComparisonRow('상대전적', prediction.comparison!.h2h!),
+            if (prediction.comparison!.goals != null)
+              _buildComparisonRow('득점력', prediction.comparison!.goals!),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComparisonRow(String label, ApiFootballComparisonItem item) {
+    final homePercent = item.homePercent;
+    final awayPercent = item.awayPercent;
+    final total = homePercent + awayPercent;
+    final homeRatio = total > 0 ? homePercent / total : 0.5;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${homePercent.toStringAsFixed(0)}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _primary,
+                ),
+              ),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _textSecondary,
+                ),
+              ),
+              Text(
+                '${awayPercent.toStringAsFixed(0)}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _error,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                flex: (homeRatio * 100).round().clamp(1, 99),
+                child: Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: _primary,
+                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(3)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 2),
+              Expanded(
+                flex: ((1 - homeRatio) * 100).round().clamp(1, 99),
+                child: Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: _error,
+                    borderRadius: const BorderRadius.horizontal(right: Radius.circular(3)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOddsCard(List<ApiFootballOdds> oddsList) {
+    // 첫 번째 북메이커의 1X2 배당만 표시
+    ApiFootballBet? matchWinner;
+    String? bookmakerName;
+
+    for (final odds in oddsList) {
+      if (odds.matchWinner != null) {
+        matchWinner = odds.matchWinner;
+        bookmakerName = odds.bookmakerName;
+        break;
+      }
+    }
+
+    if (matchWinner == null) {
+      return _buildEmptyCard(
+        icon: Icons.money_outlined,
+        message: '승무패 배당 정보가 없습니다',
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.monetization_on_outlined, color: _warning, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '배당률',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _textPrimary,
+                    ),
+                  ),
+                  if (bookmakerName != null)
+                    Text(
+                      bookmakerName,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _textSecondary,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // 배당률 표시
+          Row(
+            children: [
+              // 홈팀 배당
+              Expanded(
+                child: _buildOddBox(
+                  label: match.homeTeam.name,
+                  odd: matchWinner.homeOdd ?? '-',
+                  color: _primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // 무승부 배당
+              Expanded(
+                child: _buildOddBox(
+                  label: '무승부',
+                  odd: matchWinner.drawOdd ?? '-',
+                  color: _warning,
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // 원정팀 배당
+              Expanded(
+                child: _buildOddBox(
+                  label: match.awayTeam.name,
+                  odd: matchWinner.awayOdd ?? '-',
+                  color: _error,
+                ),
+              ),
+            ],
+          ),
+
+          // 안내 문구
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: _textSecondary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '배당률은 참고용이며, 실제 베팅은 공식 사이트를 이용해 주세요.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: _textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOddBox({
+    required String label,
+    required String odd,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: _textPrimary,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            odd,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: color,
             ),
           ),
         ],
