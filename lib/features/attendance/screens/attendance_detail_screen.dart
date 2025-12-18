@@ -44,6 +44,35 @@ final attendanceH2HProvider =
   return service.getHeadToHead(params.homeTeamId, params.awayTeamId);
 });
 
+// Provider for venue info (API-Football)
+final attendanceVenueProvider =
+    FutureProvider.family<ApiFootballVenue?, ({String? matchId, String stadiumName})>((ref, params) async {
+  final service = ApiFootballService();
+
+  // matchId가 있으면 fixture에서 venue 정보 가져오기
+  if (params.matchId != null) {
+    final fixtureId = int.tryParse(params.matchId!);
+    if (fixtureId != null) {
+      final fixture = await service.getFixtureById(fixtureId);
+      if (fixture?.venue != null && fixture!.venue!.id != null) {
+        // venue id로 상세 정보 조회
+        final venue = await service.getVenueById(fixture.venue!.id!);
+        if (venue != null) return venue;
+        // 상세 정보가 없으면 fixture의 venue 정보 반환
+        return fixture.venue;
+      }
+    }
+  }
+
+  // matchId가 없거나 fixture에 venue가 없으면 이름으로 검색
+  if (params.stadiumName.isNotEmpty) {
+    final venues = await service.searchVenues(params.stadiumName);
+    if (venues.isNotEmpty) return venues.first;
+  }
+
+  return null;
+});
+
 class AttendanceDetailScreen extends ConsumerWidget {
   final String recordId;
 
@@ -437,7 +466,7 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
 }
 
 // ============ Diary Tab ============
-class _DiaryTab extends StatelessWidget {
+class _DiaryTab extends ConsumerWidget {
   final AttendanceRecord record;
 
   static const _primary = Color(0xFF2563EB);
@@ -457,7 +486,13 @@ class _DiaryTab extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Venue 정보 로드
+    final venueAsync = ref.watch(attendanceVenueProvider((
+      matchId: record.matchId,
+      stadiumName: record.stadium,
+    )));
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -615,6 +650,23 @@ class _DiaryTab extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+
+          // Venue Detail Card
+          venueAsync.when(
+            data: (venue) {
+              if (venue == null) return const SizedBox.shrink();
+              // 기본 경기장 이름만 있으면 추가 정보가 없으므로 표시하지 않음
+              if (venue.capacity == null && venue.address == null && venue.image == null) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
+                child: _VenueDetailCard(venue: venue),
+              );
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
           ),
 
           // Additional Info Section
@@ -2296,6 +2348,205 @@ class _H2HTab extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ============ Venue Detail Card ============
+class _VenueDetailCard extends StatelessWidget {
+  final ApiFootballVenue venue;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _VenueDetailCard({required this.venue});
+
+  bool get _hasImage => venue.image != null && venue.image!.isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 경기장 이미지 (있는 경우만)
+          if (_hasImage)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+              child: CachedNetworkImage(
+                imageUrl: venue.image!,
+                height: 140,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(
+                  height: 140,
+                  color: Colors.grey.shade200,
+                  child: const Center(
+                    child: Icon(Icons.stadium, size: 48, color: Colors.grey),
+                  ),
+                ),
+                errorWidget: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+
+          // 경기장 정보
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 헤더
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.stadium, size: 18, color: _primary),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            venue.name ?? '경기장',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: _textPrimary,
+                            ),
+                          ),
+                          if (venue.city != null)
+                            Text(
+                              venue.city!,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: _textSecondary,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                // 수용인원/잔디 정보 (가로 배치)
+                if (venue.capacity != null || venue.surface != null) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      if (venue.capacity != null)
+                        Expanded(
+                          child: _VenueStatChip(
+                            icon: Icons.people_outline,
+                            label: '수용 인원',
+                            value: NumberFormat('#,###').format(venue.capacity),
+                          ),
+                        ),
+                      if (venue.capacity != null && venue.surface != null)
+                        const SizedBox(width: 12),
+                      if (venue.surface != null)
+                        Expanded(
+                          child: _VenueStatChip(
+                            icon: Icons.grass,
+                            label: '잔디',
+                            value: venue.surface!,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+
+                // 주소 (있는 경우)
+                if (venue.address != null) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.location_on_outlined, size: 16, color: _textSecondary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          venue.address!,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: _textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VenueStatChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+
+  const _VenueStatChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _primary.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: _primary),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: _textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: _textPrimary,
+            ),
+          ),
+        ],
       ),
     );
   }

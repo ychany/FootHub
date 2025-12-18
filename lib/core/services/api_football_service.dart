@@ -98,6 +98,47 @@ class ApiFootballService {
         .toList();
   }
 
+  // ============ 경기장 ============
+
+  /// 경기장 ID로 조회
+  Future<ApiFootballVenue?> getVenueById(int venueId) async {
+    final data = await _get('venues?id=$venueId');
+    if (data == null || data['response'] == null || (data['response'] as List).isEmpty) {
+      return null;
+    }
+    return ApiFootballVenue.fromJson((data['response'] as List).first);
+  }
+
+  /// 경기장 이름으로 검색
+  Future<List<ApiFootballVenue>> searchVenues(String query) async {
+    final data = await _get('venues?search=${Uri.encodeComponent(query)}');
+    if (data == null || data['response'] == null) return [];
+
+    return (data['response'] as List)
+        .map((json) => ApiFootballVenue.fromJson(json))
+        .toList();
+  }
+
+  /// 도시별 경기장 조회
+  Future<List<ApiFootballVenue>> getVenuesByCity(String city) async {
+    final data = await _get('venues?city=${Uri.encodeComponent(city)}');
+    if (data == null || data['response'] == null) return [];
+
+    return (data['response'] as List)
+        .map((json) => ApiFootballVenue.fromJson(json))
+        .toList();
+  }
+
+  /// 국가별 경기장 조회
+  Future<List<ApiFootballVenue>> getVenuesByCountry(String country) async {
+    final data = await _get('venues?country=${Uri.encodeComponent(country)}');
+    if (data == null || data['response'] == null) return [];
+
+    return (data['response'] as List)
+        .map((json) => ApiFootballVenue.fromJson(json))
+        .toList();
+  }
+
   // ============ 선수 ============
 
   /// 선수 검색 (이름으로)

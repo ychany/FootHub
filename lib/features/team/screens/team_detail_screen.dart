@@ -389,7 +389,6 @@ class _InfoTab extends StatelessWidget {
         if (team.venue != null) ...[
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
@@ -398,90 +397,121 @@ class _InfoTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: _primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                // 경기장 이미지
+                if (team.venue!.image != null && team.venue!.image!.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+                    child: CachedNetworkImage(
+                      imageUrl: team.venue!.image!,
+                      fit: BoxFit.cover,
+                      height: 160,
+                      width: double.infinity,
+                      placeholder: (_, __) => Container(
+                        height: 160,
+                        color: Colors.grey.shade200,
+                        child: const Center(
+                          child: Icon(Icons.stadium, size: 48, color: _textSecondary),
+                        ),
                       ),
-                      child: Icon(Icons.stadium_outlined,
-                          color: _primary, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      '경기장 정보',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: _textPrimary,
+                      errorWidget: (_, __, ___) => Container(
+                        height: 160,
+                        color: Colors.grey.shade200,
+                        child: const Center(
+                          child: Icon(Icons.stadium, size: 48, color: _textSecondary),
+                        ),
                       ),
                     ),
-                  ],
+                  ),
+                // 경기장 정보
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: _primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.stadium_outlined,
+                                color: _primary, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  team.venue!.name ?? '홈 경기장',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: _textPrimary,
+                                  ),
+                                ),
+                                if (team.venue!.city != null)
+                                  Text(
+                                    team.venue!.city!,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: _textSecondary,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // 핵심 정보를 가로로 배치
+                      Row(
+                        children: [
+                          if (team.venue!.capacity != null)
+                            Expanded(
+                              child: _VenueStatChip(
+                                icon: Icons.people_outline,
+                                label: '수용인원',
+                                value: NumberFormat('#,###').format(team.venue!.capacity),
+                              ),
+                            ),
+                          if (team.venue!.surface != null) ...[
+                            if (team.venue!.capacity != null) const SizedBox(width: 12),
+                            Expanded(
+                              child: _VenueStatChip(
+                                icon: Icons.grass_outlined,
+                                label: '잔디',
+                                value: team.venue!.surface!,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (team.venue!.address != null) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.place_outlined, size: 16, color: _textSecondary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                team.venue!.address!,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: _textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                if (team.venue!.name != null)
-                  _InfoRow(
-                      icon: Icons.stadium_outlined,
-                      label: '경기장',
-                      value: team.venue!.name!),
-                if (team.venue!.city != null)
-                  _InfoRow(
-                      icon: Icons.location_city_outlined,
-                      label: '도시',
-                      value: team.venue!.city!),
-                if (team.venue!.capacity != null)
-                  _InfoRow(
-                      icon: Icons.people_outline,
-                      label: '수용인원',
-                      value: '${team.venue!.capacity}명'),
-                if (team.venue!.surface != null)
-                  _InfoRow(
-                      icon: Icons.grass_outlined,
-                      label: '잔디',
-                      value: team.venue!.surface!),
-                if (team.venue!.address != null)
-                  _InfoRow(
-                      icon: Icons.place_outlined,
-                      label: '주소',
-                      value: team.venue!.address!),
               ],
-            ),
-          ),
-        ],
-
-        // Venue Image
-        if (team.venue?.image != null) ...[
-          const SizedBox(height: 12),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _border),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
-                imageUrl: team.venue!.image!,
-                fit: BoxFit.cover,
-                height: 180,
-                width: double.infinity,
-                placeholder: (_, __) => Container(
-                  height: 180,
-                  color: Colors.grey.shade200,
-                  child: Center(
-                    child: Icon(Icons.image, size: 48, color: _textSecondary),
-                  ),
-                ),
-                errorWidget: (_, __, ___) => Container(
-                  height: 180,
-                  color: Colors.grey.shade200,
-                  child: Center(
-                    child: Icon(Icons.image_not_supported, size: 48, color: _textSecondary),
-                  ),
-                ),
-              ),
             ),
           ),
         ],
@@ -530,6 +560,61 @@ class _InfoRow extends StatelessWidget {
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VenueStatChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+
+  const _VenueStatChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _primary.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: _primary),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: _textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: _textPrimary,
             ),
           ),
         ],
