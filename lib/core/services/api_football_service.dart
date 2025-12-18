@@ -368,6 +368,16 @@ class ApiFootballService {
         .toList();
   }
 
+  /// 경기 선수 통계 (실시간 평점 포함)
+  Future<List<FixturePlayerStats>> getFixturePlayers(int fixtureId) async {
+    final data = await _get('fixtures/players?fixture=$fixtureId');
+    if (data == null || data['response'] == null) return [];
+
+    return (data['response'] as List)
+        .map((json) => FixturePlayerStats.fromJson(json))
+        .toList();
+  }
+
   // ============ 예측/오즈 ============
 
   /// 경기 예측 조회
@@ -1281,6 +1291,185 @@ class ApiFootballLineupPlayer {
       pos: json['pos'],
       grid: json['grid'],
     );
+  }
+}
+
+/// 경기 선수 통계 (팀별)
+class FixturePlayerStats {
+  final int teamId;
+  final String teamName;
+  final String? teamLogo;
+  final List<PlayerMatchStats> players;
+
+  FixturePlayerStats({
+    required this.teamId,
+    required this.teamName,
+    this.teamLogo,
+    required this.players,
+  });
+
+  factory FixturePlayerStats.fromJson(Map<String, dynamic> json) {
+    final team = json['team'] ?? {};
+    final playersList = json['players'] as List? ?? [];
+
+    return FixturePlayerStats(
+      teamId: team['id'] ?? 0,
+      teamName: team['name'] ?? '',
+      teamLogo: team['logo'],
+      players: playersList.map((p) => PlayerMatchStats.fromJson(p)).toList(),
+    );
+  }
+}
+
+/// 개별 선수 경기 통계
+class PlayerMatchStats {
+  final int id;
+  final String name;
+  final String? photo;
+  final int? number;
+  final String? position;
+  final String? grid;
+  final String? rating;
+  final int? minutesPlayed;
+  final bool? captain;
+  final bool? substitute;
+  // 슈팅
+  final int? shotsTotal;
+  final int? shotsOn;
+  // 골/어시스트
+  final int? goals;
+  final int? assists;
+  final int? goalsConceded;
+  final int? saves;
+  // 패스
+  final int? passesTotal;
+  final int? passesAccuracy;
+  final int? passesKey;
+  // 태클/수비
+  final int? tacklesTotal;
+  final int? tacklesBlocks;
+  final int? tacklesInterceptions;
+  // 듀얼
+  final int? duelsTotal;
+  final int? duelsWon;
+  // 드리블
+  final int? dribblesAttempts;
+  final int? dribblesSuccess;
+  // 파울
+  final int? foulsDrawn;
+  final int? foulsCommitted;
+  // 카드
+  final int? yellowCards;
+  final int? redCards;
+  // 오프사이드
+  final int? offsides;
+
+  PlayerMatchStats({
+    required this.id,
+    required this.name,
+    this.photo,
+    this.number,
+    this.position,
+    this.grid,
+    this.rating,
+    this.minutesPlayed,
+    this.captain,
+    this.substitute,
+    this.shotsTotal,
+    this.shotsOn,
+    this.goals,
+    this.assists,
+    this.goalsConceded,
+    this.saves,
+    this.passesTotal,
+    this.passesAccuracy,
+    this.passesKey,
+    this.tacklesTotal,
+    this.tacklesBlocks,
+    this.tacklesInterceptions,
+    this.duelsTotal,
+    this.duelsWon,
+    this.dribblesAttempts,
+    this.dribblesSuccess,
+    this.foulsDrawn,
+    this.foulsCommitted,
+    this.yellowCards,
+    this.redCards,
+    this.offsides,
+  });
+
+  factory PlayerMatchStats.fromJson(Map<String, dynamic> json) {
+    final player = json['player'] ?? {};
+    final statsList = json['statistics'] as List? ?? [];
+    final stats = statsList.isNotEmpty ? statsList.first : <String, dynamic>{};
+
+    final games = stats['games'] ?? {};
+    final shots = stats['shots'] ?? {};
+    final goalsData = stats['goals'] ?? {};
+    final passes = stats['passes'] ?? {};
+    final tackles = stats['tackles'] ?? {};
+    final duels = stats['duels'] ?? {};
+    final dribbles = stats['dribbles'] ?? {};
+    final fouls = stats['fouls'] ?? {};
+    final cards = stats['cards'] ?? {};
+
+    return PlayerMatchStats(
+      id: player['id'] ?? 0,
+      name: player['name'] ?? '',
+      photo: player['photo'],
+      number: games['number'],
+      position: games['position'],
+      grid: null, // grid는 lineup에서 가져옴
+      rating: games['rating'],
+      minutesPlayed: games['minutes'],
+      captain: games['captain'],
+      substitute: games['substitute'],
+      shotsTotal: shots['total'],
+      shotsOn: shots['on'],
+      goals: goalsData['total'],
+      assists: goalsData['assists'],
+      goalsConceded: goalsData['conceded'],
+      saves: goalsData['saves'],
+      passesTotal: passes['total'],
+      passesAccuracy: passes['accuracy'] != null ? int.tryParse(passes['accuracy'].toString()) : null,
+      passesKey: passes['key'],
+      tacklesTotal: tackles['total'],
+      tacklesBlocks: tackles['blocks'],
+      tacklesInterceptions: tackles['interceptions'],
+      duelsTotal: duels['total'],
+      duelsWon: duels['won'],
+      dribblesAttempts: dribbles['attempts'],
+      dribblesSuccess: dribbles['success'],
+      foulsDrawn: fouls['drawn'],
+      foulsCommitted: fouls['committed'],
+      yellowCards: cards['yellow'],
+      redCards: cards['red'],
+      offsides: stats['offsides'],
+    );
+  }
+
+  /// 평점 숫자 (double)
+  double? get ratingValue => rating != null ? double.tryParse(rating!) : null;
+
+  /// 평점 색상 판단 (7.0 이상 좋음, 6.0 이하 나쁨)
+  String get ratingLevel {
+    final r = ratingValue;
+    if (r == null) return 'none';
+    if (r >= 7.5) return 'excellent';
+    if (r >= 7.0) return 'good';
+    if (r >= 6.5) return 'average';
+    if (r >= 6.0) return 'belowAverage';
+    return 'poor';
+  }
+
+  /// 패스 성공률
+  String get passAccuracyText => passesAccuracy != null ? '$passesAccuracy%' : '-';
+
+  /// 듀얼 승률
+  String get duelWinRateText {
+    if (duelsTotal == null || duelsTotal == 0 || duelsWon == null) return '-';
+    final rate = (duelsWon! / duelsTotal! * 100).round();
+    return '$rate%';
   }
 }
 
