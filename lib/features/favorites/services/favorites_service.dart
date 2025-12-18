@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/services/sports_db_service.dart';
+import '../../../core/constants/api_football_ids.dart';
+import '../../../core/services/api_football_service.dart';
 import '../../../shared/models/team_model.dart';
 import '../../../shared/models/player_model.dart';
 
 class FavoritesService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final SportsDbService _sportsDbService = SportsDbService();
+  final ApiFootballService _apiService = ApiFootballService();
 
   CollectionReference<Map<String, dynamic>> get _usersCollection =>
       _firestore.collection(AppConstants.usersCollection);
@@ -51,12 +52,15 @@ class FavoritesService {
       } else {
         // Firestore에 없으면 API에서 가져와서 저장 후 반환
         try {
-          final sportsDbTeam = await _sportsDbService.getTeamById(teamId);
-          if (sportsDbTeam != null) {
-            final team = _convertSportsDbTeam(sportsDbTeam);
-            teams.add(team);
-            // 백그라운드로 저장
-            _saveTeamToFirestore(teamId);
+          final apiTeamId = ApiFootballIds.convertTeamId(teamId) ?? int.tryParse(teamId);
+          if (apiTeamId != null) {
+            final apiTeam = await _apiService.getTeamById(apiTeamId);
+            if (apiTeam != null) {
+              final team = _convertApiTeam(apiTeam);
+              teams.add(team);
+              // 백그라운드로 저장
+              _saveTeamToFirestore(teamId, apiTeam);
+            }
           }
         } catch (e) {
           // API 실패시 무시
@@ -75,32 +79,42 @@ class FavoritesService {
     }, SetOptions(merge: true));
 
     // 팀 정보도 저장 (API에서 가져와서)
-    await _saveTeamToFirestore(teamId);
+    await _saveTeamToFirestoreById(teamId);
   }
 
-  // 팀 정보를 Firestore에 저장
-  Future<void> _saveTeamToFirestore(String teamId) async {
+  // 팀 정보를 Firestore에 저장 (API에서 조회)
+  Future<void> _saveTeamToFirestoreById(String teamId) async {
     try {
       final existingDoc = await _teamsCollection.doc(teamId).get();
       if (existingDoc.exists) return; // 이미 있으면 스킵
 
-      final sportsDbTeam = await _sportsDbService.getTeamById(teamId);
-      if (sportsDbTeam == null) return;
+      final apiTeamId = ApiFootballIds.convertTeamId(teamId) ?? int.tryParse(teamId);
+      if (apiTeamId == null) return;
 
+      final apiTeam = await _apiService.getTeamById(apiTeamId);
+      if (apiTeam == null) return;
+
+      await _saveTeamToFirestore(teamId, apiTeam);
+    } catch (e) {
+      // 에러 무시 - 저장 실패해도 즐겨찾기는 동작
+    }
+  }
+
+  // 팀 정보를 Firestore에 저장
+  Future<void> _saveTeamToFirestore(String teamId, ApiFootballTeam apiTeam) async {
+    try {
       await _teamsCollection.doc(teamId).set({
-        'name': sportsDbTeam.name,
-        'nameKr': sportsDbTeam.nameKr ?? sportsDbTeam.name,
-        'shortName': sportsDbTeam.name.length > 3
-            ? sportsDbTeam.name.substring(0, 3).toUpperCase()
-            : sportsDbTeam.name.toUpperCase(),
-        'league': sportsDbTeam.league ?? '',
-        'country': sportsDbTeam.country,
-        'logoUrl': sportsDbTeam.badge,
-        'stadiumName': sportsDbTeam.stadium,
+        'name': apiTeam.name,
+        'nameKr': apiTeam.name, // API-Football은 한글명 없음
+        'shortName': apiTeam.code ?? apiTeam.name.substring(0, 3).toUpperCase(),
+        'league': '', // 별도 조회 필요
+        'country': apiTeam.country,
+        'logoUrl': apiTeam.logo,
+        'stadiumName': apiTeam.venue?.name,
         'createdAt': Timestamp.now(),
       });
     } catch (e) {
-      // 에러 무시 - 저장 실패해도 즐겨찾기는 동작
+      // 에러 무시
     }
   }
 
@@ -165,12 +179,15 @@ class FavoritesService {
       } else {
         // Firestore에 없으면 API에서 가져와서 저장 후 반환
         try {
-          final sportsDbPlayer = await _sportsDbService.getPlayerById(playerId);
-          if (sportsDbPlayer != null) {
-            final player = _convertSportsDbPlayer(sportsDbPlayer);
-            players.add(player);
-            // 백그라운드로 저장
-            _savePlayerToFirestore(playerId);
+          final apiPlayerId = int.tryParse(playerId);
+          if (apiPlayerId != null) {
+            final apiPlayer = await _apiService.getPlayerById(apiPlayerId);
+            if (apiPlayer != null) {
+              final player = _convertApiPlayer(apiPlayer);
+              players.add(player);
+              // 백그라운드로 저장
+              _savePlayerToFirestore(playerId, apiPlayer);
+            }
           }
         } catch (e) {
           // API 실패시 무시
@@ -188,32 +205,46 @@ class FavoritesService {
     }, SetOptions(merge: true));
 
     // 선수 정보도 저장 (API에서 가져와서)
-    await _savePlayerToFirestore(playerId);
+    await _savePlayerToFirestoreById(playerId);
   }
 
-  // 선수 정보를 Firestore에 저장
-  Future<void> _savePlayerToFirestore(String playerId) async {
+  // 선수 정보를 Firestore에 저장 (API에서 조회)
+  Future<void> _savePlayerToFirestoreById(String playerId) async {
     try {
       final existingDoc = await _playersCollection.doc(playerId).get();
       if (existingDoc.exists) return; // 이미 있으면 스킵
 
-      final sportsDbPlayer = await _sportsDbService.getPlayerById(playerId);
-      if (sportsDbPlayer == null) return;
+      final apiPlayerId = int.tryParse(playerId);
+      if (apiPlayerId == null) return;
+
+      final apiPlayer = await _apiService.getPlayerById(apiPlayerId);
+      if (apiPlayer == null) return;
+
+      await _savePlayerToFirestore(playerId, apiPlayer);
+    } catch (e) {
+      // 에러 무시 - 저장 실패해도 즐겨찾기는 동작
+    }
+  }
+
+  // 선수 정보를 Firestore에 저장
+  Future<void> _savePlayerToFirestore(String playerId, ApiFootballPlayer apiPlayer) async {
+    try {
+      final stats = apiPlayer.statistics.isNotEmpty ? apiPlayer.statistics.first : null;
 
       await _playersCollection.doc(playerId).set({
-        'name': sportsDbPlayer.name,
-        'nameKr': sportsDbPlayer.nameKr ?? sportsDbPlayer.name,
-        'teamId': sportsDbPlayer.teamId ?? '',
-        'teamName': sportsDbPlayer.team ?? '',
-        'position': sportsDbPlayer.position ?? '',
-        'number': int.tryParse(sportsDbPlayer.number ?? ''),
-        'nationality': sportsDbPlayer.nationality,
-        'photoUrl': sportsDbPlayer.photo,
-        'birthDate': sportsDbPlayer.dateBorn,
+        'name': apiPlayer.name,
+        'nameKr': apiPlayer.name, // API-Football은 한글명 없음
+        'teamId': stats?.teamId?.toString() ?? '',
+        'teamName': stats?.teamName ?? '',
+        'position': stats?.position ?? '',
+        'number': null, // 별도 조회 필요
+        'nationality': apiPlayer.nationality,
+        'photoUrl': apiPlayer.photo,
+        'birthDate': apiPlayer.birthDate,
         'createdAt': Timestamp.now(),
       });
     } catch (e) {
-      // 에러 무시 - 저장 실패해도 즐겨찾기는 동작
+      // 에러 무시
     }
   }
 
@@ -244,15 +275,41 @@ class FavoritesService {
     }
   }
 
-  // === Search (using SportsDB API) ===
+  // === Search (using API-Football) ===
 
-  // Search teams using SportsDB API
+  // Search players using API-Football
+  Future<List<Player>> searchPlayers(String query) async {
+    if (query.length < 2) return [];
+
+    try {
+      final apiPlayers = await _apiService.searchPlayers(query);
+      return apiPlayers.map((p) => _convertApiPlayer(p)).toList();
+    } catch (e) {
+      // Fallback to Firestore
+      return _searchPlayersFromFirestore(query);
+    }
+  }
+
+  // Firestore fallback for player search
+  Future<List<Player>> _searchPlayersFromFirestore(String query) async {
+    final snapshot = await _playersCollection.get();
+    final lowerQuery = query.toLowerCase();
+
+    return snapshot.docs
+        .map((doc) => Player.fromFirestore(doc))
+        .where((player) =>
+            player.name.toLowerCase().contains(lowerQuery) ||
+            player.nameKr.toLowerCase().contains(lowerQuery))
+        .toList();
+  }
+
+  // Search teams using API-Football
   Future<List<Team>> searchTeams(String query) async {
     if (query.length < 2) return [];
 
     try {
-      final sportsDbTeams = await _sportsDbService.searchTeams(query);
-      return sportsDbTeams.map((t) => _convertSportsDbTeam(t)).toList();
+      final apiTeams = await _apiService.searchTeams(query);
+      return apiTeams.map((t) => _convertApiTeam(t)).toList();
     } catch (e) {
       // Fallback to Firestore
       return _searchTeamsFromFirestore(query);
@@ -273,39 +330,33 @@ class FavoritesService {
         .toList();
   }
 
-  // Search players using SportsDB API
-  Future<List<Player>> searchPlayers(String query) async {
-    if (query.length < 2) return [];
-
-    try {
-      final sportsDbPlayers = await _sportsDbService.searchPlayers(query);
-      return sportsDbPlayers.map((p) => _convertSportsDbPlayer(p)).toList();
-    } catch (e) {
-      // Fallback to Firestore
-      return _searchPlayersFromFirestore(query);
-    }
-  }
-
-  // Firestore fallback for player search
-  Future<List<Player>> _searchPlayersFromFirestore(String query) async {
-    final snapshot = await _playersCollection.get();
-    final lowerQuery = query.toLowerCase();
-
-    return snapshot.docs
-        .map((doc) => Player.fromFirestore(doc))
-        .where((player) =>
-            player.name.toLowerCase().contains(lowerQuery) ||
-            player.nameKr.toLowerCase().contains(lowerQuery))
-        .toList();
-  }
-
-  // Get teams by league using SportsDB API
+  // Get teams by league using API-Football
   Future<List<Team>> getTeamsByLeague(String league) async {
     try {
-      final sportsDbTeams = await _sportsDbService.getTeamsByLeague(league);
-      return sportsDbTeams.map((t) => _convertSportsDbTeam(t)).toList();
+      final leagueId = ApiFootballIds.getLeagueId(league);
+      if (leagueId == null) {
+        print('getTeamsByLeague: leagueId is null for $league, using Firestore');
+        return _getTeamsByLeagueFromFirestore(league);
+      }
+
+      final season = LeagueIds.getCurrentSeason();
+      print('getTeamsByLeague: Fetching league $leagueId season $season');
+      final apiTeams = await _apiService.getTeamsByLeague(leagueId, season);
+      print('getTeamsByLeague: Got ${apiTeams.length} teams from API');
+
+      if (apiTeams.isEmpty) {
+        // 현재 시즌에 팀이 없으면 이전 시즌 시도
+        final prevSeasonTeams = await _apiService.getTeamsByLeague(leagueId, season - 1);
+        print('getTeamsByLeague: Got ${prevSeasonTeams.length} teams from prev season');
+        if (prevSeasonTeams.isNotEmpty) {
+          return prevSeasonTeams.map((t) => _convertApiTeam(t)).toList();
+        }
+      }
+
+      return apiTeams.map((t) => _convertApiTeam(t)).toList();
     } catch (e) {
       // Fallback to Firestore
+      print('getTeamsByLeague: Error $e, using Firestore fallback');
       return _getTeamsByLeagueFromFirestore(league);
     }
   }
@@ -320,11 +371,16 @@ class FavoritesService {
     return snapshot.docs.map((doc) => Team.fromFirestore(doc)).toList();
   }
 
-  // Get players by team using SportsDB API
+  // Get players by team using API-Football
   Future<List<Player>> getPlayersByTeam(String teamId) async {
     try {
-      final sportsDbPlayers = await _sportsDbService.getPlayersByTeam(teamId);
-      return sportsDbPlayers.map((p) => _convertSportsDbPlayer(p)).toList();
+      final apiTeamId = ApiFootballIds.convertTeamId(teamId) ?? int.tryParse(teamId);
+      if (apiTeamId == null) {
+        return _getPlayersByTeamFromFirestore(teamId);
+      }
+
+      final squadPlayers = await _apiService.getTeamSquad(apiTeamId);
+      return squadPlayers.map((p) => _convertSquadPlayer(p, teamId)).toList();
     } catch (e) {
       // Fallback to Firestore
       return _getPlayersByTeamFromFirestore(teamId);
@@ -343,35 +399,53 @@ class FavoritesService {
 
   // === Converters ===
 
-  // Convert SportsDbTeam to Team model
-  Team _convertSportsDbTeam(SportsDbTeam sportsDbTeam) {
+  // Convert ApiFootballTeam to Team model
+  Team _convertApiTeam(ApiFootballTeam apiTeam) {
     return Team(
-      id: sportsDbTeam.id,
-      name: sportsDbTeam.name,
-      nameKr: sportsDbTeam.nameKr ?? sportsDbTeam.name,
-      shortName: sportsDbTeam.name.length > 3
-          ? sportsDbTeam.name.substring(0, 3).toUpperCase()
-          : sportsDbTeam.name.toUpperCase(),
-      league: sportsDbTeam.league ?? '',
-      country: sportsDbTeam.country,
-      logoUrl: sportsDbTeam.badge,
-      stadiumName: sportsDbTeam.stadium,
+      id: apiTeam.id.toString(),
+      name: apiTeam.name,
+      nameKr: apiTeam.name, // API-Football은 한글명 없음
+      shortName: apiTeam.code ?? (apiTeam.name.length > 3
+          ? apiTeam.name.substring(0, 3).toUpperCase()
+          : apiTeam.name.toUpperCase()),
+      league: '', // 별도 조회 필요
+      country: apiTeam.country,
+      logoUrl: apiTeam.logo,
+      stadiumName: apiTeam.venue?.name,
     );
   }
 
-  // Convert SportsDbPlayer to Player model
-  Player _convertSportsDbPlayer(SportsDbPlayer sportsDbPlayer) {
+  // Convert ApiFootballPlayer to Player model
+  Player _convertApiPlayer(ApiFootballPlayer apiPlayer) {
+    final stats = apiPlayer.statistics.isNotEmpty ? apiPlayer.statistics.first : null;
+
     return Player(
-      id: sportsDbPlayer.id,
-      name: sportsDbPlayer.name,
-      nameKr: sportsDbPlayer.nameKr ?? sportsDbPlayer.name,
-      teamId: sportsDbPlayer.teamId ?? '',
-      teamName: sportsDbPlayer.team ?? '',
-      position: sportsDbPlayer.position ?? '',
-      number: int.tryParse(sportsDbPlayer.number ?? ''),
-      nationality: sportsDbPlayer.nationality,
-      photoUrl: sportsDbPlayer.photo,
-      birthDate: _parseDateString(sportsDbPlayer.dateBorn),
+      id: apiPlayer.id.toString(),
+      name: apiPlayer.name,
+      nameKr: apiPlayer.name, // API-Football은 한글명 없음
+      teamId: stats?.teamId?.toString() ?? '',
+      teamName: stats?.teamName ?? '',
+      position: stats?.position ?? '',
+      number: null, // 별도 조회 필요
+      nationality: apiPlayer.nationality,
+      photoUrl: apiPlayer.photo,
+      birthDate: _parseDateString(apiPlayer.birthDate),
+    );
+  }
+
+  // Convert ApiFootballSquadPlayer to Player model
+  Player _convertSquadPlayer(ApiFootballSquadPlayer squadPlayer, String teamId) {
+    return Player(
+      id: squadPlayer.id.toString(),
+      name: squadPlayer.name,
+      nameKr: squadPlayer.name,
+      teamId: teamId,
+      teamName: '', // 별도 조회 필요
+      position: squadPlayer.position ?? '',
+      number: squadPlayer.number,
+      nationality: null,
+      photoUrl: squadPlayer.photo,
+      birthDate: null,
     );
   }
 

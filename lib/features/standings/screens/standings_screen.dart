@@ -5,8 +5,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/constants/app_constants.dart';
-import '../../../core/services/sports_db_service.dart';
+import '../../../core/constants/api_football_ids.dart';
+import '../../../core/services/api_football_service.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../providers/standings_provider.dart';
@@ -25,7 +25,7 @@ class StandingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedLeague = ref.watch(selectedStandingsLeagueProvider);
     final selectedSeason = ref.watch(selectedSeasonProvider);
-    final currentSeason = selectedSeason ?? getSeasonForLeague(selectedLeague);
+    final currentSeason = selectedSeason ?? getCurrentSeasonForLeague(selectedLeague);
     final standingsKey = StandingsKey(selectedLeague, currentSeason);
     final standingsAsync = ref.watch(leagueStandingsProvider(standingsKey));
     final isCup = isCupCompetition(selectedLeague);
@@ -72,11 +72,11 @@ class StandingsScreen extends ConsumerWidget {
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: AppConstants.leaguesWithStandings.map((league) {
-                            final isSelected = selectedLeague == league;
+                          children: LeagueIds.supportedLeagues.map((league) {
+                            final isSelected = selectedLeague == league.id;
                             return GestureDetector(
                               onTap: () {
-                                ref.read(selectedStandingsLeagueProvider.notifier).state = league;
+                                ref.read(selectedStandingsLeagueProvider.notifier).state = league.id;
                                 ref.read(selectedSeasonProvider.notifier).state = null;
                               },
                               child: AnimatedContainer(
@@ -87,7 +87,7 @@ class StandingsScreen extends ConsumerWidget {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  AppConstants.getLeagueDisplayName(league),
+                                  league.name,
                                   style: TextStyle(
                                     color: isSelected ? Colors.white : _textSecondary,
                                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
@@ -128,7 +128,7 @@ class StandingsScreen extends ConsumerWidget {
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
-                                  getSeasonDisplayName(season),
+                                  getSeasonDisplayName(season, selectedLeague),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: isSelected ? _primary : _textSecondary,
@@ -158,7 +158,7 @@ class StandingsScreen extends ConsumerWidget {
                                     Icon(Icons.emoji_events_outlined, size: 64, color: Colors.amber.shade700),
                                     const SizedBox(height: 16),
                                     Text(
-                                      AppConstants.getLeagueDisplayName(selectedLeague),
+                                      LeagueIds.getLeagueInfo(selectedLeague)?.name ?? '대회',
                                       style: AppTextStyles.subtitle1,
                                     ),
                                     const SizedBox(height: 8),
@@ -180,31 +180,9 @@ class StandingsScreen extends ConsumerWidget {
                               );
                             }
 
-                            // K리그 미지원 안내
-                            if (selectedLeague == 'Korean K League 1') {
-                              return Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.sports_soccer, size: 64, color: Colors.green.shade700),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      AppConstants.getLeagueDisplayName(selectedLeague),
-                                      style: AppTextStyles.subtitle1,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    const Text(
-                                      'K리그 순위표는 현재 API에서 지원하지 않습니다',
-                                      style: TextStyle(color: Colors.grey),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    const Text(
-                                      '일정 탭에서 경기 일정을 확인하세요',
-                                      style: TextStyle(color: Colors.grey, fontSize: 12),
-                                    ),
-                                  ],
-                                ),
-                              );
+                            // K리그 미지원 안내 (API-Football은 K리그 지원하므로 조건 변경)
+                            if (selectedLeague == LeagueIds.kLeague1 || selectedLeague == LeagueIds.kLeague2) {
+                              // K리그는 이제 지원됨 - 데이터가 없으면 일반 안내 표시
                             }
 
                             return const Center(
@@ -228,7 +206,15 @@ class StandingsScreen extends ConsumerWidget {
                             onRefresh: () async {
                               ref.invalidate(leagueStandingsProvider(standingsKey));
                             },
-                            child: _StandingsTable(standings: standings),
+                            child: Column(
+                              children: [
+                                // 리그별 동적 범례
+                                _buildLeagueLegend(selectedLeague, standings),
+                                Expanded(
+                                  child: _StandingsTable(standings: standings),
+                                ),
+                              ],
+                            ),
                           );
                         },
                         loading: () => const LoadingIndicator(),
@@ -247,10 +233,140 @@ class StandingsScreen extends ConsumerWidget {
       ),
     );
   }
+
+  // 리그별 동적 범례 생성
+  Widget _buildLeagueLegend(int leagueId, List<ApiFootballStanding> standings) {
+    // standings에서 실제 description 값들 추출
+    final descriptions = standings
+        .where((s) => s.description != null && s.description!.isNotEmpty)
+        .map((s) => s.description!.toLowerCase())
+        .toSet();
+
+    // 범례 아이템 동적 생성
+    final legendItems = <Widget>[];
+
+    // UCL 관련 - championship은 제외
+    // UCL/UEL 순위표: 1/8 = 직행, 1/16 = PO
+    // 일반 리그: qualification = 예선, 나머지 = 본선
+    final hasUclDirect = descriptions.any((d) => d.contains('champions') && !d.contains('championship') && d.contains('1/8'));
+    final hasUclPlayoff = descriptions.any((d) => d.contains('champions') && !d.contains('championship') && d.contains('1/16'));
+    final hasUclQualification = descriptions.any((d) => d.contains('champions') && !d.contains('championship') && (d.contains('qualification') || d.contains('qualifying')));
+    final hasUclGeneral = descriptions.any((d) => d.contains('champions') && !d.contains('championship') && !d.contains('1/8') && !d.contains('1/16') && !d.contains('qualification') && !d.contains('qualifying'));
+
+    // UCL/UEL 순위표용 (직행 vs PO)
+    if (hasUclDirect) {
+      legendItems.add(_LegendItem(color: Colors.blue.shade800, label: 'UCL 직행'));
+    }
+    if (hasUclPlayoff) {
+      legendItems.add(_LegendItem(color: Colors.cyan.shade600, label: 'UCL PO'));
+    }
+    // 일반 리그용 (본선 vs 예선)
+    if (hasUclGeneral) {
+      legendItems.add(_LegendItem(color: Colors.blue, label: 'UCL'));
+    }
+    if (hasUclQualification && !hasUclPlayoff) {
+      legendItems.add(_LegendItem(color: Colors.cyan.shade600, label: 'UCL 예선'));
+    }
+
+    // UEL 관련
+    final hasUelDirect = descriptions.any((d) => d.contains('europa') && d.contains('1/8'));
+    final hasUelPlayoff = descriptions.any((d) => d.contains('europa') && d.contains('1/16'));
+    final hasUelGeneral = descriptions.any((d) => d.contains('europa') && !d.contains('1/8') && !d.contains('1/16') && !d.contains('qualification') && !d.contains('qualifying') && !d.contains('relegation'));
+
+    if (hasUelDirect) {
+      legendItems.add(_LegendItem(color: Colors.orange.shade800, label: 'UEL 직행'));
+    }
+    if (hasUelPlayoff) {
+      legendItems.add(_LegendItem(color: Colors.amber.shade700, label: 'UEL PO'));
+    }
+    if (hasUelGeneral) {
+      legendItems.add(_LegendItem(color: Colors.orange, label: 'UEL'));
+    }
+
+    // UECL 관련 (통합) - relegation 제외
+    if (descriptions.any((d) => d.contains('conference') && !d.contains('relegation'))) {
+      legendItems.add(_LegendItem(color: Colors.green, label: 'UECL'));
+    }
+
+    // K리그 특수 케이스
+    final hasChampionshipRound = descriptions.any((d) => d.contains('championship round'));
+    final hasRelegationRound = descriptions.any((d) => d.contains('relegation round'));
+    final hasPromotion = descriptions.any((d) => d.contains('promotion') && !d.contains('champions') && !d.contains('europa') && !d.contains('conference'));
+    final hasPromotionPlayoff = descriptions.any((d) => d.contains('promotion') && d.contains('playoff') && !d.contains('champions') && !d.contains('europa'));
+
+    if (hasChampionshipRound) {
+      legendItems.add(_LegendItem(color: Colors.blue, label: '챔피언십'));
+    }
+    if (hasRelegationRound) {
+      legendItems.add(_LegendItem(color: Colors.grey, label: '하위 스플릿'));
+    }
+    if (hasPromotion && !hasPromotionPlayoff) {
+      legendItems.add(_LegendItem(color: Colors.green, label: '승격'));
+    }
+    if (hasPromotionPlayoff) {
+      legendItems.add(_LegendItem(color: Colors.teal, label: '승격 PO'));
+    }
+
+    // 강등 관련 (통합) - K리그 Relegation Round는 제외
+    if (descriptions.any((d) => d.contains('relegation') && !d.contains('europa') && !d.contains('conference') && !d.contains('round'))) {
+      legendItems.add(_LegendItem(color: Colors.red, label: '강등'));
+    }
+
+    if (legendItems.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _border),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 6,
+        children: legendItems,
+      ),
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _LegendItem({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(2),
+            border: Border.all(color: color, width: 1.5),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: color,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _StandingsTable extends StatelessWidget {
-  final List<SportsDbStanding> standings;
+  final List<ApiFootballStanding> standings;
 
   const _StandingsTable({required this.standings});
 
@@ -317,40 +433,116 @@ class _HeaderCell extends StatelessWidget {
 }
 
 class _StandingRow extends StatelessWidget {
-  final SportsDbStanding standing;
+  final ApiFootballStanding standing;
   final int totalTeams;
 
   const _StandingRow({required this.standing, required this.totalTeams});
 
   @override
   Widget build(BuildContext context) {
-    // description 기반으로 색상 결정
-    final isChampionsLeague = standing.description?.toLowerCase().contains('champions') ?? false;
-    final isEuropaLeague = standing.description?.toLowerCase().contains('europa') ?? false;
-    final isConferenceLeague = standing.description?.toLowerCase().contains('conference') ?? false;
-    final isRelegation = standing.description?.toLowerCase().contains('relegation') ?? false;
+    final desc = standing.description?.toLowerCase() ?? '';
+
+    // UCL/UEL 순위표용 색상 구분 (16강 직행 vs 플레이오프)
+    // 1/8-finals = 16강 직행, 1/16-finals = 플레이오프 (32강전)
+    final isUclDirect = desc.contains('champions') && !desc.contains('championship') && desc.contains('1/8');
+    final isUclPlayoff = desc.contains('champions') && !desc.contains('championship') && (desc.contains('qualifying') || desc.contains('qualification') || desc.contains('1/16'));
+    final isUelDirect = desc.contains('europa') && desc.contains('1/8');
+    final isUelPlayoff = desc.contains('europa') && (desc.contains('qualifying') || desc.contains('qualification') || desc.contains('1/16'));
+    final isConferenceDirect = desc.contains('conference') && desc.contains('1/8');
+    final isConferencePlayoff = desc.contains('conference') && (desc.contains('qualifying') || desc.contains('qualification') || desc.contains('1/16'));
+
+    // K리그 특수 케이스
+    final isChampionshipRound = desc.contains('championship round');
+    final isRelegationRound = desc.contains('relegation round');
+    final isPromotion = desc.contains('promotion') && !desc.contains('champions') && !desc.contains('europa') && !desc.contains('conference');
+    final isPromotionPlayoff = desc.contains('promotion') && desc.contains('playoff') && !desc.contains('champions') && !desc.contains('europa');
+
+    // 강등권 (먼저 체크해야 championship이 champions로 잘못 인식되지 않음)
+    // "Relegation", "Relegation - Serie B", "Relegation - 2. Bundesliga", "Relegation - Championship"
+    // K리그 "Relegation Round"는 강등이 아니라 하위 스플릿이므로 제외
+    final isRelegation = desc.contains('relegation') &&
+        !desc.contains('playoff') && !desc.contains('europa') && !desc.contains('conference') && !desc.contains('round');
+    // 강등 플레이오프: "Relegation Playoffs", "Bundesliga (Relegation)"
+    final isRelegationPlayoff = (desc.contains('relegation') && desc.contains('playoff') && !desc.contains('round')) ||
+        (desc.contains('bundesliga') && desc.contains('relegation'));
+
+    // 일반 리그용 (UCL/UEL/Conference 진출권)
+    // EPL/라리가: "Champions League", "UEFA Europa League"
+    // 분데스/세리에A: "Promotion - Champions League (League phase: )"
+    // 주의: "championship"이 "champions"를 포함하므로 제외
+    final isChampionsLeague = desc.contains('champions') && !desc.contains('championship') &&
+        !desc.contains('qualifying') && !desc.contains('qualification') && !desc.contains('1/8') && !desc.contains('1/16');
+    final isEuropaLeague = desc.contains('europa') &&
+        !desc.contains('qualifying') && !desc.contains('qualification') && !desc.contains('1/8') && !desc.contains('1/16') &&
+        !desc.contains('relegation');
+    final isConferenceLeague = desc.contains('conference') &&
+        !desc.contains('qualifying') && !desc.contains('qualification') && !desc.contains('1/8') && !desc.contains('1/16') &&
+        !desc.contains('relegation');
+    // UCL에서 UEL로 강등
+    final isToEuropa = desc.contains('relegation') && desc.contains('europa');
+    // UEL에서 UECL로 강등
+    final isToConference = desc.contains('relegation') && desc.contains('conference');
 
     Color? rowColor;
     Color rankColor = Colors.grey;
 
-    if (isChampionsLeague) {
-      rowColor = Colors.blue.withValues(alpha: 0.05);
+    // UCL/UEL 순위표 (직행 vs 플레이오프 구분)
+    if (isUclDirect) {
+      // UCL 16강 직행 - 진한 파란색
+      rowColor = Colors.blue.shade800.withValues(alpha: 0.12);
+      rankColor = Colors.blue.shade800;
+    } else if (isUclPlayoff) {
+      // UCL 플레이오프/예선 - 하늘색 (cyan)
+      rowColor = Colors.cyan.shade300.withValues(alpha: 0.15);
+      rankColor = Colors.cyan.shade600;
+    } else if (isUelDirect) {
+      // UEL 16강 직행 - 진한 주황색
+      rowColor = Colors.orange.shade800.withValues(alpha: 0.12);
+      rankColor = Colors.orange.shade800;
+    } else if (isUelPlayoff || isToEuropa) {
+      // UEL 플레이오프 또는 UCL에서 UEL로 이동 - 노란색
+      rowColor = Colors.amber.shade300.withValues(alpha: 0.15);
+      rankColor = Colors.amber.shade700;
+    } else if (isConferenceDirect || isConferencePlayoff || isToConference) {
+      // Conference 전체 통합 - 초록색
+      rowColor = Colors.green.withValues(alpha: 0.08);
+      rankColor = Colors.green;
+    } else if (isChampionsLeague) {
+      // 일반 리그 UCL 진출권
+      rowColor = Colors.blue.withValues(alpha: 0.08);
       rankColor = Colors.blue;
     } else if (isEuropaLeague) {
-      rowColor = Colors.orange.withValues(alpha: 0.05);
+      // 일반 리그 UEL 진출권
+      rowColor = Colors.orange.withValues(alpha: 0.08);
       rankColor = Colors.orange;
     } else if (isConferenceLeague) {
-      rowColor = Colors.green.withValues(alpha: 0.05);
+      // 일반 리그 Conference 진출권
+      rowColor = Colors.green.withValues(alpha: 0.08);
       rankColor = Colors.green;
-    } else if (isRelegation || standing.rank > totalTeams - 3) {
-      rowColor = Colors.red.withValues(alpha: 0.05);
+    } else if (isRelegationPlayoff || isRelegation) {
+      // 강등 (강등 PO + 강등 확정 통합)
+      rowColor = Colors.red.withValues(alpha: 0.08);
       rankColor = Colors.red;
+    } else if (isChampionshipRound) {
+      // K리그 챔피언십 라운드 (상위 스플릿)
+      rowColor = Colors.blue.withValues(alpha: 0.08);
+      rankColor = Colors.blue;
+    } else if (isRelegationRound) {
+      // K리그 하위 스플릿 (강등은 아님)
+      rowColor = Colors.grey.withValues(alpha: 0.08);
+      rankColor = Colors.grey;
+    } else if (isPromotion && !isPromotionPlayoff) {
+      // K리그2 승격 (직접 승격)
+      rowColor = Colors.green.withValues(alpha: 0.08);
+      rankColor = Colors.green;
+    } else if (isPromotionPlayoff) {
+      // K리그2 승격 플레이오프
+      rowColor = Colors.teal.withValues(alpha: 0.08);
+      rankColor = Colors.teal;
     }
 
     return InkWell(
-      onTap: standing.teamId != null
-          ? () => context.push('/team/${standing.teamId}')
-          : null,
+      onTap: () => context.push('/team/${standing.teamId}'),
       child: Container(
         color: rowColor,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -383,9 +575,9 @@ class _StandingRow extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                if (standing.teamBadge != null)
+                if (standing.teamLogo != null)
                   CachedNetworkImage(
-                    imageUrl: standing.teamBadge!,
+                    imageUrl: standing.teamLogo!,
                     width: 24,
                     height: 24,
                     placeholder: (_, __) => const SizedBox(width: 24, height: 24),
@@ -396,7 +588,7 @@ class _StandingRow extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    standing.teamName ?? '-',
+                    standing.teamName,
                     style: AppTextStyles.body2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -407,14 +599,14 @@ class _StandingRow extends StatelessWidget {
 
           // Stats
           _StatCell('${standing.played}'),
-          _StatCell('${standing.wins}', color: Colors.green),
-          _StatCell('${standing.draws}'),
-          _StatCell('${standing.losses}', color: Colors.red),
+          _StatCell('${standing.win}', color: Colors.green),
+          _StatCell('${standing.draw}'),
+          _StatCell('${standing.lose}', color: Colors.red),
           _StatCell('${standing.goalsFor}'),
           _StatCell('${standing.goalsAgainst}'),
           _StatCell(
-            standing.goalDifference >= 0 ? '+${standing.goalDifference}' : '${standing.goalDifference}',
-            color: standing.goalDifference > 0 ? Colors.green : (standing.goalDifference < 0 ? Colors.red : null),
+            standing.goalsDiff >= 0 ? '+${standing.goalsDiff}' : '${standing.goalsDiff}',
+            color: standing.goalsDiff > 0 ? Colors.green : (standing.goalsDiff < 0 ? Colors.red : null),
           ),
 
           // Points

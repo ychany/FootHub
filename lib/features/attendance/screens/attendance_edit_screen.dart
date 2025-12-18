@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../core/services/sports_db_service.dart';
+import '../../../core/services/api_football_service.dart';
 import '../../../shared/services/storage_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/attendance_record.dart';
@@ -24,7 +24,7 @@ class AttendanceEditScreen extends ConsumerStatefulWidget {
 
 class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _sportsDbService = SportsDbService();
+  final _apiFootballService = ApiFootballService();
   final _pageController = PageController();
   int _currentPage = 0;
 
@@ -72,7 +72,7 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
   double _rating = 3.0;
   MatchMood? _selectedMood;
   String? _selectedWeather;
-  SportsDbPlayer? _selectedMvp;
+  ApiFootballSquadPlayer? _selectedMvp;
   List<String> _tags = [];
 
   // 응원한 팀 (승/무/패 계산용)
@@ -130,10 +130,17 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
           _tags = List.from(record.tags);
 
           if (record.mvpPlayerId != null && record.mvpPlayerName != null) {
-            _selectedMvp = SportsDbPlayer(
-              id: record.mvpPlayerId!,
-              name: record.mvpPlayerName!,
-            );
+            final mvpId = int.tryParse(record.mvpPlayerId!);
+            if (mvpId != null) {
+              _selectedMvp = ApiFootballSquadPlayer(
+                id: mvpId,
+                name: record.mvpPlayerName!,
+                position: null,
+                number: null,
+                photo: null,
+                age: null,
+              );
+            }
           }
 
           _isLoading = false;
@@ -1106,9 +1113,9 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
                             color: _textPrimary,
                           ),
                         ),
-                        if (_selectedMvp!.team != null)
+                        if (_selectedMvp!.position != null)
                           Text(
-                            _selectedMvp!.team!,
+                            _selectedMvp!.position!,
                             style: TextStyle(
                                 fontSize: 12, color: _textSecondary),
                           ),
@@ -1170,14 +1177,17 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
     String? homeTeamName,
     String? awayTeamName,
   }) async {
+    final homeId = homeTeamId != null ? int.tryParse(homeTeamId) : null;
+    final awayId = awayTeamId != null ? int.tryParse(awayTeamId) : null;
+
     showDialog(
       context: context,
       builder: (context) => _TeamPlayersDialog(
-        homeTeamId: homeTeamId,
-        awayTeamId: awayTeamId,
+        homeTeamId: homeId,
+        awayTeamId: awayId,
         homeTeamName: homeTeamName,
         awayTeamName: awayTeamName,
-        sportsDbService: _sportsDbService,
+        apiFootballService: _apiFootballService,
         onPlayerSelected: (player) {
           setState(() => _selectedMvp = player);
           Navigator.pop(context);
@@ -1549,7 +1559,7 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
             _contentController.text.isEmpty ? null : _contentController.text,
         rating: _rating,
         mood: _selectedMood,
-        mvpPlayerId: _selectedMvp?.id,
+        mvpPlayerId: _selectedMvp?.id.toString(),
         mvpPlayerName: _selectedMvp?.name,
         tags: _tags,
         weather: _selectedWeather,
@@ -1758,19 +1768,19 @@ class _TeamSelectButton extends StatelessWidget {
 }
 
 class _TeamPlayersDialog extends StatefulWidget {
-  final String? homeTeamId;
-  final String? awayTeamId;
+  final int? homeTeamId;
+  final int? awayTeamId;
   final String? homeTeamName;
   final String? awayTeamName;
-  final SportsDbService sportsDbService;
-  final Function(SportsDbPlayer) onPlayerSelected;
+  final ApiFootballService apiFootballService;
+  final Function(ApiFootballSquadPlayer) onPlayerSelected;
 
   const _TeamPlayersDialog({
     this.homeTeamId,
     this.awayTeamId,
     this.homeTeamName,
     this.awayTeamName,
-    required this.sportsDbService,
+    required this.apiFootballService,
     required this.onPlayerSelected,
   });
 
@@ -1781,8 +1791,8 @@ class _TeamPlayersDialog extends StatefulWidget {
 class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<SportsDbPlayer> _homePlayers = [];
-  List<SportsDbPlayer> _awayPlayers = [];
+  List<ApiFootballSquadPlayer> _homePlayers = [];
+  List<ApiFootballSquadPlayer> _awayPlayers = [];
   bool _isLoading = true;
   String _searchQuery = '';
 
@@ -1811,16 +1821,16 @@ class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
       final futures = <Future>[];
 
       if (widget.homeTeamId != null) {
-        futures.add(widget.sportsDbService
-            .getPlayersByTeam(widget.homeTeamId!)
+        futures.add(widget.apiFootballService
+            .getTeamSquad(widget.homeTeamId!)
             .then((players) {
           _homePlayers = players;
         }));
       }
 
       if (widget.awayTeamId != null) {
-        futures.add(widget.sportsDbService
-            .getPlayersByTeam(widget.awayTeamId!)
+        futures.add(widget.apiFootballService
+            .getTeamSquad(widget.awayTeamId!)
             .then((players) {
           _awayPlayers = players;
         }));
@@ -1836,7 +1846,7 @@ class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
     }
   }
 
-  List<SportsDbPlayer> _filterPlayers(List<SportsDbPlayer> players) {
+  List<ApiFootballSquadPlayer> _filterPlayers(List<ApiFootballSquadPlayer> players) {
     if (_searchQuery.isEmpty) return players;
     return players
         .where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()))
@@ -1917,7 +1927,7 @@ class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
     );
   }
 
-  Widget _buildPlayerList(List<SportsDbPlayer> players) {
+  Widget _buildPlayerList(List<ApiFootballSquadPlayer> players) {
     if (players.isEmpty) {
       return Center(
         child: Text(
@@ -1932,8 +1942,8 @@ class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
       itemBuilder: (context, index) {
         final player = players[index];
         return ListTile(
-          leading: player.thumb != null
-              ? CircleAvatar(backgroundImage: NetworkImage(player.thumb!))
+          leading: player.photo != null
+              ? CircleAvatar(backgroundImage: NetworkImage(player.photo!))
               : CircleAvatar(
                   backgroundColor: _background,
                   child: const Icon(Icons.person, color: _textSecondary),

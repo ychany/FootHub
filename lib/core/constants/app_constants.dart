@@ -15,7 +15,7 @@ class AppConstants {
   // Storage Paths
   static const String attendancePhotosPath = 'attendance_photos';
 
-  // Leagues - API에서 사용하는 실제 리그 이름 (TheSportsDB 기준)
+  // Leagues - API에서 사용하는 실제 리그 이름
   static const List<String> supportedLeagues = [
     'English Premier League',
     'Spanish La Liga',
@@ -23,6 +23,7 @@ class AppConstants {
     'German Bundesliga',
     'French Ligue 1',
     'South Korean K League 1',
+    'South Korean K League 2',
     'UEFA Champions League',
     'UEFA Europa League',
     'International Friendlies',
@@ -36,6 +37,7 @@ class AppConstants {
     'German Bundesliga',
     'French Ligue 1',
     'South Korean K League 1',
+    'South Korean K League 2',
     'UEFA Champions League',
     'UEFA Europa League',
   ];
@@ -47,15 +49,104 @@ class AppConstants {
     'Italian Serie A': '세리에 A',
     'German Bundesliga': '분데스리가',
     'French Ligue 1': '리그 1',
-    'South Korean K League 1': 'K리그',
+    'South Korean K League 1': 'K리그1',
+    'South Korean K League 2': 'K리그2',
     'UEFA Champions League': 'UCL',
     'UEFA Europa League': 'UEL',
     'International Friendlies': 'A매치',
   };
 
+  // API-Football 리그 이름 → 앱 내부 리그 이름 매핑
+  static const Map<String, String> apiFootballLeagueMapping = {
+    'Premier League': 'English Premier League',
+    'La Liga': 'Spanish La Liga',
+    'Serie A': 'Italian Serie A',
+    'Bundesliga': 'German Bundesliga',
+    'Ligue 1': 'French Ligue 1',
+    'K League 1': 'South Korean K League 1',
+    'K League 2': 'South Korean K League 2',
+    'UEFA Champions League': 'UEFA Champions League',
+    'UEFA Europa League': 'UEFA Europa League',
+    'International Friendlies': 'International Friendlies',
+    // 추가 변형 이름들
+    'Primera Division': 'Spanish La Liga',
+    'Friendlies': 'International Friendlies',
+  };
+
+  // 앱 내부 리그 이름 → API-Football 리그 ID 매핑
+  static const Map<String, int> leagueNameToId = {
+    'English Premier League': 39,
+    'Spanish La Liga': 140,
+    'Italian Serie A': 135,
+    'German Bundesliga': 78,
+    'French Ligue 1': 61,
+    'South Korean K League 1': 292,
+    'South Korean K League 2': 293,
+    'UEFA Champions League': 2,
+    'UEFA Europa League': 3,
+    'International Friendlies': 10,
+  };
+
+  // 리그 ID로 필터 이름 가져오기
+  static String? getLeagueNameById(int leagueId) {
+    for (final entry in leagueNameToId.entries) {
+      if (entry.value == leagueId) return entry.key;
+    }
+    return null;
+  }
+
+  // 필터 이름으로 리그 ID 가져오기
+  static int? getLeagueIdByName(String leagueName) {
+    return leagueNameToId[leagueName];
+  }
+
   // 표시 이름으로 리그 이름 가져오기 (역방향)
   static String getLeagueDisplayName(String league) {
     return leagueDisplayNames[league] ?? league;
+  }
+
+  // API-Football 리그 이름을 앱 내부 이름으로 변환
+  static String normalizeLeagueName(String apiLeagueName) {
+    return apiFootballLeagueMapping[apiLeagueName] ?? apiLeagueName;
+  }
+
+  // 리그 이름 매칭 (필터링용) - 대소문자 무시, 부분 일치
+  static bool isLeagueMatch(String matchLeague, String filterLeague) {
+    final matchLower = matchLeague.toLowerCase();
+    final filterLower = filterLeague.toLowerCase();
+
+    // 정확히 일치
+    if (matchLower == filterLower) return true;
+
+    // API-Football 이름 매핑 확인
+    final normalizedMatch = normalizeLeagueName(matchLeague).toLowerCase();
+    if (normalizedMatch == filterLower) return true;
+
+    // 부분 일치 (양방향)
+    if (matchLower.contains(filterLower) || filterLower.contains(matchLower)) return true;
+
+    // 핵심 키워드 매칭
+    final keywords = _extractLeagueKeywords(filterLower);
+    for (final keyword in keywords) {
+      if (matchLower.contains(keyword)) return true;
+    }
+
+    return false;
+  }
+
+  // 리그 필터에서 핵심 키워드 추출
+  static List<String> _extractLeagueKeywords(String league) {
+    final keywords = <String>[];
+    if (league.contains('premier')) keywords.add('premier');
+    if (league.contains('la liga')) keywords.add('la liga');
+    if (league.contains('serie a')) keywords.add('serie a');
+    if (league.contains('bundesliga')) keywords.add('bundesliga');
+    if (league.contains('ligue 1')) keywords.add('ligue 1');
+    if (league.contains('k league')) keywords.add('k league');
+    if (league.contains('champions')) keywords.add('champions');
+    if (league.contains('europa')) keywords.add('europa');
+    if (league.contains('friendl')) keywords.add('friendl');
+    return keywords;
   }
 
   // API

@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/post_model.dart';
 import '../providers/community_provider.dart';
-import '../../../core/services/sports_db_service.dart';
-import '../../../core/constants/app_constants.dart';
+import '../../../core/services/api_football_service.dart';
+import '../../../core/constants/api_football_ids.dart';
 
 class CommunityScreen extends ConsumerStatefulWidget {
   const CommunityScreen({super.key});
@@ -27,7 +27,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   String _searchQuery = '';
 
   // 경기 필터 - 선택된 경기 정보
-  SportsDbEvent? _selectedMatchFilter;
+  ApiFootballFixture? _selectedMatchFilter;
   bool _onlyWithMatch = false; // 직관 기록이 있는 게시글만
 
   @override
@@ -237,7 +237,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                           setState(() => _onlyWithMatch = false);
                         }),
                         if (_selectedMatchFilter != null) _buildFilterChip(
-                          '${_selectedMatchFilter!.homeTeam} vs ${_selectedMatchFilter!.awayTeam}',
+                          '${_selectedMatchFilter!.homeTeam.name} vs ${_selectedMatchFilter!.awayTeam.name}',
                           () => setState(() => _selectedMatchFilter = null),
                         ),
                         const SizedBox(width: 4),
@@ -284,9 +284,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                       // 선택된 경기 필터
                       if (_selectedMatchFilter != null) {
                         // 홈팀과 원정팀이 일치하는 게시글만 표시
-                        final matchHome = _selectedMatchFilter!.homeTeam;
-                        final matchAway = _selectedMatchFilter!.awayTeam;
-                        final matchDate = _selectedMatchFilter!.dateTime;
+                        final matchHome = _selectedMatchFilter!.homeTeam.name;
+                        final matchAway = _selectedMatchFilter!.awayTeam.name;
+                        final matchDate = _selectedMatchFilter!.dateKST;
 
                         // 팀 이름 매칭 (홈 vs 원정 또는 원정 vs 홈)
                         final teamsMatch =
@@ -295,7 +295,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
 
                         // 날짜도 같은지 확인 (같은 날짜의 경기)
                         bool dateMatch = true;
-                        if (matchDate != null && post.matchDate != null) {
+                        if (post.matchDate != null) {
                           dateMatch = post.matchDate!.year == matchDate.year &&
                               post.matchDate!.month == matchDate.month &&
                               post.matchDate!.day == matchDate.day;
@@ -812,9 +812,9 @@ class _PostCard extends ConsumerWidget {
 // 경기 필터 모달 - 날짜/리그/경기 선택
 // ============================================================================
 class _MatchFilterModal extends StatefulWidget {
-  final SportsDbEvent? selectedEvent;
+  final ApiFootballFixture? selectedEvent;
   final bool onlyWithMatch;
-  final Function(SportsDbEvent?, bool) onApply;
+  final Function(ApiFootballFixture?, bool) onApply;
 
   const _MatchFilterModal({
     this.selectedEvent,
@@ -833,14 +833,14 @@ class _MatchFilterModalState extends State<_MatchFilterModal> {
   static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE5E7EB);
 
-  final SportsDbService _sportsDbService = SportsDbService();
+  final ApiFootballService _apiFootballService = ApiFootballService();
 
   late DateTime _selectedDate;
-  String? _selectedLeague;
+  int? _selectedLeagueId;
   late bool _onlyWithMatch;
-  SportsDbEvent? _selectedEvent;
+  ApiFootballFixture? _selectedEvent;
 
-  List<SportsDbEvent> _searchResults = [];
+  List<ApiFootballFixture> _searchResults = [];
   bool _isSearching = false;
   bool _hasSearched = false;
 
@@ -859,13 +859,13 @@ class _MatchFilterModalState extends State<_MatchFilterModal> {
     });
 
     try {
-      final events = await _sportsDbService.getEventsByDate(
-        _selectedDate,
-        sport: 'Soccer',
-        league: _selectedLeague,
-      );
+      final fixtures = await _apiFootballService.getFixturesByDate(_selectedDate);
+      // 선택한 리그 필터링
+      final filtered = _selectedLeagueId != null
+          ? fixtures.where((f) => f.league.id == _selectedLeagueId).toList()
+          : fixtures;
       setState(() {
-        _searchResults = events;
+        _searchResults = filtered;
       });
     } catch (e) {
       // 에러 처리
@@ -1075,11 +1075,11 @@ class _MatchFilterModalState extends State<_MatchFilterModal> {
                       children: [
                         _buildLeagueChip('전체', null),
                         const SizedBox(width: 8),
-                        ...AppConstants.supportedLeagues.map((league) => Padding(
+                        ...LeagueIds.supportedLeagues.map((league) => Padding(
                               padding: const EdgeInsets.only(right: 8),
                               child: _buildLeagueChip(
-                                AppConstants.getLeagueDisplayName(league),
-                                league,
+                                league.name,
+                                league.id,
                               ),
                             )),
                       ],
@@ -1204,12 +1204,12 @@ class _MatchFilterModalState extends State<_MatchFilterModal> {
     );
   }
 
-  Widget _buildLeagueChip(String label, String? league) {
-    final isSelected = _selectedLeague == league;
+  Widget _buildLeagueChip(String label, int? leagueId) {
+    final isSelected = _selectedLeagueId == leagueId;
     return GestureDetector(
       onTap: () {
         setState(() {
-          _selectedLeague = league;
+          _selectedLeagueId = leagueId;
           _searchResults = [];
           _hasSearched = false;
         });
@@ -1235,13 +1235,13 @@ class _MatchFilterModalState extends State<_MatchFilterModal> {
     );
   }
 
-  Widget _buildEventCard(SportsDbEvent event) {
-    final isSelected = _selectedEvent?.id == event.id;
+  Widget _buildEventCard(ApiFootballFixture fixture) {
+    final isSelected = _selectedEvent?.id == fixture.id;
 
     return GestureDetector(
       onTap: () {
         setState(() {
-          _selectedEvent = isSelected ? null : event;
+          _selectedEvent = isSelected ? null : fixture;
         });
       },
       child: Container(
@@ -1267,7 +1267,7 @@ class _MatchFilterModalState extends State<_MatchFilterModal> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      event.league ?? '',
+                      fixture.league.name,
                       style: const TextStyle(
                         color: _primary,
                         fontSize: 11,
@@ -1279,9 +1279,7 @@ class _MatchFilterModalState extends State<_MatchFilterModal> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  event.dateTime != null
-                      ? '${event.dateTime!.hour.toString().padLeft(2, '0')}:${event.dateTime!.minute.toString().padLeft(2, '0')}'
-                      : event.time ?? '',
+                  '${fixture.dateKST.hour.toString().padLeft(2, '0')}:${fixture.dateKST.minute.toString().padLeft(2, '0')}',
                   style: const TextStyle(fontSize: 11, color: _textSecondary),
                 ),
               ],
@@ -1292,10 +1290,10 @@ class _MatchFilterModalState extends State<_MatchFilterModal> {
                 Expanded(
                   child: Column(
                     children: [
-                      _buildBadge(event.homeTeamBadge, 32),
+                      _buildBadge(fixture.homeTeam.logo, 32),
                       const SizedBox(height: 4),
                       Text(
-                        event.homeTeam ?? '',
+                        fixture.homeTeam.name,
                         style: const TextStyle(fontSize: 12, color: _textPrimary),
                         textAlign: TextAlign.center,
                         maxLines: 1,
@@ -1307,7 +1305,7 @@ class _MatchFilterModalState extends State<_MatchFilterModal> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Text(
-                    event.isFinished ? event.scoreDisplay : 'vs',
+                    fixture.isFinished ? fixture.scoreDisplay : 'vs',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -1318,10 +1316,10 @@ class _MatchFilterModalState extends State<_MatchFilterModal> {
                 Expanded(
                   child: Column(
                     children: [
-                      _buildBadge(event.awayTeamBadge, 32),
+                      _buildBadge(fixture.awayTeam.logo, 32),
                       const SizedBox(height: 4),
                       Text(
-                        event.awayTeam ?? '',
+                        fixture.awayTeam.name,
                         style: const TextStyle(fontSize: 12, color: _textPrimary),
                         textAlign: TextAlign.center,
                         maxLines: 1,

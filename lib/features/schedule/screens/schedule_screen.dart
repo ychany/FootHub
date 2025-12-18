@@ -6,18 +6,18 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/services/sports_db_service.dart';
+import '../../../core/services/api_football_service.dart';
 import '../../../shared/models/match_model.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../providers/schedule_provider.dart';
 import '../../diary/providers/diary_provider.dart';
 
-/// 축구 라이브스코어 Provider
+/// 축구 라이브스코어 Provider (API-Football)
 final scheduleLivescoresProvider =
-    FutureProvider<List<SportsDbLiveEvent>>((ref) async {
-  final service = SportsDbService();
-  return service.getSoccerLivescores();
+    FutureProvider<List<ApiFootballFixture>>((ref) async {
+  final service = ApiFootballService();
+  return service.getLiveFixtures();
 });
 
 class ScheduleScreen extends ConsumerStatefulWidget {
@@ -1140,8 +1140,8 @@ class _ScheduleLiveScoresSection extends ConsumerWidget {
                   itemCount: liveEvents.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
-                    final event = liveEvents[index];
-                    return _ScheduleLiveCard(event: event);
+                    final fixture = liveEvents[index];
+                    return _ScheduleLiveCard(fixture: fixture);
                   },
                 ),
               ),
@@ -1156,7 +1156,7 @@ class _ScheduleLiveScoresSection extends ConsumerWidget {
 }
 
 class _ScheduleLiveCard extends StatelessWidget {
-  final SportsDbLiveEvent event;
+  final ApiFootballFixture fixture;
 
   static const _primary = Color(0xFF2563EB);
   static const _error = Color(0xFFEF4444);
@@ -1164,12 +1164,12 @@ class _ScheduleLiveCard extends StatelessWidget {
   static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE5E7EB);
 
-  const _ScheduleLiveCard({required this.event});
+  const _ScheduleLiveCard({required this.fixture});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.push('/match/${event.id}'),
+      onTap: () => context.push('/match/${fixture.id}'),
       child: Container(
         width: 160,
         padding: const EdgeInsets.all(10),
@@ -1186,7 +1186,7 @@ class _ScheduleLiveCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    event.league ?? '',
+                    fixture.league.name,
                     style: TextStyle(
                       fontSize: 9,
                       color: _textSecondary,
@@ -1202,7 +1202,7 @@ class _ScheduleLiveCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(3),
                   ),
                   child: Text(
-                    event.statusDisplay,
+                    _getStatusDisplay(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 8,
@@ -1218,7 +1218,7 @@ class _ScheduleLiveCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    event.homeTeam ?? '',
+                    fixture.homeTeam.name,
                     style: TextStyle(
                       fontSize: 10,
                       color: _textPrimary,
@@ -1231,7 +1231,7 @@ class _ScheduleLiveCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   child: Text(
-                    event.scoreDisplay,
+                    fixture.scoreDisplay,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -1241,7 +1241,7 @@ class _ScheduleLiveCard extends StatelessWidget {
                 ),
                 Expanded(
                   child: Text(
-                    event.awayTeam ?? '',
+                    fixture.awayTeam.name,
                     style: TextStyle(
                       fontSize: 10,
                       color: _textPrimary,
@@ -1258,6 +1258,14 @@ class _ScheduleLiveCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getStatusDisplay() {
+    final elapsed = fixture.status.elapsed;
+    if (elapsed != null) {
+      return "$elapsed'";
+    }
+    return fixture.status.short;
   }
 }
 

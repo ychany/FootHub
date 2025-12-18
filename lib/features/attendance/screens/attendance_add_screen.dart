@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../core/services/sports_db_service.dart';
+import '../../../core/services/api_football_service.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/services/storage_service.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -25,7 +25,7 @@ class AttendanceAddScreen extends ConsumerStatefulWidget {
 
 class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _sportsDbService = SportsDbService();
+  final _apiFootballService = ApiFootballService();
   final _pageController = PageController();
   int _currentPage = 0;
 
@@ -56,9 +56,9 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
 
   // 선택된 데이터
   DateTime _selectedDate = DateTime.now();
-  SportsDbEvent? _selectedEvent;
-  SportsDbTeam? _selectedHomeTeam;
-  SportsDbTeam? _selectedAwayTeam;
+  ApiFootballFixture? _selectedEvent;
+  ApiFootballTeam? _selectedHomeTeam;
+  ApiFootballTeam? _selectedAwayTeam;
   String? _selectedLeague;
   final List<File> _photos = [];
 
@@ -69,7 +69,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   double _rating = 3.0;
   MatchMood? _selectedMood;
   String? _selectedWeather;
-  SportsDbPlayer? _selectedMvp;
+  ApiFootballSquadPlayer? _selectedMvp;
   final List<String> _tags = [];
 
   // 응원한 팀 (승/무/패 계산용)
@@ -77,7 +77,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
 
   // 검색 상태
   bool _isSearching = false;
-  List<SportsDbEvent> _searchResults = [];
+  List<ApiFootballFixture> _searchResults = [];
   String? _searchLeague; // 리그 필터
 
   // 저장 상태
@@ -103,21 +103,22 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   }
 
   Future<void> _loadMatchById(String matchId) async {
-    final event = await _sportsDbService.getEventById(matchId);
-    if (event != null && mounted) {
+    final fixtureId = int.tryParse(matchId);
+    if (fixtureId == null) return;
+
+    final fixture = await _apiFootballService.getFixtureById(fixtureId);
+    if (fixture != null && mounted) {
       setState(() {
-        _selectedEvent = event;
-        if (event.dateTime != null) {
-          _selectedDate = event.dateTime!;
+        _selectedEvent = fixture;
+        _selectedDate = fixture.dateKST;
+        if (fixture.homeGoals != null) {
+          _homeScoreController.text = fixture.homeGoals.toString();
         }
-        if (event.homeScore != null) {
-          _homeScoreController.text = event.homeScore.toString();
+        if (fixture.awayGoals != null) {
+          _awayScoreController.text = fixture.awayGoals.toString();
         }
-        if (event.awayScore != null) {
-          _awayScoreController.text = event.awayScore.toString();
-        }
-        if (event.venue != null) {
-          _stadiumController.text = event.venue!;
+        if (fixture.venue?.name != null) {
+          _stadiumController.text = fixture.venue!.name!;
         }
       });
     }
@@ -269,11 +270,11 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _searchResults.length,
               itemBuilder: (context, index) {
-                final event = _searchResults[index];
+                final fixture = _searchResults[index];
                 return _EventSearchResultCard(
-                  event: event,
-                  isSelected: _selectedEvent?.id == event.id,
-                  onTap: () => _selectEvent(event),
+                  fixture: fixture,
+                  isSelected: _selectedEvent?.id == fixture.id,
+                  onTap: () => _selectEvent(fixture),
                 );
               },
             ),
@@ -607,7 +608,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   }
 
   Widget _buildTeamSearchWithLeagueFilter(
-      String label, SportsDbTeam? selectedTeam, Function(SportsDbTeam?) onSelect) {
+      String label, ApiFootballTeam? selectedTeam, Function(ApiFootballTeam?) onSelect) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -633,14 +634,14 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
     );
   }
 
-  void _showTeamSearchSheet(String label, Function(SportsDbTeam?) onSelect) {
+  void _showTeamSearchSheet(String label, Function(ApiFootballTeam?) onSelect) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _TeamSearchSheet(
         label: label,
-        sportsDbService: _sportsDbService,
+        apiFootballService: _apiFootballService,
         onTeamSelected: (team) {
           onSelect(team);
           Navigator.pop(context);
@@ -649,7 +650,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
     );
   }
 
-  Widget _buildSelectedTeamChip(SportsDbTeam team, VoidCallback onRemove) {
+  Widget _buildSelectedTeamChip(ApiFootballTeam team, VoidCallback onRemove) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -659,9 +660,9 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
       ),
       child: Row(
         children: [
-          if (team.badge != null)
+          if (team.logo != null)
             CachedNetworkImage(
-              imageUrl: team.badge!,
+              imageUrl: team.logo!,
               width: 40,
               height: 40,
               errorWidget: (_, __, ___) =>
@@ -681,9 +682,9 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
                     color: _textPrimary,
                   ),
                 ),
-                if (team.league != null)
+                if (team.country != null)
                   Text(
-                    team.league!,
+                    team.country!,
                     style: TextStyle(fontSize: 12, color: _textSecondary),
                   ),
               ],
@@ -700,16 +701,16 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
 
   Widget _buildSelectedMatchCard() {
     final homeTeam =
-        _selectedEvent?.homeTeam ?? _selectedHomeTeam?.name ?? '';
+        _selectedEvent?.homeTeam.name ?? _selectedHomeTeam?.name ?? '';
     final awayTeam =
-        _selectedEvent?.awayTeam ?? _selectedAwayTeam?.name ?? '';
-    final league = _selectedEvent?.league ??
+        _selectedEvent?.awayTeam.name ?? _selectedAwayTeam?.name ?? '';
+    final league = _selectedEvent?.league.name ??
         (_isManualMode ? _matchNameController.text : _selectedLeague) ??
         '';
     final homeBadge =
-        _selectedEvent?.homeTeamBadge ?? _selectedHomeTeam?.badge;
+        _selectedEvent?.homeTeam.logo ?? _selectedHomeTeam?.logo;
     final awayBadge =
-        _selectedEvent?.awayTeamBadge ?? _selectedAwayTeam?.badge;
+        _selectedEvent?.awayTeam.logo ?? _selectedAwayTeam?.logo;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -884,7 +885,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
                     ),
                     decoration: InputDecoration(
                       hintText:
-                          _selectedEvent?.homeTeam ?? _selectedHomeTeam?.name ?? '홈',
+                          _selectedEvent?.homeTeam.name ?? _selectedHomeTeam?.name ?? '홈',
                       hintStyle: TextStyle(
                         fontSize: 14,
                         color: _textSecondary.withValues(alpha: 0.6),
@@ -923,7 +924,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
                     ),
                     decoration: InputDecoration(
                       hintText:
-                          _selectedEvent?.awayTeam ?? _selectedAwayTeam?.name ?? '원정',
+                          _selectedEvent?.awayTeam.name ?? _selectedAwayTeam?.name ?? '원정',
                       hintStyle: TextStyle(
                         fontSize: 14,
                         color: _textSecondary.withValues(alpha: 0.6),
@@ -943,13 +944,13 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
 
   Widget _buildSupportedTeamSelector() {
     final homeTeamId =
-        _selectedEvent?.homeTeamId ?? _selectedHomeTeam?.id ?? '';
+        (_selectedEvent?.homeTeam.id ?? _selectedHomeTeam?.id)?.toString() ?? '';
     final homeTeamName =
-        _selectedEvent?.homeTeam ?? _selectedHomeTeam?.name ?? '홈팀';
+        _selectedEvent?.homeTeam.name ?? _selectedHomeTeam?.name ?? '홈팀';
     final awayTeamId =
-        _selectedEvent?.awayTeamId ?? _selectedAwayTeam?.id ?? '';
+        (_selectedEvent?.awayTeam.id ?? _selectedAwayTeam?.id)?.toString() ?? '';
     final awayTeamName =
-        _selectedEvent?.awayTeam ?? _selectedAwayTeam?.name ?? '원정팀';
+        _selectedEvent?.awayTeam.name ?? _selectedAwayTeam?.name ?? '원정팀';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1296,10 +1297,10 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   }
 
   Widget _buildMvpSection() {
-    final homeTeamId = _selectedEvent?.homeTeamId ?? _selectedHomeTeam?.id;
-    final awayTeamId = _selectedEvent?.awayTeamId ?? _selectedAwayTeam?.id;
-    final homeTeamName = _selectedEvent?.homeTeam ?? _selectedHomeTeam?.name;
-    final awayTeamName = _selectedEvent?.awayTeam ?? _selectedAwayTeam?.name;
+    final homeTeamId = _selectedEvent?.homeTeam.id ?? _selectedHomeTeam?.id;
+    final awayTeamId = _selectedEvent?.awayTeam.id ?? _selectedAwayTeam?.id;
+    final homeTeamName = _selectedEvent?.homeTeam.name ?? _selectedHomeTeam?.name;
+    final awayTeamName = _selectedEvent?.awayTeam.name ?? _selectedAwayTeam?.name;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1365,9 +1366,9 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
                             color: _textPrimary,
                           ),
                         ),
-                        if (_selectedMvp!.team != null)
+                        if (_selectedMvp!.position != null)
                           Text(
-                            _selectedMvp!.team!,
+                            _selectedMvp!.position!,
                             style: TextStyle(fontSize: 12, color: _textSecondary),
                           ),
                       ],
@@ -1423,8 +1424,8 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   }
 
   Future<void> _showTeamPlayersDialog({
-    String? homeTeamId,
-    String? awayTeamId,
+    int? homeTeamId,
+    int? awayTeamId,
     String? homeTeamName,
     String? awayTeamName,
   }) async {
@@ -1435,7 +1436,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
         awayTeamId: awayTeamId,
         homeTeamName: homeTeamName,
         awayTeamName: awayTeamName,
-        sportsDbService: _sportsDbService,
+        apiFootballService: _apiFootballService,
         onPlayerSelected: (player) {
           setState(() => _selectedMvp = player);
           Navigator.pop(context);
@@ -1756,23 +1757,15 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
 
     setState(() => _isSearching = true);
     try {
-      final events = await _sportsDbService.getEventsByDate(
-        _selectedDate,
-        sport: 'Soccer',
-        league: _searchLeague,
-      );
-      final filtered = events.where((event) {
+      // 날짜로 경기 조회
+      final fixtures = await _apiFootballService.getFixturesByDate(_selectedDate);
+      final filtered = fixtures.where((fixture) {
         final searchLower = query.toLowerCase();
-        return (event.homeTeam?.toLowerCase().contains(searchLower) ?? false) ||
-            (event.awayTeam?.toLowerCase().contains(searchLower) ?? false);
+        return fixture.homeTeam.name.toLowerCase().contains(searchLower) ||
+            fixture.awayTeam.name.toLowerCase().contains(searchLower);
       }).toList();
 
-      if (filtered.isEmpty) {
-        final searchEvents = await _sportsDbService.searchEvents(query);
-        setState(() => _searchResults = searchEvents.take(10).toList());
-      } else {
-        setState(() => _searchResults = filtered);
-      }
+      setState(() => _searchResults = filtered);
     } finally {
       setState(() => _isSearching = false);
     }
@@ -1781,26 +1774,30 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   Future<void> _searchEventsByDateAndLeague() async {
     setState(() => _isSearching = true);
     try {
-      final events = await _sportsDbService.getEventsByDate(
-        _selectedDate,
-        sport: 'Soccer',
-        league: _searchLeague,
-      );
-      setState(() => _searchResults = events);
+      final fixtures = await _apiFootballService.getFixturesByDate(_selectedDate);
+      // 리그 필터가 있으면 적용
+      if (_searchLeague != null) {
+        final filtered = fixtures.where((f) =>
+          f.league.name.toLowerCase().contains(_searchLeague!.toLowerCase())
+        ).toList();
+        setState(() => _searchResults = filtered);
+      } else {
+        setState(() => _searchResults = fixtures);
+      }
     } finally {
       setState(() => _isSearching = false);
     }
   }
 
-  void _selectEvent(SportsDbEvent event) {
+  void _selectEvent(ApiFootballFixture fixture) {
     setState(() {
-      _selectedEvent = event;
-      _stadiumController.text = event.venue ?? '';
-      if (event.homeScore != null) {
-        _homeScoreController.text = event.homeScore.toString();
+      _selectedEvent = fixture;
+      _stadiumController.text = fixture.venue?.name ?? '';
+      if (fixture.homeGoals != null) {
+        _homeScoreController.text = fixture.homeGoals.toString();
       }
-      if (event.awayScore != null) {
-        _awayScoreController.text = event.awayScore.toString();
+      if (fixture.awayGoals != null) {
+        _awayScoreController.text = fixture.awayGoals.toString();
       }
       _searchResults = [];
     });
@@ -1847,26 +1844,26 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
         id: '',
         userId: userId,
         date: _selectedDate,
-        league: _selectedEvent?.league ??
+        league: _selectedEvent?.league.name ??
             (_isManualMode ? _matchNameController.text : _selectedLeague) ??
             '',
-        homeTeamId: _selectedEvent?.homeTeamId ?? _selectedHomeTeam?.id ?? '',
+        homeTeamId: (_selectedEvent?.homeTeam.id ?? _selectedHomeTeam?.id)?.toString() ?? '',
         homeTeamName:
-            _selectedEvent?.homeTeam ?? _selectedHomeTeam?.name ?? '',
+            _selectedEvent?.homeTeam.name ?? _selectedHomeTeam?.name ?? '',
         homeTeamLogo:
-            _selectedEvent?.homeTeamBadge ?? _selectedHomeTeam?.badge,
-        awayTeamId: _selectedEvent?.awayTeamId ?? _selectedAwayTeam?.id ?? '',
+            _selectedEvent?.homeTeam.logo ?? _selectedHomeTeam?.logo,
+        awayTeamId: (_selectedEvent?.awayTeam.id ?? _selectedAwayTeam?.id)?.toString() ?? '',
         awayTeamName:
-            _selectedEvent?.awayTeam ?? _selectedAwayTeam?.name ?? '',
+            _selectedEvent?.awayTeam.name ?? _selectedAwayTeam?.name ?? '',
         awayTeamLogo:
-            _selectedEvent?.awayTeamBadge ?? _selectedAwayTeam?.badge,
+            _selectedEvent?.awayTeam.logo ?? _selectedAwayTeam?.logo,
         stadium: _stadiumController.text.isNotEmpty
             ? _stadiumController.text
-            : (_selectedEvent?.venue ?? _selectedHomeTeam?.stadium ?? ''),
+            : (_selectedEvent?.venue?.name ?? _selectedHomeTeam?.venue?.name ?? ''),
         seatInfo: _seatController.text.isEmpty ? null : _seatController.text,
         homeScore: homeScore,
         awayScore: awayScore,
-        matchId: _selectedEvent?.id,
+        matchId: _selectedEvent?.id.toString(),
         photos: photoUrls,
         createdAt: now,
         updatedAt: now,
@@ -1876,7 +1873,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
             _contentController.text.isEmpty ? null : _contentController.text,
         rating: _rating,
         mood: _selectedMood,
-        mvpPlayerId: _selectedMvp?.id,
+        mvpPlayerId: _selectedMvp?.id.toString(),
         mvpPlayerName: _selectedMvp?.name,
         tags: _tags,
         weather: _selectedWeather,
@@ -2010,7 +2007,7 @@ class _ModeButton extends StatelessWidget {
 }
 
 class _EventSearchResultCard extends StatelessWidget {
-  final SportsDbEvent event;
+  final ApiFootballFixture fixture;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -2021,13 +2018,17 @@ class _EventSearchResultCard extends StatelessWidget {
   static const _border = Color(0xFFE5E7EB);
 
   const _EventSearchResultCard({
-    required this.event,
+    required this.fixture,
     required this.isSelected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final dateKST = fixture.dateKST;
+    final dateStr = '${dateKST.month}/${dateKST.day}';
+    final timeStr = '${dateKST.hour.toString().padLeft(2, '0')}:${dateKST.minute.toString().padLeft(2, '0')}';
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -2053,7 +2054,7 @@ class _EventSearchResultCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      event.league ?? '',
+                      fixture.league.name,
                       style: const TextStyle(
                         color: _primary,
                         fontSize: 11,
@@ -2065,7 +2066,7 @@ class _EventSearchResultCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${event.date ?? ''} ${event.time ?? ''}',
+                  '$dateStr $timeStr',
                   style: TextStyle(fontSize: 11, color: _textSecondary),
                 ),
               ],
@@ -2076,10 +2077,10 @@ class _EventSearchResultCard extends StatelessWidget {
                 Expanded(
                   child: Column(
                     children: [
-                      _buildBadge(event.homeTeamBadge, 32),
+                      _buildBadge(fixture.homeTeam.logo, 32),
                       const SizedBox(height: 4),
                       Text(
-                        event.homeTeam ?? '',
+                        fixture.homeTeam.name,
                         style: const TextStyle(fontSize: 12, color: _textPrimary),
                         textAlign: TextAlign.center,
                         maxLines: 1,
@@ -2091,7 +2092,7 @@ class _EventSearchResultCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Text(
-                    event.isFinished ? event.scoreDisplay : 'vs',
+                    fixture.isFinished ? fixture.scoreDisplay : 'vs',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -2102,10 +2103,10 @@ class _EventSearchResultCard extends StatelessWidget {
                 Expanded(
                   child: Column(
                     children: [
-                      _buildBadge(event.awayTeamBadge, 32),
+                      _buildBadge(fixture.awayTeam.logo, 32),
                       const SizedBox(height: 4),
                       Text(
-                        event.awayTeam ?? '',
+                        fixture.awayTeam.name,
                         style: const TextStyle(fontSize: 12, color: _textPrimary),
                         textAlign: TextAlign.center,
                         maxLines: 1,
@@ -2278,19 +2279,19 @@ class _TeamSelectButton extends StatelessWidget {
 }
 
 class _TeamPlayersDialog extends StatefulWidget {
-  final String? homeTeamId;
-  final String? awayTeamId;
+  final int? homeTeamId;
+  final int? awayTeamId;
   final String? homeTeamName;
   final String? awayTeamName;
-  final SportsDbService sportsDbService;
-  final Function(SportsDbPlayer) onPlayerSelected;
+  final ApiFootballService apiFootballService;
+  final Function(ApiFootballSquadPlayer) onPlayerSelected;
 
   const _TeamPlayersDialog({
     this.homeTeamId,
     this.awayTeamId,
     this.homeTeamName,
     this.awayTeamName,
-    required this.sportsDbService,
+    required this.apiFootballService,
     required this.onPlayerSelected,
   });
 
@@ -2301,8 +2302,8 @@ class _TeamPlayersDialog extends StatefulWidget {
 class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<SportsDbPlayer> _homePlayers = [];
-  List<SportsDbPlayer> _awayPlayers = [];
+  List<ApiFootballSquadPlayer> _homePlayers = [];
+  List<ApiFootballSquadPlayer> _awayPlayers = [];
   bool _isLoading = true;
   String _searchQuery = '';
 
@@ -2332,14 +2333,14 @@ class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
 
       if (widget.homeTeamId != null) {
         futures.add(
-            widget.sportsDbService.getPlayersByTeam(widget.homeTeamId!).then((players) {
+            widget.apiFootballService.getTeamSquad(widget.homeTeamId!).then((players) {
           _homePlayers = players;
         }));
       }
 
       if (widget.awayTeamId != null) {
         futures.add(
-            widget.sportsDbService.getPlayersByTeam(widget.awayTeamId!).then((players) {
+            widget.apiFootballService.getTeamSquad(widget.awayTeamId!).then((players) {
           _awayPlayers = players;
         }));
       }
@@ -2352,7 +2353,7 @@ class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
     if (mounted) setState(() => _isLoading = false);
   }
 
-  List<SportsDbPlayer> _filterPlayers(List<SportsDbPlayer> players) {
+  List<ApiFootballSquadPlayer> _filterPlayers(List<ApiFootballSquadPlayer> players) {
     if (_searchQuery.isEmpty) return players;
     return players
         .where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()))
@@ -2432,7 +2433,7 @@ class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
     );
   }
 
-  Widget _buildPlayerList(List<SportsDbPlayer> players) {
+  Widget _buildPlayerList(List<ApiFootballSquadPlayer> players) {
     if (players.isEmpty) {
       return Center(
         child: Text(
@@ -2447,8 +2448,8 @@ class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
       itemBuilder: (context, index) {
         final player = players[index];
         return ListTile(
-          leading: player.thumb != null
-              ? CircleAvatar(backgroundImage: NetworkImage(player.thumb!))
+          leading: player.photo != null
+              ? CircleAvatar(backgroundImage: NetworkImage(player.photo!))
               : CircleAvatar(
                   backgroundColor: _background,
                   child: const Icon(Icons.person, color: _textSecondary),
@@ -2487,12 +2488,12 @@ class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
 
 class _TeamSearchSheet extends StatefulWidget {
   final String label;
-  final SportsDbService sportsDbService;
-  final Function(SportsDbTeam) onTeamSelected;
+  final ApiFootballService apiFootballService;
+  final Function(ApiFootballTeam) onTeamSelected;
 
   const _TeamSearchSheet({
     required this.label,
-    required this.sportsDbService,
+    required this.apiFootballService,
     required this.onTeamSelected,
   });
 
@@ -2504,8 +2505,8 @@ class _TeamSearchSheetState extends State<_TeamSearchSheet> {
   final _searchController = TextEditingController();
   final _manualTeamNameController = TextEditingController();
   String? _selectedLeague;
-  List<SportsDbTeam> _searchResults = [];
-  List<SportsDbTeam> _leagueTeams = [];
+  List<ApiFootballTeam> _searchResults = [];
+  List<ApiFootballTeam> _leagueTeams = [];
   bool _isSearching = false;
   bool _isLoadingLeagueTeams = false;
   bool _showManualEntry = false;
@@ -2527,10 +2528,10 @@ class _TeamSearchSheetState extends State<_TeamSearchSheet> {
 
     setState(() => _isSearching = true);
     try {
-      final teams = await widget.sportsDbService.searchTeams(query);
+      final teams = await widget.apiFootballService.searchTeams(query);
 
       final filteredTeams = _selectedLeague != null
-          ? teams.where((t) => t.league == _selectedLeague).toList()
+          ? teams.where((t) => t.country?.toLowerCase() == _selectedLeague?.toLowerCase()).toList()
           : teams;
 
       if (mounted) {
@@ -2548,9 +2549,14 @@ class _TeamSearchSheetState extends State<_TeamSearchSheet> {
     });
 
     try {
-      final teams = await widget.sportsDbService.getTeamsByLeague(leagueId);
-      if (mounted) {
-        setState(() => _leagueTeams = teams);
+      // API-Football에서는 리그 ID와 시즌으로 팀 목록을 조회
+      final leagueIdInt = int.tryParse(leagueId);
+      if (leagueIdInt != null) {
+        final currentYear = DateTime.now().year;
+        final teams = await widget.apiFootballService.getTeamsByLeague(leagueIdInt, currentYear);
+        if (mounted) {
+          setState(() => _leagueTeams = teams);
+        }
       }
     } finally {
       if (mounted) setState(() => _isLoadingLeagueTeams = false);
@@ -2561,12 +2567,14 @@ class _TeamSearchSheetState extends State<_TeamSearchSheet> {
     final teamName = _manualTeamNameController.text.trim();
     if (teamName.isEmpty) return;
 
-    final manualTeam = SportsDbTeam(
-      id: 'manual_${DateTime.now().millisecondsSinceEpoch}',
+    // 수동 입력된 팀 생성 (임시 ID 사용)
+    final manualTeam = ApiFootballTeam(
+      id: DateTime.now().millisecondsSinceEpoch,
       name: teamName,
-      league: _selectedLeague,
-      badge: null,
-      stadium: null,
+      national: false,
+      country: _selectedLeague,
+      logo: null,
+      venue: null,
     );
 
     widget.onTeamSelected(manualTeam);
@@ -2803,11 +2811,11 @@ class _TeamSearchSheetState extends State<_TeamSearchSheet> {
     );
   }
 
-  Widget _buildTeamTile(SportsDbTeam team) {
+  Widget _buildTeamTile(ApiFootballTeam team) {
     return ListTile(
-      leading: team.badge != null
+      leading: team.logo != null
           ? CachedNetworkImage(
-              imageUrl: team.badge!,
+              imageUrl: team.logo!,
               width: 40,
               height: 40,
               fit: BoxFit.contain,
@@ -2820,7 +2828,7 @@ class _TeamSearchSheetState extends State<_TeamSearchSheet> {
         style: const TextStyle(color: _textPrimary),
       ),
       subtitle: Text(
-        team.league ?? '',
+        team.country ?? '',
         style: TextStyle(color: _textSecondary, fontSize: 12),
       ),
       onTap: () => widget.onTeamSelected(team),

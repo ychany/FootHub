@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../core/services/sports_db_service.dart';
+import '../../../core/services/api_football_service.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../providers/national_team_provider.dart';
 
@@ -18,7 +18,6 @@ class _NationalTeamScreenState extends ConsumerState<NationalTeamScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  static const _primary = Color(0xFF2563EB);
   static const _textPrimary = Color(0xFF111827);
   static const _textSecondary = Color(0xFF6B7280);
   static const _background = Color(0xFFF9FAFB);
@@ -91,7 +90,7 @@ class _NationalTeamScreenState extends ConsumerState<NationalTeamScreen>
                         padding: const EdgeInsets.all(8),
                         child: ClipOval(
                           child: Image.network(
-                            'https://r2.thesportsdb.com/images/media/team/badge/a8nqfs1589564916.png',
+                            'https://media.api-sports.io/football/teams/17.png',
                             fit: BoxFit.contain,
                           ),
                         ),
@@ -194,9 +193,9 @@ class _NationalTeamScreenState extends ConsumerState<NationalTeamScreen>
             delegate: _SliverAppBarDelegate(
               TabBar(
                 controller: _tabController,
-                labelColor: _primary,
+                labelColor: const Color(0xFF2563EB),
                 unselectedLabelColor: _textSecondary,
-                indicatorColor: _primary,
+                indicatorColor: const Color(0xFF2563EB),
                 indicatorWeight: 3,
                 tabs: const [
                   Tab(text: '일정'),
@@ -285,18 +284,12 @@ class _ScheduleTab extends ConsumerWidget {
         final todayStart = DateTime(now.year, now.month, now.day);
 
         final upcomingMatches = matches.where((m) {
-          final dt = m.dateTime;
-          return dt != null && !dt.isBefore(todayStart);
+          return !m.dateKST.isBefore(todayStart);
         }).toList()
-          ..sort((a, b) {
-            final aDate = a.dateTime ?? DateTime(2100);
-            final bDate = b.dateTime ?? DateTime(2100);
-            return aDate.compareTo(bDate);
-          });
+          ..sort((a, b) => a.dateKST.compareTo(b.dateKST));
 
         final pastMatches = matches.where((m) {
-          final dt = m.dateTime;
-          return dt != null && dt.isBefore(todayStart);
+          return m.dateKST.isBefore(todayStart);
         }).toList();
 
         return ListView(
@@ -365,7 +358,7 @@ class _ScheduleTab extends ConsumerWidget {
 }
 
 class _MatchCard extends StatelessWidget {
-  final SportsDbEvent match;
+  final ApiFootballFixture match;
   final bool isPast;
 
   static const _textPrimary = Color(0xFF111827);
@@ -378,8 +371,8 @@ class _MatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final matchDate = match.dateTime;
-    final isKoreaHome = match.homeTeam?.toLowerCase().contains('korea') ?? false;
+    final matchDate = match.dateKST;
+    final isKoreaHome = match.homeTeam.id == koreaTeamId;
 
     return GestureDetector(
       onTap: () => context.push('/match/${match.id}'),
@@ -403,7 +396,7 @@ class _MatchCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    match.league ?? 'A매치',
+                    match.league.name,
                     style: TextStyle(
                       color: _primary,
                       fontSize: 11,
@@ -412,14 +405,13 @@ class _MatchCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                if (matchDate != null)
-                  Text(
-                    DateFormat('yyyy.MM.dd (E)', 'ko').format(matchDate),
-                    style: TextStyle(
-                      color: _textSecondary,
-                      fontSize: 12,
-                    ),
+                Text(
+                  DateFormat('yyyy.MM.dd (E)', 'ko').format(matchDate),
+                  style: TextStyle(
+                    color: _textSecondary,
+                    fontSize: 12,
                   ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -432,14 +424,12 @@ class _MatchCard extends StatelessWidget {
                   child: Column(
                     children: [
                       _buildTeamBadge(
-                        isKoreaHome
-                            ? 'https://r2.thesportsdb.com/images/media/team/badge/a8nqfs1589564916.png'
-                            : match.homeTeamBadge,
+                        match.homeTeam.logo,
                         isKorea: isKoreaHome,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        isKoreaHome ? '대한민국' : (match.homeTeam ?? '-'),
+                        isKoreaHome ? '대한민국' : match.homeTeam.name,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -458,16 +448,16 @@ class _MatchCard extends StatelessWidget {
                   width: 80,
                   child: Column(
                     children: [
-                      if (isPast && match.homeScore != null && match.awayScore != null)
+                      if (isPast && match.homeGoals != null && match.awayGoals != null)
                         Text(
-                          '${match.homeScore} - ${match.awayScore}',
+                          '${match.homeGoals} - ${match.awayGoals}',
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
                             color: _textPrimary,
                           ),
                         )
-                      else if (matchDate != null)
+                      else
                         Text(
                           DateFormat('HH:mm').format(matchDate),
                           style: const TextStyle(
@@ -475,20 +465,11 @@ class _MatchCard extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                             color: _textPrimary,
                           ),
-                        )
-                      else
-                        const Text(
-                          'VS',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: _textSecondary,
-                          ),
                         ),
-                      if (match.venue != null && match.venue!.isNotEmpty) ...[
+                      if (match.venue != null && match.venue!.name != null) ...[
                         const SizedBox(height: 4),
                         Text(
-                          match.venue!,
+                          match.venue!.name!,
                           style: TextStyle(
                             fontSize: 10,
                             color: _textSecondary,
@@ -507,14 +488,12 @@ class _MatchCard extends StatelessWidget {
                   child: Column(
                     children: [
                       _buildTeamBadge(
-                        !isKoreaHome
-                            ? 'https://r2.thesportsdb.com/images/media/team/badge/a8nqfs1589564916.png'
-                            : match.awayTeamBadge,
+                        match.awayTeam.logo,
                         isKorea: !isKoreaHome,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        !isKoreaHome ? '대한민국' : (match.awayTeam ?? '-'),
+                        !isKoreaHome ? '대한민국' : match.awayTeam.name,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -621,10 +600,11 @@ class _InfoTab extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   _InfoRow(icon: Icons.flag_outlined, label: '국가', value: team.country ?? '-'),
-                  _InfoRow(icon: Icons.stadium_outlined, label: '홈 경기장', value: team.stadium ?? '-'),
-                  if (team.stadiumCapacity != null)
-                    _InfoRow(icon: Icons.people_outline, label: '수용 인원', value: '${team.stadiumCapacity}명'),
-                  _InfoRow(icon: Icons.calendar_today_outlined, label: '창단', value: team.formedYear ?? '-'),
+                  _InfoRow(icon: Icons.stadium_outlined, label: '홈 경기장', value: team.venue?.name ?? '-'),
+                  if (team.venue?.capacity != null)
+                    _InfoRow(icon: Icons.people_outline, label: '수용 인원', value: '${team.venue!.capacity}명'),
+                  if (team.founded != null)
+                    _InfoRow(icon: Icons.calendar_today_outlined, label: '창단', value: team.founded.toString()),
                 ],
               ),
             ),
@@ -748,41 +728,6 @@ class _InfoTab extends ConsumerWidget {
                 ],
               ),
             ),
-
-            // 팀 설명
-            if (team.description != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '소개',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: _textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      team.description!,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: _textSecondary,
-                        height: 1.6,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         );
       },
@@ -946,18 +891,12 @@ class _CompetitionMatchesSheet extends ConsumerWidget {
                     final todayStart = DateTime(now.year, now.month, now.day);
 
                     final upcomingMatches = matches.where((m) {
-                      final dt = m.dateTime;
-                      return dt != null && !dt.isBefore(todayStart);
+                      return !m.dateKST.isBefore(todayStart);
                     }).toList()
-                      ..sort((a, b) {
-                        final aDate = a.dateTime ?? DateTime(2100);
-                        final bDate = b.dateTime ?? DateTime(2100);
-                        return aDate.compareTo(bDate);
-                      });
+                      ..sort((a, b) => a.dateKST.compareTo(b.dateKST));
 
                     final pastMatches = matches.where((m) {
-                      final dt = m.dateTime;
-                      return dt != null && dt.isBefore(todayStart);
+                      return m.dateKST.isBefore(todayStart);
                     }).toList();
 
                     return ListView(
@@ -1098,28 +1037,31 @@ class _SquadTab extends ConsumerWidget {
           );
         }
 
-        // 감독과 선수 분리
-        final managers = players.where((p) =>
-          p.position?.toLowerCase() == 'manager' ||
-          p.position?.toLowerCase() == 'coach'
-        ).toList();
-        final otherPlayers = players.where((p) =>
-          p.position?.toLowerCase() != 'manager' &&
-          p.position?.toLowerCase() != 'coach'
-        ).toList();
+        // 포지션별 그룹화
+        final goalkeepers = players.where((p) => p.position?.toLowerCase() == 'goalkeeper').toList();
+        final defenders = players.where((p) => p.position?.toLowerCase() == 'defender').toList();
+        final midfielders = players.where((p) => p.position?.toLowerCase() == 'midfielder').toList();
+        final attackers = players.where((p) => p.position?.toLowerCase() == 'attacker').toList();
 
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // 감독진
-            if (managers.isNotEmpty) ...[
-              _buildSectionCard('감독진', managers),
+            if (goalkeepers.isNotEmpty) ...[
+              _buildSectionCard('골키퍼', goalkeepers),
               const SizedBox(height: 16),
             ],
-            // 선수
-            if (otherPlayers.isNotEmpty)
-              _buildSectionCard('선수', otherPlayers)
-            else
+            if (defenders.isNotEmpty) ...[
+              _buildSectionCard('수비수', defenders),
+              const SizedBox(height: 16),
+            ],
+            if (midfielders.isNotEmpty) ...[
+              _buildSectionCard('미드필더', midfielders),
+              const SizedBox(height: 16),
+            ],
+            if (attackers.isNotEmpty) ...[
+              _buildSectionCard('공격수', attackers),
+            ],
+            if (goalkeepers.isEmpty && defenders.isEmpty && midfielders.isEmpty && attackers.isEmpty)
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -1158,7 +1100,7 @@ class _SquadTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionCard(String title, List<SportsDbPlayer> players) {
+  Widget _buildSectionCard(String title, List<ApiFootballSquadPlayer> players) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1186,59 +1128,62 @@ class _SquadTab extends ConsumerWidget {
 }
 
 class _PlayerRow extends StatelessWidget {
-  final SportsDbPlayer player;
+  final ApiFootballSquadPlayer player;
 
   const _PlayerRow({required this.player});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.grey.shade100,
+    return InkWell(
+      onTap: () => context.push('/player/${player.id}'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.grey.shade100,
+              ),
+              child: player.photo != null
+                  ? ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: player.photo!,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) =>
+                            const Icon(Icons.person, color: Color(0xFF6B7280)),
+                      ),
+                    )
+                  : const Icon(Icons.person, color: Color(0xFF6B7280)),
             ),
-            child: player.thumb != null
-                ? ClipOval(
-                    child: CachedNetworkImage(
-                      imageUrl: player.thumb!,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) =>
-                          const Icon(Icons.person, color: Color(0xFF6B7280)),
-                    ),
-                  )
-                : const Icon(Icons.person, color: Color(0xFF6B7280)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  player.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111827),
-                  ),
-                ),
-                if (player.position != null)
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    player.position!,
+                    player.name,
                     style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF6B7280),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF111827),
                     ),
                   ),
-              ],
+                  if (player.number != null)
+                    Text(
+                      '#${player.number}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

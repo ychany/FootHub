@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/services/sports_db_service.dart';
+import '../../../core/constants/api_football_ids.dart';
+import '../../../core/services/api_football_service.dart';
 import '../../../shared/models/match_model.dart';
 import '../models/notification_setting.dart';
 
 class ScheduleService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final SportsDbService _sportsDbService = SportsDbService();
+  final ApiFootballService _apiService = ApiFootballService();
 
   CollectionReference<Map<String, dynamic>> get _schedulesCollection =>
       _firestore.collection(AppConstants.schedulesCollection);
@@ -53,17 +54,17 @@ class ScheduleService {
     });
   }
 
-  // Get schedules for a specific date (using SportsDB API)
+  // Get schedules for a specific date (using API-Football)
   Future<List<Match>> getSchedulesByDate(
     DateTime date, {
     List<String>? favoriteTeamIds,
   }) async {
     try {
-      // SportsDB API에서 경기 데이터 가져오기
-      final events = await _sportsDbService.getEventsByDate(date, sport: 'Soccer');
+      // API-Football에서 경기 데이터 가져오기
+      final fixtures = await _apiService.getFixturesByDate(date);
 
-      // SportsDbEvent를 Match로 변환
-      final matches = events.map((event) => _convertEventToMatch(event)).toList();
+      // ApiFootballFixture를 Match로 변환
+      final matches = fixtures.map((fixture) => _convertFixtureToMatch(fixture)).toList();
 
       if (favoriteTeamIds != null && favoriteTeamIds.isNotEmpty) {
         matches.sort((a, b) {
@@ -119,30 +120,34 @@ class ScheduleService {
     return matches;
   }
 
-  // SportsDbEvent를 Match로 변환
-  Match _convertEventToMatch(SportsDbEvent event) {
+  // ApiFootballFixture를 Match로 변환
+  Match _convertFixtureToMatch(ApiFootballFixture fixture) {
     return Match(
-      id: event.id,
-      league: event.league ?? '',
-      homeTeamId: event.homeTeamId ?? '',
-      homeTeamName: event.homeTeam ?? '',
-      homeTeamLogo: event.homeTeamBadge,
-      awayTeamId: event.awayTeamId ?? '',
-      awayTeamName: event.awayTeam ?? '',
-      awayTeamLogo: event.awayTeamBadge,
-      kickoff: event.dateTime ?? DateTime.now(),
-      stadium: event.venue ?? '',
-      homeScore: event.homeScore,
-      awayScore: event.awayScore,
-      status: _convertStatus(event.status, event.isFinished),
+      id: fixture.id.toString(),
+      league: fixture.league.name,
+      leagueId: fixture.league.id,
+      leagueCountry: fixture.league.country,
+      homeTeamId: fixture.homeTeam.id.toString(),
+      homeTeamName: fixture.homeTeam.name,
+      homeTeamLogo: fixture.homeTeam.logo,
+      awayTeamId: fixture.awayTeam.id.toString(),
+      awayTeamName: fixture.awayTeam.name,
+      awayTeamLogo: fixture.awayTeam.logo,
+      kickoff: fixture.dateKST, // 한국 시간으로 변환
+      stadium: fixture.venue?.name ?? '',
+      homeScore: fixture.homeGoals,
+      awayScore: fixture.awayGoals,
+      status: _convertStatus(fixture),
     );
   }
 
   // API 상태를 MatchStatus enum으로 변환
-  MatchStatus _convertStatus(String? apiStatus, bool isFinished) {
-    if (isFinished) return MatchStatus.finished;
+  MatchStatus _convertStatus(ApiFootballFixture fixture) {
+    if (fixture.isFinished) return MatchStatus.finished;
+    if (fixture.isLive) return MatchStatus.live;
+    if (fixture.isScheduled) return MatchStatus.scheduled;
 
-    switch (apiStatus?.toUpperCase()) {
+    switch (fixture.status.short.toUpperCase()) {
       case 'FT':
       case 'AET':
       case 'PEN':
@@ -152,6 +157,8 @@ class ScheduleService {
       case '2H':
       case 'HT':
       case 'ET':
+      case 'BT':
+      case 'P':
         return MatchStatus.live;
       case 'PST':
       case 'POSTP':
@@ -164,34 +171,27 @@ class ScheduleService {
     }
   }
 
-  // Get upcoming matches for favorite teams
+  // Get upcoming matches for favorite teams (API-Football 사용)
   Future<List<Match>> getUpcomingMatchesForTeams(
     List<String> teamIds, {
     int limit = 10,
   }) async {
     if (teamIds.isEmpty) return [];
 
-    final now = DateTime.now();
     final matches = <Match>[];
 
-    // Query for home and away matches
     for (final teamId in teamIds) {
-      final homeSnapshot = await _schedulesCollection
-          .where('homeTeamId', isEqualTo: teamId)
-          .where('kickoff', isGreaterThanOrEqualTo: Timestamp.fromDate(now))
-          .orderBy('kickoff')
-          .limit(limit)
-          .get();
+      try {
+        // API-Football 팀 ID로 변환
+        final apiTeamId = ApiFootballIds.convertTeamId(teamId) ?? int.tryParse(teamId);
+        if (apiTeamId == null) continue;
 
-      final awaySnapshot = await _schedulesCollection
-          .where('awayTeamId', isEqualTo: teamId)
-          .where('kickoff', isGreaterThanOrEqualTo: Timestamp.fromDate(now))
-          .orderBy('kickoff')
-          .limit(limit)
-          .get();
-
-      matches.addAll(homeSnapshot.docs.map((doc) => Match.fromFirestore(doc)));
-      matches.addAll(awaySnapshot.docs.map((doc) => Match.fromFirestore(doc)));
+        final fixtures = await _apiService.getTeamNextFixtures(apiTeamId, count: 3);
+        matches.addAll(fixtures.map((f) => _convertFixtureToMatch(f)));
+      } catch (e) {
+        // 개별 팀 조회 실패 시 continue
+        continue;
+      }
     }
 
     // Remove duplicates and sort
@@ -203,15 +203,63 @@ class ScheduleService {
     return uniqueMatches.take(limit).toList();
   }
 
-  // Get match by ID
+  // Get match by ID (API-Football 사용)
   Future<Match?> getMatch(String matchId) async {
-    final doc = await _schedulesCollection.doc(matchId).get();
-    if (!doc.exists) return null;
-    return Match.fromFirestore(doc);
+    try {
+      final fixtureId = int.tryParse(matchId);
+      if (fixtureId == null) {
+        // Firestore fallback
+        final doc = await _schedulesCollection.doc(matchId).get();
+        if (!doc.exists) return null;
+        return Match.fromFirestore(doc);
+      }
+
+      final fixture = await _apiService.getFixtureById(fixtureId);
+      if (fixture == null) return null;
+      return _convertFixtureToMatch(fixture);
+    } catch (e) {
+      // Firestore fallback
+      final doc = await _schedulesCollection.doc(matchId).get();
+      if (!doc.exists) return null;
+      return Match.fromFirestore(doc);
+    }
   }
 
-  // Get matches by league
+  // Get matches by league (API-Football 사용)
   Future<List<Match>> getMatchesByLeague(
+    String league, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      final leagueId = ApiFootballIds.getLeagueId(league);
+      if (leagueId == null) {
+        // Firestore fallback
+        return _getMatchesByLeagueFromFirestore(league, startDate: startDate, endDate: endDate);
+      }
+
+      final season = LeagueIds.getCurrentSeason();
+      final fixtures = await _apiService.getFixturesByLeague(leagueId, season);
+
+      var matches = fixtures.map((f) => _convertFixtureToMatch(f)).toList();
+
+      // 날짜 필터링
+      if (startDate != null) {
+        matches = matches.where((m) => m.kickoff.isAfter(startDate) || m.kickoff.isAtSameMomentAs(startDate)).toList();
+      }
+      if (endDate != null) {
+        matches = matches.where((m) => m.kickoff.isBefore(endDate) || m.kickoff.isAtSameMomentAs(endDate)).toList();
+      }
+
+      matches.sort((a, b) => a.kickoff.compareTo(b.kickoff));
+      return matches;
+    } catch (e) {
+      return _getMatchesByLeagueFromFirestore(league, startDate: startDate, endDate: endDate);
+    }
+  }
+
+  // Firestore에서 리그별 경기 가져오기 (fallback)
+  Future<List<Match>> _getMatchesByLeagueFromFirestore(
     String league, {
     DateTime? startDate,
     DateTime? endDate,

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../shared/models/match_model.dart';
 import '../models/notification_setting.dart';
 import '../services/schedule_service.dart';
@@ -210,14 +211,18 @@ final filteredSchedulesProvider = FutureProvider<List<Match>>((ref) async {
   );
 
   if (selectedLeague != null) {
-    // API 리그 이름과 필터 리그 이름 비교 (부분 일치 또는 정확히 일치)
-    matches = matches.where((m) {
-      final matchLeague = m.league.toLowerCase();
-      final filterLeague = selectedLeague.toLowerCase();
-      return matchLeague == filterLeague ||
-             matchLeague.contains(filterLeague) ||
-             filterLeague.contains(matchLeague);
-    }).toList();
+    // 리그 ID로 필터링 (가장 정확한 방법)
+    final targetLeagueId = AppConstants.getLeagueIdByName(selectedLeague);
+
+    if (targetLeagueId != null) {
+      // ID 기반 필터링
+      matches = matches.where((m) => m.leagueId == targetLeagueId).toList();
+    } else {
+      // ID가 없는 경우 이름 기반 fallback
+      matches = matches.where((m) {
+        return AppConstants.isLeagueMatch(m.league, selectedLeague);
+      }).toList();
+    }
   }
 
   // 시간순 정렬 (빠른 시간이 먼저)

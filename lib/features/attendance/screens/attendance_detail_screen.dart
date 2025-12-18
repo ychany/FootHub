@@ -4,38 +4,44 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../core/services/sports_db_service.dart';
+import '../../../core/services/api_football_service.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/photo_carousel.dart';
 import '../models/attendance_record.dart';
 import '../providers/attendance_provider.dart';
 
-// Provider for match stats
+// Provider for match stats (API-Football)
 final attendanceMatchStatsProvider =
-    FutureProvider.family<SportsDbEventStats?, String>((ref, eventId) async {
-  final service = SportsDbService();
-  return service.getEventStats(eventId);
+    FutureProvider.family<List<ApiFootballTeamStats>, String>((ref, fixtureId) async {
+  final service = ApiFootballService();
+  final id = int.tryParse(fixtureId);
+  if (id == null) return [];
+  return service.getFixtureStatistics(id);
 });
 
-// Provider for match timeline
+// Provider for match timeline (API-Football events)
 final attendanceMatchTimelineProvider =
-    FutureProvider.family<List<SportsDbTimeline>, String>((ref, eventId) async {
-  final service = SportsDbService();
-  return service.getEventTimeline(eventId);
+    FutureProvider.family<List<ApiFootballEvent>, String>((ref, fixtureId) async {
+  final service = ApiFootballService();
+  final id = int.tryParse(fixtureId);
+  if (id == null) return [];
+  return service.getFixtureEvents(id);
 });
 
-// Provider for match lineup
+// Provider for match lineup (API-Football)
 final attendanceMatchLineupProvider =
-    FutureProvider.family<SportsDbLineup?, String>((ref, eventId) async {
-  final service = SportsDbService();
-  return service.getEventLineup(eventId);
+    FutureProvider.family<List<ApiFootballLineup>, String>((ref, fixtureId) async {
+  final service = ApiFootballService();
+  final id = int.tryParse(fixtureId);
+  if (id == null) return [];
+  return service.getFixtureLineups(id);
 });
 
-// Provider for head to head
+// Provider for head to head (API-Football)
 final attendanceH2HProvider =
-    FutureProvider.family<List<SportsDbEvent>, ({String homeTeam, String awayTeam})>((ref, params) async {
-  final service = SportsDbService();
-  return service.getHeadToHead(params.homeTeam, params.awayTeam);
+    FutureProvider.family<List<ApiFootballFixture>, ({int homeTeamId, int awayTeamId})>((ref, params) async {
+  final service = ApiFootballService();
+  return service.getHeadToHead(params.homeTeamId, params.awayTeamId);
 });
 
 class AttendanceDetailScreen extends ConsumerWidget {
@@ -157,7 +163,7 @@ class _DetailContentState extends ConsumerState<_DetailContent>
               children: [
                 _DiaryTab(record: record),
                 _StatsTab(matchId: record.matchId!, record: record),
-                _TimelineTab(matchId: record.matchId!),
+                _TimelineTab(matchId: record.matchId!, record: record),
                 _LineupTab(matchId: record.matchId!, record: record),
                 _H2HTab(record: record),
               ],
@@ -864,8 +870,8 @@ class _StatsTab extends ConsumerWidget {
     final statsAsync = ref.watch(attendanceMatchStatsProvider(matchId));
 
     return statsAsync.when(
-      data: (stats) {
-        if (stats == null || stats.isEmpty) {
+      data: (statsList) {
+        if (statsList.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -897,6 +903,40 @@ class _StatsTab extends ConsumerWidget {
             ),
           );
         }
+
+        // API-Football returns stats as List<ApiFootballTeamStats>
+        // Index 0 = home team, Index 1 = away team
+        final homeStats = statsList.isNotEmpty ? statsList[0] : null;
+        final awayStats = statsList.length > 1 ? statsList[1] : null;
+
+        int? getStat(ApiFootballTeamStats? stats, String type) {
+          if (stats == null) return null;
+          final value = stats.statistics[type];
+          if (value == null) return null;
+          if (value is int) return value;
+          if (value is String) {
+            // Handle percentage like "55%"
+            return int.tryParse(value.replaceAll('%', ''));
+          }
+          return null;
+        }
+
+        final homePossession = getStat(homeStats, 'Ball Possession');
+        final awayPossession = getStat(awayStats, 'Ball Possession');
+        final homeShots = getStat(homeStats, 'Total Shots');
+        final awayShots = getStat(awayStats, 'Total Shots');
+        final homeShotsOnTarget = getStat(homeStats, 'Shots on Goal');
+        final awayShotsOnTarget = getStat(awayStats, 'Shots on Goal');
+        final homeCorners = getStat(homeStats, 'Corner Kicks');
+        final awayCorners = getStat(awayStats, 'Corner Kicks');
+        final homeFouls = getStat(homeStats, 'Fouls');
+        final awayFouls = getStat(awayStats, 'Fouls');
+        final homeOffsides = getStat(homeStats, 'Offsides');
+        final awayOffsides = getStat(awayStats, 'Offsides');
+        final homeYellowCards = getStat(homeStats, 'Yellow Cards');
+        final awayYellowCards = getStat(awayStats, 'Yellow Cards');
+        final homeRedCards = getStat(homeStats, 'Red Cards');
+        final awayRedCards = getStat(awayStats, 'Red Cards');
 
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -968,55 +1008,55 @@ class _StatsTab extends ConsumerWidget {
               ),
               child: Column(
                 children: [
-                  if (stats.homePossession != null)
+                  if (homePossession != null)
                     _StatBar(
                       label: '점유율',
-                      homeValue: stats.homePossession!,
-                      awayValue: stats.awayPossession ?? 0,
+                      homeValue: homePossession,
+                      awayValue: awayPossession ?? 0,
                       isPercentage: true,
                     ),
-                  if (stats.homeShots != null)
+                  if (homeShots != null)
                     _StatBar(
                       label: '슈팅',
-                      homeValue: stats.homeShots!,
-                      awayValue: stats.awayShots ?? 0,
+                      homeValue: homeShots,
+                      awayValue: awayShots ?? 0,
                     ),
-                  if (stats.homeShotsOnTarget != null)
+                  if (homeShotsOnTarget != null)
                     _StatBar(
                       label: '유효 슈팅',
-                      homeValue: stats.homeShotsOnTarget!,
-                      awayValue: stats.awayShotsOnTarget ?? 0,
+                      homeValue: homeShotsOnTarget,
+                      awayValue: awayShotsOnTarget ?? 0,
                     ),
-                  if (stats.homeCorners != null)
+                  if (homeCorners != null)
                     _StatBar(
                       label: '코너킥',
-                      homeValue: stats.homeCorners!,
-                      awayValue: stats.awayCorners ?? 0,
+                      homeValue: homeCorners,
+                      awayValue: awayCorners ?? 0,
                     ),
-                  if (stats.homeFouls != null)
+                  if (homeFouls != null)
                     _StatBar(
                       label: '파울',
-                      homeValue: stats.homeFouls!,
-                      awayValue: stats.awayFouls ?? 0,
+                      homeValue: homeFouls,
+                      awayValue: awayFouls ?? 0,
                     ),
-                  if (stats.homeOffsides != null)
+                  if (homeOffsides != null)
                     _StatBar(
                       label: '오프사이드',
-                      homeValue: stats.homeOffsides!,
-                      awayValue: stats.awayOffsides ?? 0,
+                      homeValue: homeOffsides,
+                      awayValue: awayOffsides ?? 0,
                     ),
-                  if (stats.homeYellowCards != null)
+                  if (homeYellowCards != null)
                     _StatBar(
                       label: '경고',
-                      homeValue: stats.homeYellowCards!,
-                      awayValue: stats.awayYellowCards ?? 0,
+                      homeValue: homeYellowCards,
+                      awayValue: awayYellowCards ?? 0,
                       color: _warning,
                     ),
-                  if (stats.homeRedCards != null)
+                  if (homeRedCards != null)
                     _StatBar(
                       label: '퇴장',
-                      homeValue: stats.homeRedCards!,
-                      awayValue: stats.awayRedCards ?? 0,
+                      homeValue: homeRedCards,
+                      awayValue: awayRedCards ?? 0,
                       color: _error,
                     ),
                 ],
@@ -1128,11 +1168,12 @@ class _StatBar extends StatelessWidget {
 // ============ Timeline Tab ============
 class _TimelineTab extends ConsumerWidget {
   final String matchId;
+  final AttendanceRecord record;
 
   static const _textPrimary = Color(0xFF111827);
   static const _textSecondary = Color(0xFF6B7280);
 
-  const _TimelineTab({required this.matchId});
+  const _TimelineTab({required this.matchId, required this.record});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1174,10 +1215,10 @@ class _TimelineTab extends ConsumerWidget {
         }
 
         // 시간순 정렬
-        final sortedTimeline = List<SportsDbTimeline>.from(timeline)
+        final sortedTimeline = List<ApiFootballEvent>.from(timeline)
           ..sort((a, b) {
-            final aTime = int.tryParse(a.time ?? '0') ?? 0;
-            final bTime = int.tryParse(b.time ?? '0') ?? 0;
+            final aTime = a.elapsed ?? 0;
+            final bTime = b.elapsed ?? 0;
             return aTime.compareTo(bTime);
           });
 
@@ -1190,10 +1231,14 @@ class _TimelineTab extends ConsumerWidget {
               final event = sortedTimeline[index];
               final isFirst = index == 0;
               final isLast = index == sortedTimeline.length - 1;
+              // homeTeamId를 int로 파싱하여 비교
+              final homeTeamId = int.tryParse(record.homeTeamId) ?? 0;
+              final isHomeTeam = event.teamId == homeTeamId;
               return _TimelineItem(
                 event: event,
                 isFirst: isFirst,
                 isLast: isLast,
+                isHomeTeam: isHomeTeam,
               );
             },
           ),
@@ -1206,9 +1251,10 @@ class _TimelineTab extends ConsumerWidget {
 }
 
 class _TimelineItem extends StatelessWidget {
-  final SportsDbTimeline event;
+  final ApiFootballEvent event;
   final bool isFirst;
   final bool isLast;
+  final bool isHomeTeam;
 
   static const _textPrimary = Color(0xFF111827);
   static const _textSecondary = Color(0xFF6B7280);
@@ -1217,20 +1263,21 @@ class _TimelineItem extends StatelessWidget {
     required this.event,
     this.isFirst = false,
     this.isLast = false,
+    this.isHomeTeam = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isGoal = event.type?.toLowerCase() == 'goal';
-    final isCard = event.type?.toLowerCase() == 'card';
-    final isSubst = event.type?.toLowerCase() == 'subst';
+    final isGoal = event.type.toLowerCase() == 'goal';
+    final isCard = event.type.toLowerCase() == 'card';
+    final isSubst = event.type.toLowerCase() == 'subst';
 
     return IntrinsicHeight(
       child: Row(
         children: [
           // 홈팀 영역 (왼쪽)
           Expanded(
-            child: event.isHome
+            child: isHomeTeam
                 ? _buildEventContent(isGoal, isCard, isSubst, true)
                 : const SizedBox(),
           ),
@@ -1263,7 +1310,7 @@ class _TimelineItem extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        event.timeDisplay,
+                        _timeDisplay,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -1287,13 +1334,22 @@ class _TimelineItem extends StatelessWidget {
 
           // 원정팀 영역 (오른쪽)
           Expanded(
-            child: !event.isHome
+            child: !isHomeTeam
                 ? _buildEventContent(isGoal, isCard, isSubst, false)
                 : const SizedBox(),
           ),
         ],
       ),
     );
+  }
+
+  String get _timeDisplay {
+    final elapsed = event.elapsed ?? 0;
+    final extra = event.extra;
+    if (extra != null && extra > 0) {
+      return "$elapsed'+$extra";
+    }
+    return "$elapsed'";
   }
 
   Widget _buildEventContent(bool isGoal, bool isCard, bool isSubst, bool isHome) {
@@ -1339,7 +1395,7 @@ class _TimelineItem extends StatelessWidget {
 
           // 선수 이름
           Text(
-            event.player ?? '',
+            event.playerName ?? '',
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -1349,17 +1405,17 @@ class _TimelineItem extends StatelessWidget {
           ),
 
           // 어시스트 또는 세부 정보
-          if (isGoal && event.assist != null && event.assist!.isNotEmpty) ...[
+          if (isGoal && event.assistName != null && event.assistName!.isNotEmpty) ...[
             const SizedBox(height: 2),
             Text(
-              '어시스트: ${event.assist}',
+              '어시스트: ${event.assistName}',
               style: TextStyle(
                 fontSize: 11,
                 color: _textSecondary,
               ),
               textAlign: isHome ? TextAlign.right : TextAlign.left,
             ),
-          ] else if (isSubst && event.detail != null && event.detail!.isNotEmpty) ...[
+          ] else if (isSubst && event.assistName != null && event.assistName!.isNotEmpty) ...[
             const SizedBox(height: 2),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -1367,7 +1423,7 @@ class _TimelineItem extends StatelessWidget {
                 Icon(Icons.arrow_upward, size: 10, color: Colors.green),
                 const SizedBox(width: 2),
                 Text(
-                  event.detail!,
+                  event.assistName!,
                   style: TextStyle(
                     fontSize: 11,
                     color: Colors.green.shade700,
@@ -1390,7 +1446,7 @@ class _TimelineItem extends StatelessWidget {
           // 팀 이름
           const SizedBox(height: 4),
           Text(
-            event.team ?? '',
+            event.teamName,
             style: TextStyle(
               fontSize: 10,
               color: _textSecondary,
@@ -1403,7 +1459,7 @@ class _TimelineItem extends StatelessWidget {
   }
 
   String _getEventTypeText() {
-    switch (event.type?.toLowerCase()) {
+    switch (event.type.toLowerCase()) {
       case 'goal':
         if (event.detail?.toLowerCase().contains('penalty') == true) {
           return '페널티골';
@@ -1423,12 +1479,12 @@ class _TimelineItem extends StatelessWidget {
       case 'var':
         return 'VAR';
       default:
-        return event.type ?? '';
+        return event.type;
     }
   }
 
   IconData _getEventIcon() {
-    switch (event.type?.toLowerCase()) {
+    switch (event.type.toLowerCase()) {
       case 'goal':
         return Icons.sports_soccer;
       case 'card':
@@ -1443,7 +1499,7 @@ class _TimelineItem extends StatelessWidget {
   }
 
   Color _getEventColor() {
-    switch (event.type?.toLowerCase()) {
+    switch (event.type.toLowerCase()) {
       case 'goal':
         return const Color(0xFF10B981);
       case 'card':
@@ -1476,8 +1532,8 @@ class _LineupTab extends ConsumerWidget {
     final lineupAsync = ref.watch(attendanceMatchLineupProvider(matchId));
 
     return lineupAsync.when(
-      data: (lineup) {
-        if (lineup == null || lineup.isEmpty) {
+      data: (lineupList) {
+        if (lineupList.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -1510,6 +1566,10 @@ class _LineupTab extends ConsumerWidget {
           );
         }
 
+        // API-Football returns List<ApiFootballLineup> - index 0 = home, index 1 = away
+        final homeLineup = lineupList.isNotEmpty ? lineupList[0] : null;
+        final awayLineup = lineupList.length > 1 ? lineupList[1] : null;
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -1518,10 +1578,10 @@ class _LineupTab extends ConsumerWidget {
               // Home Team
               Expanded(
                 child: _TeamLineup(
-                  teamName: record.homeTeamName,
-                  formation: lineup.homeFormation,
-                  players: lineup.homePlayers,
-                  substitutes: lineup.homeSubstitutes,
+                  teamName: homeLineup?.teamName ?? record.homeTeamName,
+                  formation: homeLineup?.formation,
+                  players: homeLineup?.startXI ?? [],
+                  substitutes: homeLineup?.substitutes ?? [],
                   isHome: true,
                 ),
               ),
@@ -1529,10 +1589,10 @@ class _LineupTab extends ConsumerWidget {
               // Away Team
               Expanded(
                 child: _TeamLineup(
-                  teamName: record.awayTeamName,
-                  formation: lineup.awayFormation,
-                  players: lineup.awayPlayers,
-                  substitutes: lineup.awaySubstitutes,
+                  teamName: awayLineup?.teamName ?? record.awayTeamName,
+                  formation: awayLineup?.formation,
+                  players: awayLineup?.startXI ?? [],
+                  substitutes: awayLineup?.substitutes ?? [],
                   isHome: false,
                 ),
               ),
@@ -1549,8 +1609,8 @@ class _LineupTab extends ConsumerWidget {
 class _TeamLineup extends StatelessWidget {
   final String teamName;
   final String? formation;
-  final List<SportsDbLineupPlayer> players;
-  final List<SportsDbLineupPlayer> substitutes;
+  final List<ApiFootballLineupPlayer> players;
+  final List<ApiFootballLineupPlayer> substitutes;
   final bool isHome;
 
   static const _primary = Color(0xFF2563EB);
@@ -1710,7 +1770,7 @@ class _TeamLineup extends StatelessWidget {
 }
 
 class _PlayerRow extends StatelessWidget {
-  final SportsDbLineupPlayer player;
+  final ApiFootballLineupPlayer player;
   final bool isSubstitute;
 
   static const _primary = Color(0xFF2563EB);
@@ -1722,7 +1782,7 @@ class _PlayerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: player.id.isNotEmpty
+      onTap: player.id > 0
           ? () => context.push('/player/${player.id}')
           : null,
       borderRadius: BorderRadius.circular(6),
@@ -1742,7 +1802,7 @@ class _PlayerRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                player.number ?? '-',
+                player.number?.toString() ?? '-',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: isSubstitute ? _textSecondary : _primary,
@@ -1764,17 +1824,17 @@ class _PlayerRow extends StatelessWidget {
               ),
             ),
             // Position Badge
-            if (player.position != null)
+            if (player.pos != null)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: _getPositionColor(player.position!).withValues(alpha: 0.1),
+                  color: _getPositionColor(player.pos!).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  _getPositionShort(player.position!),
+                  _getPositionShort(player.pos!),
                   style: TextStyle(
-                    color: _getPositionColor(player.position!),
+                    color: _getPositionColor(player.pos!),
                     fontWeight: FontWeight.w600,
                     fontSize: 10,
                   ),
@@ -1833,10 +1893,10 @@ class _H2HTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final homeTeam = record.homeTeamName;
-    final awayTeam = record.awayTeamName;
+    final homeTeamId = int.tryParse(record.homeTeamId);
+    final awayTeamId = int.tryParse(record.awayTeamId);
 
-    if (homeTeam.isEmpty || awayTeam.isEmpty) {
+    if (homeTeamId == null || awayTeamId == null) {
       return Center(
         child: Text(
           '팀 정보가 없습니다',
@@ -1845,11 +1905,11 @@ class _H2HTab extends ConsumerWidget {
       );
     }
 
-    final h2hAsync = ref.watch(attendanceH2HProvider((homeTeam: homeTeam, awayTeam: awayTeam)));
+    final h2hAsync = ref.watch(attendanceH2HProvider((homeTeamId: homeTeamId, awayTeamId: awayTeamId)));
 
     return h2hAsync.when(
-      data: (events) {
-        if (events.isEmpty) {
+      data: (fixtures) {
+        if (fixtures.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -1872,11 +1932,11 @@ class _H2HTab extends ConsumerWidget {
         int homeGoals = 0;
         int awayGoals = 0;
 
-        for (final event in events) {
-          final hScore = event.homeScore ?? 0;
-          final aScore = event.awayScore ?? 0;
+        for (final fixture in fixtures) {
+          final hScore = fixture.homeGoals ?? 0;
+          final aScore = fixture.awayGoals ?? 0;
 
-          if (event.homeTeam?.toLowerCase() == homeTeam.toLowerCase()) {
+          if (fixture.homeTeam.id == homeTeamId) {
             homeGoals += hScore;
             awayGoals += aScore;
             if (hScore > aScore) {
@@ -1904,7 +1964,7 @@ class _H2HTab extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _buildSummaryCard(homeWins, draws, awayWins, homeGoals, awayGoals, events.length),
+              _buildSummaryCard(homeWins, draws, awayWins, homeGoals, awayGoals, fixtures.length),
               const SizedBox(height: 16),
               Text(
                 '최근 경기',
@@ -1915,7 +1975,7 @@ class _H2HTab extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              ...events.take(10).map((event) => _buildMatchCard(context, event)),
+              ...fixtures.take(10).map((fixture) => _buildMatchCard(context, fixture)),
             ],
           ),
         );
@@ -2138,17 +2198,16 @@ class _H2HTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildMatchCard(BuildContext context, SportsDbEvent event) {
-    final dateStr = event.dateTime != null
-        ? DateFormat('yyyy.MM.dd').format(event.dateTime!)
-        : '-';
+  Widget _buildMatchCard(BuildContext context, ApiFootballFixture fixture) {
+    final dateStr = DateFormat('yyyy.MM.dd').format(fixture.dateKST);
 
-    final homeScore = event.homeScore ?? 0;
-    final awayScore = event.awayScore ?? 0;
+    final homeScore = fixture.homeGoals ?? 0;
+    final awayScore = fixture.awayGoals ?? 0;
+    final homeTeamId = int.tryParse(record.homeTeamId) ?? 0;
 
     String result;
     Color resultColor;
-    if (event.homeTeam?.toLowerCase() == record.homeTeamName.toLowerCase()) {
+    if (fixture.homeTeam.id == homeTeamId) {
       if (homeScore > awayScore) {
         result = '승';
         resultColor = _success;
@@ -2173,7 +2232,7 @@ class _H2HTab extends ConsumerWidget {
     }
 
     return GestureDetector(
-      onTap: () => context.push('/match/${event.id}'),
+      onTap: () => context.push('/match/${fixture.id}'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
@@ -2208,7 +2267,7 @@ class _H2HTab extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${event.homeTeam} $homeScore - $awayScore ${event.awayTeam}',
+                    '${fixture.homeTeam.name} $homeScore - $awayScore ${fixture.awayTeam.name}',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -2219,7 +2278,7 @@ class _H2HTab extends ConsumerWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '$dateStr · ${event.league ?? ''}',
+                    '$dateStr · ${fixture.league.name}',
                     style: TextStyle(
                       fontSize: 11,
                       color: _textSecondary,

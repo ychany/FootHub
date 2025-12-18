@@ -1,140 +1,129 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/services/sports_db_service.dart';
-import '../../../core/constants/app_constants.dart';
+import '../../../core/services/api_football_service.dart';
+import '../../../core/constants/api_football_ids.dart';
 
-/// 선택된 리그 상태
-final selectedStandingsLeagueProvider = StateProvider<String>((ref) {
-  return AppConstants.supportedLeagues.first;
+/// API-Football 서비스 Provider
+final _apiFootballServiceProvider = Provider<ApiFootballService>((ref) {
+  return ApiFootballService();
+});
+
+/// 선택된 리그 상태 (API-Football 리그 ID)
+final selectedStandingsLeagueProvider = StateProvider<int>((ref) {
+  return LeagueIds.premierLeague; // 기본값: EPL
 });
 
 /// 선택된 시즌 상태 (null이면 현재 시즌)
-final selectedSeasonProvider = StateProvider<String?>((ref) => null);
+final selectedSeasonProvider = StateProvider<int?>((ref) => null);
 
-/// 리그 ID 매핑 (리그 이름 -> 리그 ID)
-/// TheSportsDB에서 확인된 정확한 ID
-final leagueIdMapping = <String, String>{
-  'English Premier League': '4328',
-  'Spanish La Liga': '4335',
-  'Italian Serie A': '4332',
-  'German Bundesliga': '4331',
-  'French Ligue 1': '4334',
-  'Korean K League 1': '7034', // K리그1
-  'UEFA Champions League': '4480',
-  'UEFA Europa League': '4481',
-};
-
-/// 리그별 시즌 포맷 (K리그 등 일부 리그는 단일 연도 시즌)
-/// 현재 날짜를 기준으로 자동 계산
-String getSeasonForLeague(String leagueName) {
+/// 리그별 현재 시즌 계산
+int getCurrentSeasonForLeague(int leagueId) {
   final now = DateTime.now();
   final year = now.year;
   final month = now.month;
 
   // K리그는 단일 연도 시즌 (3월~11월)
-  if (leagueName == 'Korean K League 1') {
+  if (leagueId == LeagueIds.kLeague1 || leagueId == LeagueIds.kLeague2) {
     // 1-2월은 이전 시즌, 3월부터 현재 연도 시즌
     if (month < 3) {
-      return '${year - 1}';
+      return year - 1;
     }
-    return '$year';
+    return year;
   }
 
   // 유럽 리그 - 8월 시작, 다음해 5월 종료
-  // 8월~12월: 현재연도-다음연도 시즌 (예: 2025-2026)
-  // 1월~7월: 이전연도-현재연도 시즌 (예: 2024-2025)
+  // 8월~12월: 현재연도 시즌 (예: 2024 = 2024-2025)
+  // 1월~7월: 이전연도 시즌 (예: 2024 = 2023-2024)
   if (month >= 8) {
-    return '$year-${year + 1}';
+    return year;
   }
-  return '${year - 1}-$year';
+  return year - 1;
 }
 
 /// 순위표 미지원 대회 확인
-bool isUnsupportedLeague(String leagueName) {
-  // TheSportsDB API에서 순위표를 제공하지 않는 대회
-  return leagueName == 'UEFA Champions League' ||
-         leagueName == 'UEFA Europa League';
+bool isUnsupportedLeague(int leagueId) {
+  // 순위표가 없는 대회
+  return leagueId == LeagueIds.friendlies;
 }
 
 /// UCL/UEL 등 컵 대회 여부 확인
-bool isCupCompetition(String leagueName) {
-  return leagueName == 'UEFA Champions League' ||
-         leagueName == 'UEFA Europa League';
+bool isCupCompetition(int leagueId) {
+  return leagueId == LeagueIds.championsLeague ||
+         leagueId == LeagueIds.europaLeague ||
+         leagueId == LeagueIds.conferenceLeague;
 }
 
 /// 리그별 선택 가능한 시즌 목록 생성
-List<String> getAvailableSeasons(String leagueName) {
+List<int> getAvailableSeasons(int leagueId) {
   final now = DateTime.now();
   final year = now.year;
   final month = now.month;
-  final seasons = <String>[];
+  final seasons = <int>[];
 
-  if (leagueName == 'Korean K League 1') {
+  if (leagueId == LeagueIds.kLeague1 || leagueId == LeagueIds.kLeague2) {
     // K리그: 단일 연도 시즌, 최근 5년
     final currentSeason = month < 3 ? year - 1 : year;
     for (int i = 0; i < 5; i++) {
-      seasons.add('${currentSeason - i}');
+      seasons.add(currentSeason - i);
     }
   } else {
-    // 유럽 리그: YYYY-YYYY 형식, 최근 5시즌
+    // 유럽 리그: 시즌 시작 연도 기준, 최근 5시즌
     final currentSeasonStart = month >= 8 ? year : year - 1;
     for (int i = 0; i < 5; i++) {
-      final startYear = currentSeasonStart - i;
-      seasons.add('$startYear-${startYear + 1}');
+      seasons.add(currentSeasonStart - i);
     }
   }
 
   return seasons;
 }
 
-/// 시즌 표시명 (예: 2024-2025 -> 24/25)
-String getSeasonDisplayName(String season) {
-  if (season.contains('-')) {
-    final parts = season.split('-');
-    return "${parts[0].substring(2)}/${parts[1].substring(2)}";
+/// 시즌 표시명 (예: 2024 -> 24/25 또는 2024)
+String getSeasonDisplayName(int season, int leagueId) {
+  if (leagueId == LeagueIds.kLeague1 || leagueId == LeagueIds.kLeague2) {
+    return season.toString();
   }
-  return season;
+  // 유럽 리그: YYYY-YYYY 형식으로 표시
+  return "${season.toString().substring(2)}/${(season + 1).toString().substring(2)}";
 }
 
 /// 리그+시즌 조합 키
 class StandingsKey {
-  final String leagueName;
-  final String season;
+  final int leagueId;
+  final int season;
 
-  StandingsKey(this.leagueName, this.season);
+  StandingsKey(this.leagueId, this.season);
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is StandingsKey &&
-          leagueName == other.leagueName &&
+          leagueId == other.leagueId &&
           season == other.season;
 
   @override
-  int get hashCode => leagueName.hashCode ^ season.hashCode;
+  int get hashCode => leagueId.hashCode ^ season.hashCode;
 }
 
 /// 리그 순위 Provider (리그+시즌 조합)
-final leagueStandingsProvider = FutureProvider.family<List<SportsDbStanding>, StandingsKey>((ref, key) async {
-  final service = SportsDbService();
-
-  // 리그 ID 가져오기
-  String? leagueId = leagueIdMapping[key.leagueName];
-
-  // 매핑에 없으면 API로 조회
-  leagueId ??= await service.getLeagueId(key.leagueName);
-
-  if (leagueId == null) {
-    return [];
-  }
-
-  return service.getLeagueStandings(leagueId, season: key.season);
+final leagueStandingsProvider = FutureProvider.family<List<ApiFootballStanding>, StandingsKey>((ref, key) async {
+  final service = ref.watch(_apiFootballServiceProvider);
+  return service.getStandings(key.leagueId, key.season);
 });
 
 /// 선택된 리그+시즌의 순위
-final selectedLeagueStandingsProvider = FutureProvider<List<SportsDbStanding>>((ref) async {
+final selectedLeagueStandingsProvider = FutureProvider<List<ApiFootballStanding>>((ref) async {
   final selectedLeague = ref.watch(selectedStandingsLeagueProvider);
   final selectedSeason = ref.watch(selectedSeasonProvider);
-  final season = selectedSeason ?? getSeasonForLeague(selectedLeague);
+  final season = selectedSeason ?? getCurrentSeasonForLeague(selectedLeague);
   final key = StandingsKey(selectedLeague, season);
   return ref.watch(leagueStandingsProvider(key).future);
 });
+
+/// 지원되는 리그 목록 (순위표가 있는 리그만)
+final supportedLeaguesForStandingsProvider = Provider<List<LeagueInfo>>((ref) {
+  return LeagueIds.supportedLeagues;
+});
+
+/// 리그 이름으로 ID 가져오기
+int? getLeagueIdByName(String leagueName) {
+  return ApiFootballIds.getLeagueId(leagueName);
+}

@@ -4,18 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../core/services/sports_db_service.dart';
+import '../../../core/services/api_football_service.dart';
 import '../../attendance/models/attendance_record.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
 import '../../national_team/providers/national_team_provider.dart';
 
-/// 축구 라이브스코어 Provider
+/// 축구 라이브스코어 Provider (API-Football)
 final soccerLivescoresProvider =
-    FutureProvider<List<SportsDbLiveEvent>>((ref) async {
-  final service = SportsDbService();
-  return service.getSoccerLivescores();
+    FutureProvider<List<ApiFootballFixture>>((ref) async {
+  final service = ApiFootballService();
+  return service.getLiveFixtures();
 });
 
 class HomeScreen extends ConsumerWidget {
@@ -455,9 +455,9 @@ class _LiveScoresSection extends ConsumerWidget {
     final livescoresAsync = ref.watch(soccerLivescoresProvider);
 
     return livescoresAsync.when(
-      data: (events) {
-        final liveEvents = events.where((e) => e.isLive).toList();
-        if (liveEvents.isEmpty) return const SizedBox.shrink();
+      data: (fixtures) {
+        final liveFixtures = fixtures.where((f) => f.isLive).toList();
+        if (liveFixtures.isEmpty) return const SizedBox.shrink();
 
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -497,10 +497,10 @@ class _LiveScoresSection extends ConsumerWidget {
                 height: 100,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  itemCount: liveEvents.length,
+                  itemCount: liveFixtures.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 12),
                   itemBuilder: (context, index) {
-                    return _LiveMatchCard(event: liveEvents[index]);
+                    return _LiveMatchCard(fixture: liveFixtures[index]);
                   },
                 ),
               ),
@@ -515,14 +515,14 @@ class _LiveScoresSection extends ConsumerWidget {
 }
 
 class _LiveMatchCard extends StatelessWidget {
-  final SportsDbLiveEvent event;
+  final ApiFootballFixture fixture;
 
-  const _LiveMatchCard({required this.event});
+  const _LiveMatchCard({required this.fixture});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.push('/match/${event.id}'),
+      onTap: () => context.push('/match/${fixture.id}'),
       child: Container(
         width: 220,
         padding: const EdgeInsets.all(14),
@@ -538,7 +538,7 @@ class _LiveMatchCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  event.league ?? '',
+                  fixture.league.name,
                   style: TextStyle(
                     color: Colors.grey.shade500,
                     fontSize: 10,
@@ -553,7 +553,7 @@ class _LiveMatchCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  event.statusDisplay,
+                  _getStatusDisplay(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 9,
@@ -568,7 +568,7 @@ class _LiveMatchCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  event.homeTeam ?? '',
+                  fixture.homeTeam.name,
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -583,7 +583,7 @@ class _LiveMatchCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  event.scoreDisplay,
+                  fixture.scoreDisplay,
                   style: const TextStyle(
                     color: Color(0xFF2563EB),
                     fontSize: 14,
@@ -593,7 +593,7 @@ class _LiveMatchCard extends StatelessWidget {
               ),
               Expanded(
                 child: Text(
-                  event.awayTeam ?? '',
+                  fixture.awayTeam.name,
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -610,6 +610,12 @@ class _LiveMatchCard extends StatelessWidget {
       ),
     );
   }
+
+  String _getStatusDisplay() {
+    final elapsed = fixture.status.elapsed;
+    if (elapsed != null) return "$elapsed'";
+    return fixture.status.short;
+  }
 }
 
 // ============================================================================
@@ -623,15 +629,18 @@ final favoriteTeamNextEventsProvider =
     data: (teamIds) async {
       if (teamIds.isEmpty) return [];
 
-      final service = SportsDbService();
+      final service = ApiFootballService();
       final results = <_TeamNextEvent>[];
 
       for (final teamId in teamIds) {
         try {
-          final team = await service.getTeamById(teamId);
-          final events = await service.getNextTeamEvents(teamId);
-          if (team != null && events.isNotEmpty) {
-            results.add(_TeamNextEvent(team: team, events: events.take(2).toList()));
+          final apiTeamId = int.tryParse(teamId);
+          if (apiTeamId == null) continue;
+
+          final team = await service.getTeamById(apiTeamId);
+          final fixtures = await service.getTeamNextFixtures(apiTeamId, count: 2);
+          if (team != null && fixtures.isNotEmpty) {
+            results.add(_TeamNextEvent(team: team, fixtures: fixtures));
           }
         } catch (e) {
           // 개별 팀 오류는 무시
@@ -645,10 +654,10 @@ final favoriteTeamNextEventsProvider =
 });
 
 class _TeamNextEvent {
-  final SportsDbTeam team;
-  final List<SportsDbEvent> events;
+  final ApiFootballTeam team;
+  final List<ApiFootballFixture> fixtures;
 
-  _TeamNextEvent({required this.team, required this.events});
+  _TeamNextEvent({required this.team, required this.fixtures});
 }
 
 class _FavoriteScheduleSection extends ConsumerWidget {
@@ -698,14 +707,12 @@ class _FavoriteScheduleSection extends ConsumerWidget {
 
               final allMatches = <_MatchWithTeam>[];
               for (final te in teamEvents) {
-                for (final event in te.events) {
-                  allMatches.add(_MatchWithTeam(team: te.team, event: event));
+                for (final fixture in te.fixtures) {
+                  allMatches.add(_MatchWithTeam(team: te.team, fixture: fixture));
                 }
               }
               allMatches.sort((a, b) {
-                final aDate = a.event.dateTime ?? DateTime.now();
-                final bDate = b.event.dateTime ?? DateTime.now();
-                return aDate.compareTo(bDate);
+                return a.fixture.date.compareTo(b.fixture.date);
               });
 
               return SizedBox(
@@ -736,10 +743,10 @@ class _FavoriteScheduleSection extends ConsumerWidget {
 }
 
 class _MatchWithTeam {
-  final SportsDbTeam team;
-  final SportsDbEvent event;
+  final ApiFootballTeam team;
+  final ApiFootballFixture fixture;
 
-  _MatchWithTeam({required this.team, required this.event});
+  _MatchWithTeam({required this.team, required this.fixture});
 }
 
 class _ScheduleCard extends StatelessWidget {
@@ -757,13 +764,11 @@ class _ScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final event = match.event;
-    final daysUntil = event.dateTime != null
-        ? _calculateDaysUntil(event.dateTime!)
-        : 0;
+    final fixture = match.fixture;
+    final daysUntil = _calculateDaysUntil(fixture.dateKST);
 
     return GestureDetector(
-      onTap: () => context.push('/match/${event.id}'),
+      onTap: () => context.push('/match/${fixture.id}'),
       child: Container(
         width: 180,
         padding: const EdgeInsets.all(14),
@@ -785,7 +790,7 @@ class _ScheduleCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    _formatDate(event.dateTime),
+                    _formatDate(fixture.dateKST),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,
@@ -814,10 +819,10 @@ class _ScheduleCard extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildTeamBadge(event.homeTeamBadge),
+                        _buildTeamBadge(fixture.homeTeam.logo),
                         const SizedBox(height: 4),
                         Text(
-                          event.homeTeam ?? '',
+                          fixture.homeTeam.name,
                           style: const TextStyle(fontSize: 10),
                           textAlign: TextAlign.center,
                           maxLines: 1,
@@ -839,7 +844,7 @@ class _ScheduleCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _formatTime(event.dateTime),
+                        _formatTime(fixture.dateKST),
                         style: const TextStyle(
                           color: Color(0xFF2563EB),
                           fontSize: 11,
@@ -852,10 +857,10 @@ class _ScheduleCard extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildTeamBadge(event.awayTeamBadge),
+                        _buildTeamBadge(fixture.awayTeam.logo),
                         const SizedBox(height: 4),
                         Text(
-                          event.awayTeam ?? '',
+                          fixture.awayTeam.name,
                           style: const TextStyle(fontSize: 10),
                           textAlign: TextAlign.center,
                           maxLines: 1,
@@ -898,13 +903,11 @@ class _ScheduleCard extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime? dt) {
-    if (dt == null) return '-';
+  String _formatDate(DateTime dt) {
     return DateFormat('MM.dd (E)', 'ko').format(dt);
   }
 
-  String _formatTime(DateTime? dt) {
-    if (dt == null) return '-';
+  String _formatTime(DateTime dt) {
     return DateFormat('HH:mm').format(dt);
   }
 }
@@ -1349,10 +1352,10 @@ class _NationalTeamSection extends ConsumerWidget {
                         }
 
                         final nextMatch = matches.first;
-                        final matchDate = nextMatch.dateTime;
-                        final isHome = nextMatch.homeTeam?.toLowerCase().contains('korea') ?? false;
-                        final opponent = isHome ? nextMatch.awayTeam : nextMatch.homeTeam;
-                        final opponentBadge = isHome ? nextMatch.awayTeamBadge : nextMatch.homeTeamBadge;
+                        final matchDate = nextMatch.dateKST;
+                        final isHome = nextMatch.homeTeam.name.toLowerCase().contains('korea');
+                        final opponent = isHome ? nextMatch.awayTeam.name : nextMatch.homeTeam.name;
+                        final opponentBadge = isHome ? nextMatch.awayTeam.logo : nextMatch.homeTeam.logo;
 
                         return Column(
                           children: [
@@ -1374,7 +1377,7 @@ class _NationalTeamSection extends ConsumerWidget {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    nextMatch.league ?? 'A매치',
+                                    nextMatch.league.name,
                                     style: TextStyle(
                                       color: _primary,
                                       fontSize: 10,
@@ -1428,31 +1431,21 @@ class _NationalTeamSection extends ConsumerWidget {
                                   padding: const EdgeInsets.symmetric(horizontal: 12),
                                   child: Column(
                                     children: [
-                                      if (matchDate != null) ...[
-                                        Text(
-                                          DateFormat('M/d').format(matchDate),
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: _textPrimary,
-                                          ),
+                                      Text(
+                                        DateFormat('M/d').format(matchDate),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: _textPrimary,
                                         ),
-                                        Text(
-                                          DateFormat('HH:mm').format(matchDate),
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: _textSecondary,
-                                          ),
+                                      ),
+                                      Text(
+                                        DateFormat('HH:mm').format(matchDate),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: _textSecondary,
                                         ),
-                                      ] else
-                                        const Text(
-                                          'VS',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w700,
-                                            color: _textSecondary,
-                                          ),
-                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -1463,7 +1456,7 @@ class _NationalTeamSection extends ConsumerWidget {
                                     children: [
                                       Flexible(
                                         child: Text(
-                                          opponent ?? '-',
+                                          opponent,
                                           style: const TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,

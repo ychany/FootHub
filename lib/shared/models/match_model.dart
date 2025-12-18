@@ -12,6 +12,8 @@ enum MatchStatus {
 class Match extends Equatable {
   final String id;
   final String league;
+  final int? leagueId; // API-Football 리그 ID
+  final String? leagueCountry; // 리그 국가
   final String homeTeamId;
   final String homeTeamName;
   final String? homeTeamLogo;
@@ -30,6 +32,8 @@ class Match extends Equatable {
   const Match({
     required this.id,
     required this.league,
+    this.leagueId,
+    this.leagueCountry,
     required this.homeTeamId,
     required this.homeTeamName,
     this.homeTeamLogo,
@@ -68,6 +72,8 @@ class Match extends Equatable {
     return Match(
       id: doc.id,
       league: data['league'] as String? ?? '',
+      leagueId: data['leagueId'] as int?,
+      leagueCountry: data['leagueCountry'] as String?,
       homeTeamId: data['homeTeamId'] as String? ?? '',
       homeTeamName: data['homeTeamName'] as String? ?? '',
       homeTeamLogo: data['homeTeamLogo'] as String?,
@@ -93,6 +99,8 @@ class Match extends Equatable {
   Map<String, dynamic> toFirestore() {
     return {
       'league': league,
+      'leagueId': leagueId,
+      'leagueCountry': leagueCountry,
       'homeTeamId': homeTeamId,
       'homeTeamName': homeTeamName,
       'homeTeamLogo': homeTeamLogo,
@@ -113,6 +121,8 @@ class Match extends Equatable {
   Match copyWith({
     String? id,
     String? league,
+    int? leagueId,
+    String? leagueCountry,
     String? homeTeamId,
     String? homeTeamName,
     String? homeTeamLogo,
@@ -131,6 +141,8 @@ class Match extends Equatable {
     return Match(
       id: id ?? this.id,
       league: league ?? this.league,
+      leagueId: leagueId ?? this.leagueId,
+      leagueCountry: leagueCountry ?? this.leagueCountry,
       homeTeamId: homeTeamId ?? this.homeTeamId,
       homeTeamName: homeTeamName ?? this.homeTeamName,
       homeTeamLogo: homeTeamLogo ?? this.homeTeamLogo,

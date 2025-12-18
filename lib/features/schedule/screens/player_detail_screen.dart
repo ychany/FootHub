@@ -3,46 +3,44 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../core/services/sports_db_service.dart';
+import '../../../core/services/api_football_service.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../favorites/providers/favorites_provider.dart';
 
-// Providers
+// Providers (API-Football 사용)
 final playerDetailProvider =
-    FutureProvider.family<SportsDbPlayer?, String>((ref, playerId) async {
-  final service = SportsDbService();
-  return service.getPlayerById(playerId);
+    FutureProvider.family<ApiFootballPlayer?, String>((ref, playerId) async {
+  final service = ApiFootballService();
+  final id = int.tryParse(playerId);
+  if (id == null) return null;
+  return service.getPlayerById(id);
 });
 
 final playerTeamProvider =
-    FutureProvider.family<SportsDbTeam?, String?>((ref, teamId) async {
+    FutureProvider.family<ApiFootballTeam?, String?>((ref, teamId) async {
   if (teamId == null || teamId.isEmpty) return null;
-  final service = SportsDbService();
-  return service.getTeamById(teamId);
+  final service = ApiFootballService();
+  final id = int.tryParse(teamId);
+  if (id == null) return null;
+  return service.getTeamById(id);
 });
 
-final playerContractsProvider =
-    FutureProvider.family<List<SportsDbContract>, String>((ref, playerId) async {
-  final service = SportsDbService();
-  return service.getPlayerContracts(playerId);
+// 이적 기록 Provider
+final playerTransfersProvider =
+    FutureProvider.family<List<ApiFootballTransfer>, String>((ref, playerId) async {
+  final service = ApiFootballService();
+  final id = int.tryParse(playerId);
+  if (id == null) return [];
+  return service.getPlayerTransfers(id);
 });
 
-final playerHonoursProvider =
-    FutureProvider.family<List<SportsDbHonour>, String>((ref, playerId) async {
-  final service = SportsDbService();
-  return service.getPlayerHonours(playerId);
-});
-
-final playerMilestonesProvider =
-    FutureProvider.family<List<SportsDbMilestone>, String>((ref, playerId) async {
-  final service = SportsDbService();
-  return service.getPlayerMilestones(playerId);
-});
-
-final playerFormerTeamsProvider =
-    FutureProvider.family<List<SportsDbFormerTeam>, String>((ref, playerId) async {
-  final service = SportsDbService();
-  return service.getPlayerFormerTeams(playerId);
+// 트로피 Provider
+final playerTrophiesProvider =
+    FutureProvider.family<List<ApiFootballTrophy>, String>((ref, playerId) async {
+  final service = ApiFootballService();
+  final id = int.tryParse(playerId);
+  if (id == null) return [];
+  return service.getPlayerTrophies(id);
 });
 
 class PlayerDetailScreen extends ConsumerWidget {
@@ -69,7 +67,7 @@ class PlayerDetailScreen extends ConsumerWidget {
               return SafeArea(
                 child: Column(
                   children: [
-                    _buildAppBar(context, null),
+                    _buildAppBar(context),
                     Expanded(
                       child: Center(
                         child: Column(
@@ -91,13 +89,13 @@ class PlayerDetailScreen extends ConsumerWidget {
                 ),
               );
             }
-            return _PlayerDetailContent(player: player);
+            return _PlayerDetailContent(player: player, playerId: playerId);
           },
           loading: () => const LoadingIndicator(),
           error: (e, _) => SafeArea(
             child: Column(
               children: [
-                _buildAppBar(context, null),
+                _buildAppBar(context),
                 Expanded(
                   child: Center(
                     child: Text('오류: $e',
@@ -112,7 +110,7 @@ class PlayerDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAppBar(BuildContext context, SportsDbPlayer? player) {
+  Widget _buildAppBar(BuildContext context) {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -142,11 +140,12 @@ class PlayerDetailScreen extends ConsumerWidget {
 }
 
 class _PlayerDetailContent extends ConsumerWidget {
-  final SportsDbPlayer player;
+  final ApiFootballPlayer player;
+  final String playerId;
 
   static const _background = Color(0xFFF9FAFB);
 
-  const _PlayerDetailContent({required this.player});
+  const _PlayerDetailContent({required this.player, required this.playerId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -157,7 +156,7 @@ class _PlayerDetailContent extends ConsumerWidget {
           child: Column(
             children: [
               // 헤더
-              _PlayerHeader(player: player),
+              _PlayerHeader(player: player, playerId: playerId),
 
               // 컨텐츠
               Padding(
@@ -168,17 +167,15 @@ class _PlayerDetailContent extends ConsumerWidget {
                     _BasicInfoCard(player: player),
                     const SizedBox(height: 12),
 
-                    // Contracts
-                    _ContractsSection(playerId: player.id),
+                    // Statistics Card
+                    if (player.statistics.isNotEmpty)
+                      _StatisticsCard(player: player),
 
-                    // Former Teams
-                    _FormerTeamsSection(playerId: player.id),
+                    // Transfers (이적 기록)
+                    _TransfersSection(playerId: playerId),
 
-                    // Honours
-                    _HonoursSection(playerId: player.id),
-
-                    // Milestones
-                    _MilestonesSection(playerId: player.id),
+                    // Trophies (트로피)
+                    _TrophiesSection(playerId: playerId),
 
                     const SizedBox(height: 32),
                   ],
@@ -193,7 +190,8 @@ class _PlayerDetailContent extends ConsumerWidget {
 }
 
 class _PlayerHeader extends ConsumerWidget {
-  final SportsDbPlayer player;
+  final ApiFootballPlayer player;
+  final String playerId;
 
   static const _primary = Color(0xFF2563EB);
   static const _primaryLight = Color(0xFFDBEAFE);
@@ -201,12 +199,14 @@ class _PlayerHeader extends ConsumerWidget {
   static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE5E7EB);
 
-  const _PlayerHeader({required this.player});
+  const _PlayerHeader({required this.player, required this.playerId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final teamAsync = ref.watch(playerTeamProvider(player.teamId));
-    final teamBadge = teamAsync.valueOrNull?.badge;
+    final stats = player.statistics.isNotEmpty ? player.statistics.first : null;
+    final teamId = stats?.teamId?.toString();
+    final teamAsync = ref.watch(playerTeamProvider(teamId));
+    final teamLogo = teamAsync.valueOrNull?.logo;
 
     return Container(
       color: Colors.white,
@@ -233,7 +233,7 @@ class _PlayerHeader extends ConsumerWidget {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                _PlayerFavoriteButton(playerId: player.id),
+                _PlayerFavoriteButton(playerId: playerId),
               ],
             ),
           ),
@@ -288,9 +288,9 @@ class _PlayerHeader extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (teamBadge != null) ...[
+              if (teamLogo != null) ...[
                 CachedNetworkImage(
-                  imageUrl: teamBadge,
+                  imageUrl: teamLogo,
                   width: 20,
                   height: 20,
                   fit: BoxFit.contain,
@@ -313,20 +313,20 @@ class _PlayerHeader extends ConsumerWidget {
                 ),
                 const SizedBox(width: 6),
               ],
-              if (player.team != null)
+              if (stats?.teamName != null)
                 Text(
-                  player.team!,
+                  stats!.teamName!,
                   style: const TextStyle(
                     color: _textSecondary,
                     fontSize: 14,
                   ),
                 ),
-              if (player.team != null && player.position != null)
+              if (stats?.teamName != null && stats?.position != null)
                 Text(
                   ' · ',
                   style: TextStyle(color: _textSecondary.withValues(alpha: 0.5)),
                 ),
-              if (player.position != null)
+              if (stats?.position != null)
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -335,7 +335,7 @@ class _PlayerHeader extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    _getPositionKorean(player.position!),
+                    _getPositionKorean(stats!.position!),
                     style: TextStyle(
                       color: _primary,
                       fontSize: 12,
@@ -359,6 +359,7 @@ class _PlayerHeader extends ConsumerWidget {
         return '수비수';
       case 'midfielder':
         return '미드필더';
+      case 'attacker':
       case 'forward':
         return '공격수';
       default:
@@ -368,7 +369,7 @@ class _PlayerHeader extends ConsumerWidget {
 }
 
 class _BasicInfoCard extends StatelessWidget {
-  final SportsDbPlayer player;
+  final ApiFootballPlayer player;
 
   static const _primary = Color(0xFF2563EB);
   static const _textPrimary = Color(0xFF111827);
@@ -411,11 +412,140 @@ class _BasicInfoCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _InfoRow(icon: Icons.flag_outlined, label: '국적', value: player.nationality ?? '-'),
-          _InfoRow(icon: Icons.cake_outlined, label: '생년월일', value: player.dateBorn ?? '-'),
+          _InfoRow(icon: Icons.cake_outlined, label: '생년월일', value: player.birthDate ?? '-'),
+          if (player.age != null)
+            _InfoRow(icon: Icons.calendar_today_outlined, label: '나이', value: '${player.age}세'),
           _InfoRow(icon: Icons.height, label: '키', value: player.height ?? '-'),
           _InfoRow(icon: Icons.fitness_center_outlined, label: '몸무게', value: player.weight ?? '-'),
-          if (player.number != null)
-            _InfoRow(icon: Icons.tag, label: '등번호', value: player.number!),
+          if (player.birthPlace != null)
+            _InfoRow(icon: Icons.location_on_outlined, label: '출생지', value: player.birthPlace!),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatisticsCard extends StatelessWidget {
+  final ApiFootballPlayer player;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _StatisticsCard({required this.player});
+
+  @override
+  Widget build(BuildContext context) {
+    final stats = player.statistics.first;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.sports_soccer, color: _primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '시즌 통계',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: _textPrimary,
+                      ),
+                    ),
+                    if (stats.leagueName != null)
+                      Text(
+                        '${stats.leagueName} ${stats.season ?? ''}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _textSecondary,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _StatItem(label: '출전', value: '${stats.appearances ?? 0}'),
+              _StatItem(label: '선발', value: '${stats.lineups ?? 0}'),
+              _StatItem(label: '골', value: '${stats.goals ?? 0}'),
+              _StatItem(label: '도움', value: '${stats.assists ?? 0}'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _StatItem(label: '출전시간', value: '${stats.minutes ?? 0}분'),
+              _StatItem(label: '경고', value: '${stats.yellowCards ?? 0}', valueColor: Colors.amber),
+              _StatItem(label: '퇴장', value: '${stats.redCards ?? 0}', valueColor: Colors.red),
+              if (stats.rating != null)
+                _StatItem(label: '평점', value: stats.rating!, valueColor: _primary),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+
+  const _StatItem({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: valueColor ?? _textPrimary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              color: _textSecondary,
+            ),
+          ),
         ],
       ),
     );
@@ -470,22 +600,23 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _ContractsSection extends ConsumerWidget {
+class _TransfersSection extends ConsumerWidget {
   final String playerId;
 
   static const _primary = Color(0xFF2563EB);
   static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE5E7EB);
 
-  const _ContractsSection({required this.playerId});
+  const _TransfersSection({required this.playerId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final contractsAsync = ref.watch(playerContractsProvider(playerId));
+    final transfersAsync = ref.watch(playerTransfersProvider(playerId));
 
-    return contractsAsync.when(
-      data: (contracts) {
-        if (contracts.isEmpty) return const SizedBox.shrink();
+    return transfersAsync.when(
+      data: (transfers) {
+        if (transfers.isEmpty) return const SizedBox.shrink();
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -506,12 +637,11 @@ class _ContractsSection extends ConsumerWidget {
                       color: _primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child:
-                        Icon(Icons.description_outlined, color: _primary, size: 20),
+                    child: Icon(Icons.swap_horiz, color: _primary, size: 20),
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    '계약 정보',
+                    '이적 기록',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -521,7 +651,15 @@ class _ContractsSection extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              ...contracts.map((contract) => _ContractItem(contract: contract)),
+              ...transfers.take(5).map((transfer) => _TransferItem(transfer: transfer)),
+              if (transfers.length > 5)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    '외 ${transfers.length - 5}건의 이적 기록',
+                    style: TextStyle(fontSize: 12, color: _textSecondary),
+                  ),
+                ),
             ],
           ),
         );
@@ -532,288 +670,107 @@ class _ContractsSection extends ConsumerWidget {
   }
 }
 
-class _ContractItem extends StatelessWidget {
-  final SportsDbContract contract;
-
-  static const _primary = Color(0xFF2563EB);
-  static const _textPrimary = Color(0xFF111827);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _border = Color(0xFFE5E7EB);
-
-  const _ContractItem({required this.contract});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: contract.teamId != null
-          ? () => context.push('/team/${contract.teamId}')
-          : null,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: contract.isCurrent
-              ? _primary.withValues(alpha: 0.05)
-              : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: contract.isCurrent
-                ? _primary.withValues(alpha: 0.2)
-                : _border,
-          ),
-        ),
-        child: Row(
-          children: [
-            // Team Badge
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: contract.teamBadge != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: CachedNetworkImage(
-                        imageUrl: contract.teamBadge!,
-                        fit: BoxFit.contain,
-                        errorWidget: (_, __, ___) =>
-                            Icon(Icons.shield, size: 24, color: _textSecondary),
-                      ),
-                    )
-                  : Icon(Icons.shield, size: 24, color: _textSecondary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          contract.teamName ?? '-',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: _textPrimary,
-                          ),
-                        ),
-                      ),
-                      if (contract.isCurrent)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: _primary,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Text(
-                            '현재',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    contract.period,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: _textSecondary,
-                    ),
-                  ),
-                  if (contract.wage != null && contract.wage!.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      '연봉: ${contract.wage}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: _textSecondary.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (contract.teamId != null)
-              Icon(Icons.chevron_right, color: _textSecondary, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FormerTeamsSection extends ConsumerWidget {
-  final String playerId;
-
-  static const _primary = Color(0xFF2563EB);
-  static const _textPrimary = Color(0xFF111827);
-  static const _border = Color(0xFFE5E7EB);
-
-  const _FormerTeamsSection({required this.playerId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final formerTeamsAsync = ref.watch(playerFormerTeamsProvider(playerId));
-
-    return formerTeamsAsync.when(
-      data: (teams) {
-        if (teams.isEmpty) return const SizedBox.shrink();
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.history, color: _primary, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    '경력',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: _textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ...teams.map((team) => _FormerTeamItem(team: team)),
-            ],
-          ),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _FormerTeamItem extends StatelessWidget {
-  final SportsDbFormerTeam team;
+class _TransferItem extends StatelessWidget {
+  final ApiFootballTransfer transfer;
 
   static const _textPrimary = Color(0xFF111827);
   static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE5E7EB);
 
-  const _FormerTeamItem({required this.team});
+  const _TransferItem({required this.transfer});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: team.teamId != null
-          ? () => context.push('/team/${team.teamId}')
-          : null,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _border),
-        ),
-        child: Row(
-          children: [
-            // Team Badge
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: team.teamBadge != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: CachedNetworkImage(
-                        imageUrl: team.teamBadge!,
-                        fit: BoxFit.contain,
-                        errorWidget: (_, __, ___) =>
-                            Icon(Icons.shield, size: 20, color: _textSecondary),
-                      ),
-                    )
-                  : Icon(Icons.shield, size: 20, color: _textSecondary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    team.teamName ?? '-',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: _textPrimary,
-                    ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _border),
+      ),
+      child: Row(
+        children: [
+          // From Team
+          Expanded(
+            child: Row(
+              children: [
+                if (transfer.teamOutLogo != null)
+                  CachedNetworkImage(
+                    imageUrl: transfer.teamOutLogo!,
+                    width: 24,
+                    height: 24,
+                    errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 24),
+                  )
+                else
+                  const Icon(Icons.shield, size: 24, color: Colors.grey),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    transfer.teamOutName ?? '-',
+                    style: const TextStyle(fontSize: 11, color: _textPrimary),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    team.period,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: _textSecondary,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            if (team.teamId != null)
-              Icon(Icons.chevron_right, color: _textSecondary, size: 20),
-          ],
-        ),
+          ),
+          // Arrow
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Icon(Icons.arrow_forward, size: 16, color: _textSecondary),
+          ),
+          // To Team
+          Expanded(
+            child: Row(
+              children: [
+                if (transfer.teamInLogo != null)
+                  CachedNetworkImage(
+                    imageUrl: transfer.teamInLogo!,
+                    width: 24,
+                    height: 24,
+                    errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 24),
+                  )
+                else
+                  const Icon(Icons.shield, size: 24, color: Colors.grey),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    transfer.teamInName ?? '-',
+                    style: const TextStyle(fontSize: 11, color: _textPrimary),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _HonoursSection extends ConsumerWidget {
+class _TrophiesSection extends ConsumerWidget {
   final String playerId;
 
   static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE5E7EB);
   static const _warning = Color(0xFFF59E0B);
 
-  const _HonoursSection({required this.playerId});
+  const _TrophiesSection({required this.playerId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final honoursAsync = ref.watch(playerHonoursProvider(playerId));
+    final trophiesAsync = ref.watch(playerTrophiesProvider(playerId));
 
-    return honoursAsync.when(
-      data: (honours) {
-        if (honours.isEmpty) return const SizedBox.shrink();
+    return trophiesAsync.when(
+      data: (trophies) {
+        if (trophies.isEmpty) return const SizedBox.shrink();
 
-        // Group by team
-        final groupedHonours = <String, List<SportsDbHonour>>{};
-        for (final honour in honours) {
-          final team = honour.teamName ?? '개인';
-          groupedHonours.putIfAbsent(team, () => []).add(honour);
-        }
+        // Winner만 필터링
+        final winnerTrophies = trophies.where((t) => t.place == 'Winner').toList();
+        if (winnerTrophies.isEmpty) return const SizedBox.shrink();
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -854,7 +811,7 @@ class _HonoursSection extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '${honours.length}개',
+                      '${winnerTrophies.length}개',
                       style: TextStyle(
                         color: _warning,
                         fontSize: 12,
@@ -865,186 +822,38 @@ class _HonoursSection extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              ...groupedHonours.entries.map((entry) => _HonourGroup(
-                    teamName: entry.key,
-                    honours: entry.value,
-                  )),
+              ...winnerTrophies.take(10).map((trophy) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.star, size: 14, color: _warning),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        trophy.league ?? '-',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: _textPrimary,
+                        ),
+                      ),
+                    ),
+                    if (trophy.season != null)
+                      Text(
+                        trophy.season!,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: _textSecondary,
+                        ),
+                      ),
+                  ],
+                ),
+              )),
             ],
           ),
         );
       },
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _HonourGroup extends StatelessWidget {
-  final String teamName;
-  final List<SportsDbHonour> honours;
-
-  static const _textPrimary = Color(0xFF111827);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _warning = Color(0xFFF59E0B);
-
-  const _HonourGroup({required this.teamName, required this.honours});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            teamName,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: _textSecondary,
-            ),
-          ),
-        ),
-        ...honours.map((h) => Padding(
-              padding: const EdgeInsets.only(left: 8, bottom: 6),
-              child: Row(
-                children: [
-                  Icon(Icons.star, size: 14, color: _warning),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      h.honour ?? '-',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: _textPrimary,
-                      ),
-                    ),
-                  ),
-                  if (h.season != null)
-                    Text(
-                      h.season!,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: _textSecondary,
-                      ),
-                    ),
-                ],
-              ),
-            )),
-        const SizedBox(height: 8),
-      ],
-    );
-  }
-}
-
-class _MilestonesSection extends ConsumerWidget {
-  final String playerId;
-
-  static const _primary = Color(0xFF2563EB);
-  static const _textPrimary = Color(0xFF111827);
-  static const _border = Color(0xFFE5E7EB);
-
-  const _MilestonesSection({required this.playerId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final milestonesAsync = ref.watch(playerMilestonesProvider(playerId));
-
-    return milestonesAsync.when(
-      data: (milestones) {
-        if (milestones.isEmpty) return const SizedBox.shrink();
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.flag_outlined, color: _primary, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    '마일스톤',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: _textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ...milestones.map((m) => _MilestoneItem(milestone: m)),
-            ],
-          ),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _MilestoneItem extends StatelessWidget {
-  final SportsDbMilestone milestone;
-
-  static const _primary = Color(0xFF2563EB);
-  static const _textPrimary = Color(0xFF111827);
-  static const _textSecondary = Color(0xFF6B7280);
-
-  const _MilestoneItem({required this.milestone});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _primary.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _primary.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            milestone.milestone ?? '-',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _textPrimary,
-            ),
-          ),
-          if (milestone.description != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              milestone.description!,
-              style: const TextStyle(
-                fontSize: 12,
-                color: _textSecondary,
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 }

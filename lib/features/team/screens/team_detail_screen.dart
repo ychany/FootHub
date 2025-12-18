@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../core/services/sports_db_service.dart';
+import '../../../core/services/api_football_service.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../providers/team_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
@@ -55,7 +55,7 @@ class TeamDetailScreen extends ConsumerWidget {
                 ),
               );
             }
-            return _TeamDetailContent(team: team);
+            return _TeamDetailContent(team: team, teamId: teamId);
           },
           loading: () => const LoadingIndicator(),
           error: (e, _) => SafeArea(
@@ -106,9 +106,10 @@ class TeamDetailScreen extends ConsumerWidget {
 }
 
 class _TeamDetailContent extends ConsumerStatefulWidget {
-  final SportsDbTeam team;
+  final ApiFootballTeam team;
+  final String teamId;
 
-  const _TeamDetailContent({required this.team});
+  const _TeamDetailContent({required this.team, required this.teamId});
 
   @override
   ConsumerState<_TeamDetailContent> createState() => _TeamDetailContentState();
@@ -180,8 +181,8 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
                 controller: _tabController,
                 children: [
                   _InfoTab(team: team),
-                  _ScheduleTab(teamId: team.id),
-                  _PlayersTab(teamId: team.id),
+                  _ScheduleTab(teamId: widget.teamId),
+                  _PlayersTab(teamId: widget.teamId),
                 ],
               ),
             ),
@@ -191,7 +192,7 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
     );
   }
 
-  Widget _buildHeader(BuildContext context, SportsDbTeam team) {
+  Widget _buildHeader(BuildContext context, ApiFootballTeam team) {
     return Container(
       color: Colors.white,
       child: Column(
@@ -217,7 +218,7 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
                     textAlign: TextAlign.center,
                   ),
                 ),
-                _FavoriteButton(teamId: team.id),
+                _FavoriteButton(teamId: widget.teamId),
               ],
             ),
           ),
@@ -232,9 +233,9 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
               color: Colors.grey.shade100,
             ),
             child: ClipOval(
-              child: team.badge != null
+              child: team.logo != null
                   ? CachedNetworkImage(
-                      imageUrl: team.badge!,
+                      imageUrl: team.logo!,
                       fit: BoxFit.contain,
                       placeholder: (_, __) => Icon(
                         Icons.shield,
@@ -268,11 +269,11 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
           ),
           const SizedBox(height: 8),
 
-          // 리그 & 국가 (국가대표 팀은 리그 표시 안함)
+          // 국가 정보
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (team.league != null && team.league != 'FIFA World Cup') ...[
+              if (team.country != null)
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -281,7 +282,7 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    team.league!,
+                    team.country!,
                     style: TextStyle(
                       color: _primary,
                       fontSize: 12,
@@ -289,16 +290,16 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
                     ),
                   ),
                 ),
-                if (team.country != null) const SizedBox(width: 8),
-              ],
-              if (team.country != null)
+              if (team.founded != null) ...[
+                const SizedBox(width: 8),
                 Text(
-                  team.country!,
+                  '창단 ${team.founded}',
                   style: const TextStyle(
                     color: _textSecondary,
                     fontSize: 14,
                   ),
                 ),
+              ],
             ],
           ),
           const SizedBox(height: 16),
@@ -310,7 +311,7 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
 
 // ============ Info Tab ============
 class _InfoTab extends StatelessWidget {
-  final SportsDbTeam team;
+  final ApiFootballTeam team;
 
   static const _primary = Color(0xFF2563EB);
   static const _textPrimary = Color(0xFF111827);
@@ -357,31 +358,31 @@ class _InfoTab extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              // 국가대표 팀은 리그 표시 안함
-              if (team.league != null && team.league != 'FIFA World Cup')
-                _InfoRow(
-                    icon: Icons.sports_soccer_outlined,
-                    label: '리그',
-                    value: team.league!),
               _InfoRow(
                   icon: Icons.flag_outlined,
                   label: '국가',
                   value: team.country ?? '-'),
-              _InfoRow(
-                  icon: Icons.stadium_outlined,
-                  label: '경기장',
-                  value: team.stadium ?? '-'),
-              if (team.stadiumCapacity != null)
+              if (team.founded != null)
                 _InfoRow(
-                    icon: Icons.people_outline,
-                    label: '수용 인원',
-                    value: '${team.stadiumCapacity}명'),
+                    icon: Icons.calendar_today_outlined,
+                    label: '창단',
+                    value: '${team.founded}년'),
+              if (team.national)
+                _InfoRow(
+                    icon: Icons.public_outlined,
+                    label: '유형',
+                    value: '국가대표팀'),
+              if (team.code != null)
+                _InfoRow(
+                    icon: Icons.tag,
+                    label: '코드',
+                    value: team.code!),
             ],
           ),
         ),
 
-        // Description
-        if (team.description != null) ...[
+        // Venue Info Card
+        if (team.venue != null) ...[
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
@@ -401,12 +402,12 @@ class _InfoTab extends StatelessWidget {
                         color: _primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(Icons.description_outlined,
+                      child: Icon(Icons.stadium_outlined,
                           color: _primary, size: 20),
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      '소개',
+                      '경기장 정보',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -415,18 +416,68 @@ class _InfoTab extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  team.description!,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: _textSecondary,
-                    height: 1.6,
-                  ),
-                  maxLines: 15,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                const SizedBox(height: 16),
+                if (team.venue!.name != null)
+                  _InfoRow(
+                      icon: Icons.stadium_outlined,
+                      label: '경기장',
+                      value: team.venue!.name!),
+                if (team.venue!.city != null)
+                  _InfoRow(
+                      icon: Icons.location_city_outlined,
+                      label: '도시',
+                      value: team.venue!.city!),
+                if (team.venue!.capacity != null)
+                  _InfoRow(
+                      icon: Icons.people_outline,
+                      label: '수용인원',
+                      value: '${team.venue!.capacity}명'),
+                if (team.venue!.surface != null)
+                  _InfoRow(
+                      icon: Icons.grass_outlined,
+                      label: '잔디',
+                      value: team.venue!.surface!),
+                if (team.venue!.address != null)
+                  _InfoRow(
+                      icon: Icons.place_outlined,
+                      label: '주소',
+                      value: team.venue!.address!),
               ],
+            ),
+          ),
+        ],
+
+        // Venue Image
+        if (team.venue?.image != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _border),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: CachedNetworkImage(
+                imageUrl: team.venue!.image!,
+                fit: BoxFit.cover,
+                height: 180,
+                width: double.infinity,
+                placeholder: (_, __) => Container(
+                  height: 180,
+                  color: Colors.grey.shade200,
+                  child: Center(
+                    child: Icon(Icons.image, size: 48, color: _textSecondary),
+                  ),
+                ),
+                errorWidget: (_, __, ___) => Container(
+                  height: 180,
+                  color: Colors.grey.shade200,
+                  child: Center(
+                    child: Icon(Icons.image_not_supported, size: 48, color: _textSecondary),
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -499,8 +550,8 @@ class _ScheduleTab extends ConsumerWidget {
     final scheduleAsync = ref.watch(teamFullScheduleProvider(teamId));
 
     return scheduleAsync.when(
-      data: (events) {
-        if (events.isEmpty) {
+      data: (fixtures) {
+        if (fixtures.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -517,38 +568,32 @@ class _ScheduleTab extends ConsumerWidget {
         }
 
         // 날짜순 정렬 (최신순)
-        final sortedEvents = List<SportsDbEvent>.from(events)
+        final sortedFixtures = List<ApiFootballFixture>.from(fixtures)
           ..sort((a, b) {
-            final aDate = a.dateTime ?? DateTime(1900);
-            final bDate = b.dateTime ?? DateTime(1900);
-            return bDate.compareTo(aDate); // 최신순
+            return b.date.compareTo(a.date); // 최신순
           });
 
         final now = DateTime.now();
         final todayStart = DateTime(now.year, now.month, now.day);
 
         // 지난 경기, 예정된 경기 분리
-        final pastEvents = sortedEvents.where((e) {
-          final dt = e.dateTime;
-          return dt != null && dt.isBefore(todayStart);
+        final pastFixtures = sortedFixtures.where((f) {
+          return f.date.isBefore(todayStart);
         }).toList();
 
-        final upcomingEvents = sortedEvents.where((e) {
-          final dt = e.dateTime;
-          return dt != null && !dt.isBefore(todayStart);
+        final upcomingFixtures = sortedFixtures.where((f) {
+          return !f.date.isBefore(todayStart);
         }).toList()
           ..sort((a, b) {
             // 예정된 경기는 가까운 순서로
-            final aDate = a.dateTime ?? DateTime(2100);
-            final bDate = b.dateTime ?? DateTime(2100);
-            return aDate.compareTo(bDate);
+            return a.date.compareTo(b.date);
           });
 
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
             // Upcoming Matches
-            if (upcomingEvents.isNotEmpty) ...[
+            if (upcomingFixtures.isNotEmpty) ...[
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -586,7 +631,7 @@ class _ScheduleTab extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            '${upcomingEvents.length}',
+                            '${upcomingFixtures.length}',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -597,7 +642,7 @@ class _ScheduleTab extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    ...upcomingEvents.map((e) => _MatchCard(event: e)),
+                    ...upcomingFixtures.map((f) => _MatchCard(fixture: f)),
                   ],
                 ),
               ),
@@ -605,7 +650,7 @@ class _ScheduleTab extends ConsumerWidget {
             ],
 
             // Past Matches
-            if (pastEvents.isNotEmpty)
+            if (pastFixtures.isNotEmpty)
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -643,7 +688,7 @@ class _ScheduleTab extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            '${pastEvents.length}',
+                            '${pastFixtures.length}',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -654,7 +699,7 @@ class _ScheduleTab extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    ...pastEvents.map((e) => _MatchCard(event: e, isPast: true)),
+                    ...pastFixtures.map((f) => _MatchCard(fixture: f, isPast: true)),
                   ],
                 ),
               ),
@@ -677,7 +722,7 @@ class _ScheduleTab extends ConsumerWidget {
 }
 
 class _MatchCard extends StatelessWidget {
-  final SportsDbEvent event;
+  final ApiFootballFixture fixture;
   final bool isPast;
 
   static const _primary = Color(0xFF2563EB);
@@ -686,20 +731,16 @@ class _MatchCard extends StatelessWidget {
   static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE5E7EB);
 
-  const _MatchCard({required this.event, this.isPast = false});
+  const _MatchCard({required this.fixture, this.isPast = false});
 
   @override
   Widget build(BuildContext context) {
-    final dateTime = event.dateTime;
-    final dateStr = dateTime != null
-        ? DateFormat('MM/dd (E)', 'ko').format(dateTime)
-        : event.date ?? '-';
-    final timeStr = dateTime != null
-        ? DateFormat('HH:mm').format(dateTime)
-        : event.time ?? '-';
+    final dateTime = fixture.dateKST;
+    final dateStr = DateFormat('MM/dd (E)', 'ko').format(dateTime);
+    final timeStr = DateFormat('HH:mm').format(dateTime);
 
     return GestureDetector(
-      onTap: () => context.push('/match/${event.id}'),
+      onTap: () => context.push('/match/${fixture.id}'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
@@ -734,7 +775,7 @@ class _MatchCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    event.league ?? '-',
+                    fixture.league.name,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -753,11 +794,11 @@ class _MatchCard extends StatelessWidget {
                 Expanded(
                   child: Row(
                     children: [
-                      _buildTeamBadge(event.homeTeamBadge, 28),
+                      _buildTeamBadge(fixture.homeTeam.logo, 28),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          event.homeTeam ?? '-',
+                          fixture.homeTeam.name,
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -772,7 +813,7 @@ class _MatchCard extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: event.isFinished
+                  child: fixture.isFinished
                       ? Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
@@ -781,7 +822,7 @@ class _MatchCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            event.scoreDisplay,
+                            fixture.scoreDisplay,
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -804,7 +845,7 @@ class _MatchCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          event.awayTeam ?? '-',
+                          fixture.awayTeam.name,
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -816,7 +857,7 @@ class _MatchCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      _buildTeamBadge(event.awayTeamBadge, 28),
+                      _buildTeamBadge(fixture.awayTeam.logo, 28),
                     ],
                   ),
                 ),
@@ -877,13 +918,13 @@ class _PlayersTab extends ConsumerWidget {
         }
 
         // 포지션별 그룹화
-        final grouped = <String, List<SportsDbPlayer>>{};
+        final grouped = <String, List<ApiFootballSquadPlayer>>{};
         for (final player in players) {
           final position = player.position ?? '기타';
           grouped.putIfAbsent(position, () => []).add(player);
         }
 
-        final positionOrder = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward'];
+        final positionOrder = ['Goalkeeper', 'Defender', 'Midfielder', 'Attacker'];
         final sortedKeys = grouped.keys.toList()
           ..sort((a, b) {
             final aIndex = positionOrder.indexOf(a);
@@ -989,6 +1030,8 @@ class _PlayersTab extends ConsumerWidget {
         return '수비수';
       case 'midfielder':
         return '미드필더';
+      case 'attacker':
+        return '공격수';
       case 'forward':
         return '공격수';
       default:
@@ -1004,6 +1047,7 @@ class _PlayersTab extends ConsumerWidget {
         return const Color(0xFF2563EB); // primary/blue
       case 'midfielder':
         return const Color(0xFF10B981); // success/green
+      case 'attacker':
       case 'forward':
         return const Color(0xFFEF4444); // error/red
       default:
@@ -1013,7 +1057,7 @@ class _PlayersTab extends ConsumerWidget {
 }
 
 class _PlayerCard extends StatelessWidget {
-  final SportsDbPlayer player;
+  final ApiFootballSquadPlayer player;
 
   static const _primary = Color(0xFF2563EB);
   static const _textPrimary = Color(0xFF111827);
@@ -1039,9 +1083,9 @@ class _PlayerCard extends StatelessWidget {
                 border: Border.all(color: Colors.grey.shade200),
               ),
               child: ClipOval(
-                child: player.thumb != null
+                child: player.photo != null
                     ? CachedNetworkImage(
-                        imageUrl: player.thumb!,
+                        imageUrl: player.photo!,
                         fit: BoxFit.cover,
                         placeholder: (_, __) => Center(
                           child: Text(
@@ -1088,10 +1132,10 @@ class _PlayerCard extends StatelessWidget {
                       color: _textPrimary,
                     ),
                   ),
-                  if (player.nationality != null) ...[
+                  if (player.age != null) ...[
                     const SizedBox(height: 2),
                     Text(
-                      player.nationality!,
+                      '${player.age}세',
                       style: TextStyle(
                         fontSize: 12,
                         color: _textSecondary,
