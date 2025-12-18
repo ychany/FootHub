@@ -157,6 +157,16 @@ class ApiFootballService {
         .toList();
   }
 
+  /// 팀 이적 기록 조회
+  Future<List<ApiFootballTeamTransfer>> getTeamTransfers(int teamId) async {
+    final data = await _get('transfers?team=$teamId');
+    if (data == null || data['response'] == null) return [];
+
+    return (data['response'] as List)
+        .map((json) => ApiFootballTeamTransfer.fromJson(json))
+        .toList();
+  }
+
   /// 선수 트로피
   Future<List<ApiFootballTrophy>> getPlayerTrophies(int playerId) async {
     final data = await _get('trophies?player=$playerId');
@@ -1753,6 +1763,48 @@ class ApiFootballOddValue {
       value: json['value']?.toString() ?? '',
       odd: json['odd']?.toString() ?? '',
     );
+  }
+}
+
+/// 팀 이적 모델 (팀별 조회용)
+class ApiFootballTeamTransfer {
+  final int playerId;
+  final String playerName;
+  final String? playerPhoto;
+  final List<ApiFootballTransfer> transfers;
+
+  ApiFootballTeamTransfer({
+    required this.playerId,
+    required this.playerName,
+    this.playerPhoto,
+    required this.transfers,
+  });
+
+  factory ApiFootballTeamTransfer.fromJson(Map<String, dynamic> json) {
+    final player = json['player'] ?? {};
+    final transfersList = json['transfers'] as List? ?? [];
+
+    return ApiFootballTeamTransfer(
+      playerId: player['id'] ?? 0,
+      playerName: player['name'] ?? '',
+      playerPhoto: null, // API에서 제공하지 않음
+      transfers: transfersList.map((t) => ApiFootballTransfer.fromJson(t)).toList(),
+    );
+  }
+
+  /// 가장 최근 이적
+  ApiFootballTransfer? get latestTransfer => transfers.isNotEmpty ? transfers.first : null;
+
+  /// 특정 팀으로의 영입 여부
+  bool isTransferIn(int teamId) {
+    final latest = latestTransfer;
+    return latest != null && latest.teamInId == teamId;
+  }
+
+  /// 특정 팀에서의 방출 여부
+  bool isTransferOut(int teamId) {
+    final latest = latestTransfer;
+    return latest != null && latest.teamOutId == teamId;
   }
 }
 

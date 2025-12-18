@@ -129,7 +129,7 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -172,6 +172,7 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
                   Tab(text: '통계'),
                   Tab(text: '일정'),
                   Tab(text: '선수단'),
+                  Tab(text: '이적'),
                 ],
               ),
             ),
@@ -185,6 +186,7 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
                   _StatisticsTab(teamId: widget.teamId),
                   _ScheduleTab(teamId: widget.teamId),
                   _PlayersTab(teamId: widget.teamId),
+                  _TransfersTab(teamId: widget.teamId),
                 ],
               ),
             ),
@@ -1857,6 +1859,679 @@ class _PlayerCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ============ Transfers Tab ============
+class _TransfersTab extends ConsumerStatefulWidget {
+  final String teamId;
+
+  const _TransfersTab({required this.teamId});
+
+  @override
+  ConsumerState<_TransfersTab> createState() => _TransfersTabState();
+}
+
+class _TransfersTabState extends ConsumerState<_TransfersTab> {
+  static const _primary = Color(0xFF2563EB);
+  static const _success = Color(0xFF10B981);
+  static const _error = Color(0xFFEF4444);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  String? _selectedYear; // null이면 전체
+
+  @override
+  Widget build(BuildContext context) {
+    final transfersAsync = ref.watch(teamTransfersProvider(widget.teamId));
+
+    return transfersAsync.when(
+      data: (transfers) {
+        if (transfers.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.swap_horiz, size: 48, color: _textSecondary),
+                const SizedBox(height: 12),
+                Text(
+                  '이적 정보가 없습니다',
+                  style: TextStyle(color: _textSecondary, fontSize: 14),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // API-Football ID로 변환
+        final apiTeamId = int.tryParse(widget.teamId);
+
+        // 시즌별로 그룹화하고 영입/방출 분류
+        final transfersByYear = <String, List<_TransferInfo>>{};
+        // 중복 제거용 Set (playerId + year + isIn 조합)
+        final seenTransfers = <String>{};
+
+        for (final transfer in transfers) {
+          // 선수의 모든 이적 기록을 날짜순으로 정렬 (최신 → 과거)
+          final sortedTransfers = transfer.transfers.toList()
+            ..sort((a, b) => (b.date ?? '').compareTo(a.date ?? ''));
+
+          for (int i = 0; i < sortedTransfers.length; i++) {
+            final t = sortedTransfers[i];
+            if (t.date == null) continue;
+
+            final year = t.date!.substring(0, 4);
+            final isIn = apiTeamId != null && t.teamInId == apiTeamId;
+            final isOut = apiTeamId != null && t.teamOutId == apiTeamId;
+
+            if (!isIn && !isOut) continue;
+
+            // 같은 날에 N/A IN과 실제 OUT이 동시에 있으면 N/A IN은 무시
+            // (API 데이터 오류로 완전 이적인데 N/A IN이 함께 기록되는 경우)
+            if (isIn && (t.type == null || t.type == 'N/A' || t.type!.isEmpty)) {
+              bool hasSameDayOut = false;
+              for (final otherT in sortedTransfers) {
+                if (otherT.date == t.date &&
+                    otherT.teamOutId == apiTeamId &&
+                    otherT.type != null &&
+                    otherT.type != 'N/A' &&
+                    otherT.type!.isNotEmpty) {
+                  hasSameDayOut = true;
+                  break;
+                }
+              }
+              if (hasSameDayOut) continue;
+            }
+
+            // 중복 체크: 같은 선수 + 같은 연도 + 같은 방향은 한 번만 표시
+            final uniqueKey = '${transfer.playerId}_${year}_$isIn';
+            if (seenTransfers.contains(uniqueKey)) continue;
+            seenTransfers.add(uniqueKey);
+
+            // 임대 복귀인지 확인
+            final typeLower = (t.type ?? '').toLowerCase();
+            bool isLoanReturn = typeLower.contains('loan') &&
+                (typeLower.contains('end') || typeLower.contains('back') || typeLower.contains('return'));
+
+            // 타입이 N/A나 빈 값인데 영입인 경우, 이전 기록 확인
+            // 이전에 같은 팀으로 임대를 보냈다가 돌아온 건지 체크
+            if (!isLoanReturn && isIn && (t.type == null || t.type == 'N/A' || t.type!.isEmpty)) {
+              // 이후 기록(과거)에서 같은 팀으로 임대 보낸 기록이 있는지 확인
+              for (int j = i + 1; j < sortedTransfers.length; j++) {
+                final prevT = sortedTransfers[j];
+                if (prevT.teamInId == t.teamOutId && // 이전에 그 팀으로 갔었고
+                    prevT.teamOutId == apiTeamId && // 우리 팀에서 보냈고
+                    (prevT.type?.toLowerCase().contains('loan') ?? false)) { // 임대였다면
+                  isLoanReturn = true; // 이건 임대 복귀
+                  break;
+                }
+              }
+
+              // API 데이터에 특정 팀으로의 임대 기록이 누락될 수 있음
+              // 선수에게 어떤 팀으로든 Loan OUT 기록이 있으면 임대 복귀로 간주
+              // (빅클럽 유스 선수들은 여러 팀으로 임대를 다니는 경우가 많음)
+              if (!isLoanReturn) {
+                for (int j = 0; j < sortedTransfers.length; j++) {
+                  if (j == i) continue;
+                  final otherT = sortedTransfers[j];
+                  // 우리 팀(apiTeamId)에서 임대로 보낸 기록이 있으면 복귀
+                  if (otherT.teamOutId == apiTeamId &&
+                      (otherT.type?.toLowerCase().contains('loan') ?? false)) {
+                    isLoanReturn = true;
+                    break;
+                  }
+                }
+              }
+            }
+
+            transfersByYear.putIfAbsent(year, () => []).add(_TransferInfo(
+              playerName: transfer.playerName,
+              playerId: transfer.playerId,
+              date: t.date!,
+              type: t.type ?? 'N/A',
+              isIn: isIn,
+              isLoanReturn: isLoanReturn,
+              fromTeamName: t.teamOutName,
+              fromTeamLogo: t.teamOutLogo,
+              toTeamName: t.teamInName,
+              toTeamLogo: t.teamInLogo,
+            ));
+          }
+        }
+
+        // 연도별 정렬 (최신순)
+        final sortedYears = transfersByYear.keys.toList()
+          ..sort((a, b) => b.compareTo(a));
+
+        // 선택된 연도가 없거나 유효하지 않으면 최신 연도로 설정
+        final effectiveYear = (_selectedYear != null && sortedYears.contains(_selectedYear))
+            ? _selectedYear
+            : null;
+
+        // 필터링된 연도 목록
+        final displayYears = effectiveYear != null
+            ? [effectiveYear]
+            : sortedYears;
+
+        return Column(
+          children: [
+            // 연도 선택 필터
+            Container(
+              height: 48,
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: sortedYears.length + 1, // +1 for "전체"
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    // 전체 버튼
+                    final isSelected = _selectedYear == null;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: const Text('전체'),
+                        selected: isSelected,
+                        onSelected: (_) => setState(() => _selectedYear = null),
+                        backgroundColor: Colors.white,
+                        selectedColor: _primary.withValues(alpha: 0.15),
+                        checkmarkColor: _primary,
+                        labelStyle: TextStyle(
+                          color: isSelected ? _primary : _textSecondary,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          fontSize: 13,
+                        ),
+                        side: BorderSide(
+                          color: isSelected ? _primary : _border,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                    );
+                  }
+                  final year = sortedYears[index - 1];
+                  final isSelected = _selectedYear == year;
+                  final yearData = transfersByYear[year]!;
+                  final totalCount = yearData.length;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text('$year ($totalCount)'),
+                      selected: isSelected,
+                      onSelected: (_) => setState(() => _selectedYear = year),
+                      backgroundColor: Colors.white,
+                      selectedColor: _primary.withValues(alpha: 0.15),
+                      checkmarkColor: _primary,
+                      labelStyle: TextStyle(
+                        color: isSelected ? _primary : _textSecondary,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        fontSize: 13,
+                      ),
+                      side: BorderSide(
+                        color: isSelected ? _primary : _border,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // 이적 목록
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: displayYears.length,
+                itemBuilder: (context, index) {
+                  final year = displayYears[index];
+                  final yearTransfers = transfersByYear[year]!;
+
+            // 영입/방출/복귀 분리
+            final inTransfers = yearTransfers.where((t) => t.isIn && !t.isLoanReturn).toList();
+            final returnTransfers = yearTransfers.where((t) => t.isIn && t.isLoanReturn).toList();
+            final outTransfers = yearTransfers.where((t) => !t.isIn).toList();
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 연도 헤더
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _primary.withValues(alpha: 0.05),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.calendar_today, size: 20, color: _primary),
+                        const SizedBox(width: 10),
+                        Text(
+                          '$year년',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: _textPrimary,
+                          ),
+                        ),
+                        const Spacer(),
+                        // 영입 카운트
+                        if (inTransfers.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _success.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.arrow_downward, size: 12, color: _success),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${inTransfers.length}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: _success,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        // 복귀 카운트
+                        if (returnTransfers.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.replay, size: 12, color: const Color(0xFF8B5CF6)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${returnTransfers.length}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF8B5CF6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        // 방출 카운트
+                        if (outTransfers.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.arrow_upward, size: 12, color: _error),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${outTransfers.length}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: _error,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  // 영입
+                  if (inTransfers.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: _success,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '영입',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _success,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ...inTransfers.map((t) => _TransferCard(transfer: t)),
+                  ],
+
+                  // 임대 복귀
+                  if (returnTransfers.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF8B5CF6), // 보라색
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '임대 복귀',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF8B5CF6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ...returnTransfers.map((t) => _TransferCard(transfer: t)),
+                  ],
+
+                  // 방출
+                  if (outTransfers.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: _error,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '방출',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ...outTransfers.map((t) => _TransferCard(transfer: t)),
+                  ],
+
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const LoadingIndicator(),
+      error: (e, _) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: _textSecondary),
+            const SizedBox(height: 12),
+            Text('오류: $e', style: TextStyle(color: _textSecondary, fontSize: 14)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TransferInfo {
+  final String playerName;
+  final int playerId;
+  final String date;
+  final String type;
+  final bool isIn;
+  final bool isLoanReturn; // 임대 복귀 여부
+  final String? fromTeamName;
+  final String? fromTeamLogo;
+  final String? toTeamName;
+  final String? toTeamLogo;
+
+  _TransferInfo({
+    required this.playerName,
+    required this.playerId,
+    required this.date,
+    required this.type,
+    required this.isIn,
+    this.isLoanReturn = false,
+    this.fromTeamName,
+    this.fromTeamLogo,
+    this.toTeamName,
+    this.toTeamLogo,
+  });
+}
+
+class _TransferCard extends StatelessWidget {
+  final _TransferInfo transfer;
+
+  static const _success = Color(0xFF10B981);
+  static const _error = Color(0xFFEF4444);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _TransferCard({required this.transfer});
+
+  @override
+  Widget build(BuildContext context) {
+    // 임대 복귀면 보라색, 아니면 영입=초록/방출=빨강
+    final Color color;
+    final IconData icon;
+    if (transfer.isLoanReturn) {
+      color = const Color(0xFF8B5CF6); // 보라색
+      icon = Icons.replay;
+    } else if (transfer.isIn) {
+      color = _success;
+      icon = Icons.arrow_downward;
+    } else {
+      color = _error;
+      icon = Icons.arrow_upward;
+    }
+    final otherTeamName = transfer.isIn ? transfer.fromTeamName : transfer.toTeamName;
+    final otherTeamLogo = transfer.isIn ? transfer.fromTeamLogo : transfer.toTeamLogo;
+
+    return InkWell(
+      onTap: () => context.push('/player/${transfer.playerId}'),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            // 이적 방향 아이콘
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // 선수 정보
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    transfer.playerName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      // 상대 팀 로고
+                      if (otherTeamLogo != null) ...[
+                        CachedNetworkImage(
+                          imageUrl: otherTeamLogo,
+                          width: 16,
+                          height: 16,
+                          placeholder: (_, __) => Icon(Icons.shield, size: 16, color: _textSecondary),
+                          errorWidget: (_, __, ___) => Icon(Icons.shield, size: 16, color: _textSecondary),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Expanded(
+                        child: Text(
+                          transfer.isIn
+                              ? '← ${otherTeamName ?? '알 수 없음'}'
+                              : '→ ${otherTeamName ?? '알 수 없음'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _textSecondary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // 이적 유형 및 날짜
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _getTypeColor(transfer.type).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    _getTypeLabel(transfer.type),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: _getTypeColor(transfer.type),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _formatDate(transfer.date),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _textSecondary,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right, size: 18, color: _textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getTypeLabel(String type) {
+    switch (type.toLowerCase()) {
+      case 'free':
+        return '자유 이적';
+      case 'loan':
+        return '임대';
+      case 'loan end':
+      case 'end of loan':
+      case 'back from loan':
+        return '임대 복귀';
+      case 'transfer':
+        return '이적';
+      case 'n/a':
+      case '':
+        return '-';
+      default:
+        // 이적료가 있는 경우 (예: "€50M")
+        if (type.contains('€') || type.contains('\$') || type.contains('£')) {
+          return type;
+        }
+        return type;
+    }
+  }
+
+  Color _getTypeColor(String type) {
+    final typeLower = type.toLowerCase();
+    if (typeLower == 'free') {
+      return const Color(0xFF10B981); // 초록 - 자유 이적
+    } else if (typeLower == 'loan') {
+      return const Color(0xFFF59E0B); // 노란색 - 임대
+    } else if (typeLower.contains('loan')) {
+      return const Color(0xFF8B5CF6); // 보라색 - 임대 복귀
+    } else if (typeLower == 'transfer') {
+      return const Color(0xFF6366F1); // 인디고 - 일반 이적
+    } else if (type.contains('€') || type.contains('\$') || type.contains('£')) {
+      return const Color(0xFF2563EB); // 파란색 - 유료 이적
+    }
+    return const Color(0xFF6B7280); // 회색 - 기타
+  }
+
+  String _formatDate(String date) {
+    try {
+      final parts = date.split('-');
+      if (parts.length >= 2) {
+        return '${parts[0]}.${parts[1]}';
+      }
+      return date;
+    } catch (_) {
+      return date;
+    }
   }
 }
 

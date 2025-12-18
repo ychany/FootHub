@@ -77,6 +77,17 @@ final headToHeadProvider = FutureProvider.family<List<ApiFootballFixture>, (int,
   return service.getHeadToHead(teams.$1, teams.$2);
 });
 
+/// 팀 이적 기록 Provider
+final teamTransfersProvider = FutureProvider.family<List<ApiFootballTeamTransfer>, String>((ref, teamId) async {
+  final service = ref.watch(_apiFootballServiceProvider);
+
+  // API-Football ID로 변환 시도
+  final apiTeamId = ApiFootballIds.convertTeamId(teamId) ?? int.tryParse(teamId);
+  if (apiTeamId == null) return [];
+
+  return service.getTeamTransfers(apiTeamId);
+});
+
 /// 팀 시즌 통계 Provider (리그별)
 final teamStatisticsProvider = FutureProvider.family<List<ApiFootballTeamSeasonStats>, String>((ref, teamId) async {
   final service = ref.watch(_apiFootballServiceProvider);
