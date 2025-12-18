@@ -464,33 +464,46 @@ class _LiveScoresSection extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEF4444),
-                      shape: BoxShape.circle,
+              GestureDetector(
+                onTap: () => context.push('/live'),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'LIVE',
-                    style: TextStyle(
-                      color: Color(0xFFEF4444),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
+                    const SizedBox(width: 8),
+                    const Text(
+                      'LIVE',
+                      style: TextStyle(
+                        color: Color(0xFFEF4444),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => ref.invalidate(soccerLivescoresProvider),
-                    child: Icon(Icons.refresh_rounded,
-                      color: Colors.grey.shade400, size: 20),
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    Text(
+                      '${liveFixtures.length}경기',
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Icon(Icons.chevron_right,
+                      color: Colors.grey.shade400, size: 18),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => ref.invalidate(soccerLivescoresProvider),
+                      child: Icon(Icons.refresh_rounded,
+                        color: Colors.grey.shade400, size: 20),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 10),
               SizedBox(
