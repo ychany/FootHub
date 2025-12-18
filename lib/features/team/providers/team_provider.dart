@@ -76,3 +76,56 @@ final headToHeadProvider = FutureProvider.family<List<ApiFootballFixture>, (int,
   final service = ref.watch(_apiFootballServiceProvider);
   return service.getHeadToHead(teams.$1, teams.$2);
 });
+
+/// 팀 시즌 통계 Provider (리그별)
+final teamStatisticsProvider = FutureProvider.family<List<ApiFootballTeamSeasonStats>, String>((ref, teamId) async {
+  final service = ref.watch(_apiFootballServiceProvider);
+
+  // API-Football ID로 변환 시도
+  final apiTeamId = ApiFootballIds.convertTeamId(teamId) ?? int.tryParse(teamId);
+  if (apiTeamId == null) return [];
+
+  final season = LeagueIds.getCurrentSeason();
+
+  // 지원하는 주요 리그들에서 통계 조회 시도
+  final leagueIds = [
+    LeagueIds.kLeague1,
+    LeagueIds.kLeague2,
+    LeagueIds.premierLeague,
+    LeagueIds.laLiga,
+    LeagueIds.bundesliga,
+    LeagueIds.serieA,
+    LeagueIds.ligue1,
+    LeagueIds.championsLeague,
+    LeagueIds.europaLeague,
+  ];
+
+  final statsList = <ApiFootballTeamSeasonStats>[];
+
+  for (final leagueId in leagueIds) {
+    try {
+      final stats = await service.getTeamStatistics(apiTeamId, leagueId, season);
+      if (stats != null && stats.totalPlayed > 0) {
+        statsList.add(stats);
+      }
+    } catch (e) {
+      // 해당 리그에 참가하지 않으면 무시
+    }
+  }
+
+  // 이전 시즌도 시도 (현재 시즌에 데이터가 없는 경우)
+  if (statsList.isEmpty) {
+    for (final leagueId in leagueIds) {
+      try {
+        final stats = await service.getTeamStatistics(apiTeamId, leagueId, season - 1);
+        if (stats != null && stats.totalPlayed > 0) {
+          statsList.add(stats);
+        }
+      } catch (e) {
+        // 무시
+      }
+    }
+  }
+
+  return statsList;
+});
