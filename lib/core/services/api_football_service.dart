@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// API-Football 서비스
-/// API Key: 845ed01c6cbc3b264fd6cd78f8da9823 (Pro)
-/// Base URL: https://v3.football.api-sports.io
 /// 문서: https://www.api-football.com/documentation-v3
 class ApiFootballService {
-  static const String _baseUrl = 'https://v3.football.api-sports.io';
-  static const String _apiKey = '845ed01c6cbc3b264fd6cd78f8da9823';
+  static String get _baseUrl =>
+      dotenv.env['API_FOOTBALL_BASE_URL'] ?? 'https://v3.football.api-sports.io';
+  static String get _apiKey => dotenv.env['API_FOOTBALL_KEY'] ?? '';
 
   // 싱글톤 패턴
   static final ApiFootballService _instance = ApiFootballService._internal();

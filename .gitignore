@@ -58,3 +58,7 @@ macos/
 
 # DevTools
 devtools_options.yaml
+
+# Environment variables
+.env
+*.env.local
