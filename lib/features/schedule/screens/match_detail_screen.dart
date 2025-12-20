@@ -103,6 +103,42 @@ final matchPlayerStatsProvider =
   return service.getFixturePlayers(id);
 });
 
+// Provider for team standings (for comparison)
+final teamStandingsProvider =
+    FutureProvider.family<ApiFootballStanding?, ({int leagueId, int season, int teamId})>((ref, params) async {
+  final service = ApiFootballService();
+  final standings = await service.getStandings(params.leagueId, params.season);
+  // Find the team in standings
+  for (final standing in standings) {
+    if (standing.teamId == params.teamId) {
+      return standing;
+    }
+  }
+  return null;
+});
+
+// Provider for team recent form (last 5 matches)
+final teamRecentFormProvider =
+    FutureProvider.family<List<ApiFootballFixture>, int>((ref, teamId) async {
+  final service = ApiFootballService();
+  ref.watch(timezoneProvider);
+  return service.getTeamLastFixtures(teamId, count: 5);
+});
+
+// Provider for league top scorers (for player comparison)
+final leagueTopScorersProvider =
+    FutureProvider.family<List<ApiFootballTopScorer>, ({int leagueId, int season})>((ref, params) async {
+  final service = ApiFootballService();
+  return service.getTopScorers(params.leagueId, params.season);
+});
+
+// Provider for league top assists (for player comparison)
+final leagueTopAssistsProvider =
+    FutureProvider.family<List<ApiFootballTopScorer>, ({int leagueId, int season})>((ref, params) async {
+  final service = ApiFootballService();
+  return service.getTopAssists(params.leagueId, params.season);
+});
+
 class MatchDetailScreen extends ConsumerWidget {
   final String eventId;
 
@@ -182,7 +218,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _tabController.addListener(() {
       setState(() {});
     });
@@ -276,7 +312,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
 
     return Scaffold(
       backgroundColor: _background,
-      floatingActionButton: _tabController.index == 4
+      floatingActionButton: _tabController.index == 5
           ? null
           : FloatingActionButton.extended(
               onPressed: () => _addToDiary(context),
@@ -315,6 +351,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                   Tab(text: '예측'),
                   Tab(text: '라인업'),
                   Tab(text: '기록'),
+                  Tab(text: '비교'),
                   Tab(text: '전적'),
                   Tab(text: '댓글'),
                 ],
@@ -329,6 +366,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                   _PredictionTab(fixtureId: match.id.toString(), match: match),
                   _LineupTab(fixtureId: match.id.toString(), match: match),
                   _StatsAndTimelineTab(fixtureId: match.id.toString(), match: match),
+                  _ComparisonTab(match: match),
                   _H2HTab(match: match),
                   _CommentsTab(matchId: match.id.toString()),
                 ],
@@ -5153,6 +5191,968 @@ class _MatchNotificationDialogState extends ConsumerState<_MatchNotificationDial
         ),
       );
     }
+  }
+}
+
+// ============ Comparison Tab ============
+class _ComparisonTab extends ConsumerWidget {
+  final ApiFootballFixture match;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _success = Color(0xFF10B981);
+  static const _warning = Color(0xFFF59E0B);
+  static const _error = Color(0xFFEF4444);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _ComparisonTab({required this.match});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final leagueId = match.league.id;
+    final season = match.league.season ?? DateTime.now().year;
+    final homeTeamId = match.homeTeam.id;
+    final awayTeamId = match.awayTeam.id;
+
+    // Providers
+    final homeStandingAsync = ref.watch(teamStandingsProvider((
+      leagueId: leagueId,
+      season: season,
+      teamId: homeTeamId,
+    )));
+    final awayStandingAsync = ref.watch(teamStandingsProvider((
+      leagueId: leagueId,
+      season: season,
+      teamId: awayTeamId,
+    )));
+    final homeFormAsync = ref.watch(teamRecentFormProvider(homeTeamId));
+    final awayFormAsync = ref.watch(teamRecentFormProvider(awayTeamId));
+    final h2hAsync = ref.watch(matchH2HProvider((
+      homeTeamId: homeTeamId,
+      awayTeamId: awayTeamId,
+    )));
+    final topScorersAsync = ref.watch(leagueTopScorersProvider((
+      leagueId: leagueId,
+      season: season,
+    )));
+    final topAssistsAsync = ref.watch(leagueTopAssistsProvider((
+      leagueId: leagueId,
+      season: season,
+    )));
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // 1. 리그 순위 비교
+        _buildSectionHeader('리그 순위', Icons.emoji_events_outlined),
+        const SizedBox(height: 12),
+        _buildStandingsComparison(homeStandingAsync, awayStandingAsync),
+
+        const SizedBox(height: 24),
+
+        // 2. 홈/원정 성적 비교
+        _buildSectionHeader('홈/원정 성적', Icons.home_outlined),
+        const SizedBox(height: 12),
+        _buildHomeAwayComparison(homeStandingAsync, awayStandingAsync),
+
+        const SizedBox(height: 24),
+
+        // 3. 최근 폼 비교
+        _buildSectionHeader('최근 5경기', Icons.trending_up),
+        const SizedBox(height: 12),
+        _buildFormComparison(homeFormAsync, awayFormAsync, homeTeamId, awayTeamId),
+
+        const SizedBox(height: 24),
+
+        // 4. 득점/실점 통계
+        _buildSectionHeader('득점/실점 통계', Icons.sports_soccer),
+        const SizedBox(height: 12),
+        _buildGoalStatsComparison(homeStandingAsync, awayStandingAsync),
+
+        const SizedBox(height: 24),
+
+        // 5. 주요 선수 비교
+        _buildSectionHeader('주요 선수', Icons.person_outline),
+        const SizedBox(height: 12),
+        _buildTopPlayersComparison(topScorersAsync, topAssistsAsync, homeTeamId, awayTeamId),
+
+        const SizedBox(height: 24),
+
+        // 6. 상대전적 요약
+        _buildSectionHeader('상대전적 요약', Icons.compare_arrows),
+        const SizedBox(height: 12),
+        _buildH2HSummary(h2hAsync, homeTeamId, awayTeamId),
+
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: _primary),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: _textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 1. 리그 순위 비교
+  Widget _buildStandingsComparison(
+    AsyncValue<ApiFootballStanding?> homeAsync,
+    AsyncValue<ApiFootballStanding?> awayAsync,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        children: [
+          // 팀 이름 헤더
+          Row(
+            children: [
+              Expanded(
+                child: _buildTeamHeader(match.homeTeam.name, match.homeTeam.logo),
+              ),
+              const SizedBox(width: 16),
+              const Text('VS', style: TextStyle(color: _textSecondary, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildTeamHeader(match.awayTeam.name, match.awayTeam.logo, isAway: true),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+
+          // 순위 비교 행들
+          homeAsync.when(
+            data: (homeSt) => awayAsync.when(
+              data: (awaySt) {
+                if (homeSt == null && awaySt == null) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('순위 정보가 없습니다', style: TextStyle(color: _textSecondary)),
+                    ),
+                  );
+                }
+                return Column(
+                  children: [
+                    _buildCompareRow('순위', '${homeSt?.rank ?? '-'}위', '${awaySt?.rank ?? '-'}위',
+                        homeBetter: (homeSt?.rank ?? 99) < (awaySt?.rank ?? 99)),
+                    _buildCompareRow('승점', '${homeSt?.points ?? '-'}', '${awaySt?.points ?? '-'}',
+                        homeBetter: (homeSt?.points ?? 0) > (awaySt?.points ?? 0)),
+                    _buildCompareRow('경기', '${homeSt?.played ?? '-'}', '${awaySt?.played ?? '-'}'),
+                    _buildCompareRow(
+                      '승-무-패',
+                      '${homeSt?.win ?? 0}-${homeSt?.draw ?? 0}-${homeSt?.lose ?? 0}',
+                      '${awaySt?.win ?? 0}-${awaySt?.draw ?? 0}-${awaySt?.lose ?? 0}',
+                    ),
+                    _buildCompareRow('득점', '${homeSt?.goalsFor ?? '-'}', '${awaySt?.goalsFor ?? '-'}',
+                        homeBetter: (homeSt?.goalsFor ?? 0) > (awaySt?.goalsFor ?? 0)),
+                    _buildCompareRow('실점', '${homeSt?.goalsAgainst ?? '-'}', '${awaySt?.goalsAgainst ?? '-'}',
+                        homeBetter: (homeSt?.goalsAgainst ?? 99) < (awaySt?.goalsAgainst ?? 99)),
+                    _buildCompareRow('득실차', _formatGoalDiff(homeSt?.goalsDiff), _formatGoalDiff(awaySt?.goalsDiff),
+                        homeBetter: (homeSt?.goalsDiff ?? -99) > (awaySt?.goalsDiff ?? -99)),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => const Text('데이터 로드 실패', style: TextStyle(color: _textSecondary)),
+            ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, __) => const Text('데이터 로드 실패', style: TextStyle(color: _textSecondary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatGoalDiff(int? diff) {
+    if (diff == null) return '-';
+    return diff > 0 ? '+$diff' : '$diff';
+  }
+
+  Widget _buildTeamHeader(String name, String? logo, {bool isAway = false}) {
+    return Row(
+      mainAxisAlignment: isAway ? MainAxisAlignment.end : MainAxisAlignment.start,
+      children: [
+        if (!isAway && logo != null) ...[
+          CachedNetworkImage(
+            imageUrl: logo,
+            width: 28,
+            height: 28,
+            placeholder: (_, __) => const SizedBox(width: 28, height: 28),
+            errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 28),
+          ),
+          const SizedBox(width: 8),
+        ],
+        Flexible(
+          child: Text(
+            name,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: _textPrimary,
+            ),
+            overflow: TextOverflow.ellipsis,
+            textAlign: isAway ? TextAlign.end : TextAlign.start,
+          ),
+        ),
+        if (isAway && logo != null) ...[
+          const SizedBox(width: 8),
+          CachedNetworkImage(
+            imageUrl: logo,
+            width: 28,
+            height: 28,
+            placeholder: (_, __) => const SizedBox(width: 28, height: 28),
+            errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 28),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCompareRow(String label, String homeValue, String awayValue, {bool? homeBetter}) {
+    Color homeColor = _textPrimary;
+    Color awayColor = _textPrimary;
+
+    if (homeBetter != null) {
+      homeColor = homeBetter ? _success : _textSecondary;
+      awayColor = homeBetter ? _textSecondary : _success;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              homeValue,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: homeColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: _textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              awayValue,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: awayColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 2. 홈/원정 성적 비교
+  Widget _buildHomeAwayComparison(
+    AsyncValue<ApiFootballStanding?> homeAsync,
+    AsyncValue<ApiFootballStanding?> awayAsync,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: homeAsync.when(
+        data: (homeSt) => awayAsync.when(
+          data: (awaySt) {
+            if (homeSt == null && awaySt == null) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('성적 정보가 없습니다', style: TextStyle(color: _textSecondary)),
+                ),
+              );
+            }
+            return Column(
+              children: [
+                // 홈팀의 홈 성적 vs 원정팀의 원정 성적
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildRecordCard(
+                        '${match.homeTeam.name}\n홈 성적',
+                        homeSt?.homeWin ?? 0,
+                        homeSt?.homeDraw ?? 0,
+                        homeSt?.homeLose ?? 0,
+                        homeSt?.homeGoalsFor ?? 0,
+                        homeSt?.homeGoalsAgainst ?? 0,
+                        _primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildRecordCard(
+                        '${match.awayTeam.name}\n원정 성적',
+                        awaySt?.awayWin ?? 0,
+                        awaySt?.awayDraw ?? 0,
+                        awaySt?.awayLose ?? 0,
+                        awaySt?.awayGoalsFor ?? 0,
+                        awaySt?.awayGoalsAgainst ?? 0,
+                        _warning,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => const Text('데이터 로드 실패'),
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => const Text('데이터 로드 실패'),
+      ),
+    );
+  }
+
+  Widget _buildRecordCard(String title, int win, int draw, int lose, int gf, int ga, Color accentColor) {
+    final played = win + draw + lose;
+    final avgGf = played > 0 ? (gf / played).toStringAsFixed(1) : '0.0';
+    final avgGa = played > 0 ? (ga / played).toStringAsFixed(1) : '0.0';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: accentColor,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '$win승 $draw무 $lose패',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: _textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildStatMini('평균 득점', avgGf),
+              _buildStatMini('평균 실점', avgGa),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatMini(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: _textPrimary,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: _textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 3. 최근 폼 비교
+  Widget _buildFormComparison(
+    AsyncValue<List<ApiFootballFixture>> homeFormAsync,
+    AsyncValue<List<ApiFootballFixture>> awayFormAsync,
+    int homeTeamId,
+    int awayTeamId,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        children: [
+          // 홈팀 폼
+          homeFormAsync.when(
+            data: (fixtures) => _buildFormRow(match.homeTeam.name, fixtures, homeTeamId),
+            loading: () => const SizedBox(height: 40, child: Center(child: CircularProgressIndicator())),
+            error: (_, __) => const Text('로드 실패'),
+          ),
+          const SizedBox(height: 16),
+          // 원정팀 폼
+          awayFormAsync.when(
+            data: (fixtures) => _buildFormRow(match.awayTeam.name, fixtures, awayTeamId),
+            loading: () => const SizedBox(height: 40, child: Center(child: CircularProgressIndicator())),
+            error: (_, __) => const Text('로드 실패'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormRow(String teamName, List<ApiFootballFixture> fixtures, int teamId) {
+    final results = <String>[];
+    int wins = 0, draws = 0, losses = 0;
+
+    for (final f in fixtures.take(5)) {
+      final isHome = f.homeTeam.id == teamId;
+      final teamGoals = isHome ? (f.homeGoals ?? 0) : (f.awayGoals ?? 0);
+      final oppGoals = isHome ? (f.awayGoals ?? 0) : (f.homeGoals ?? 0);
+
+      if (teamGoals > oppGoals) {
+        results.add('W');
+        wins++;
+      } else if (teamGoals < oppGoals) {
+        results.add('L');
+        losses++;
+      } else {
+        results.add('D');
+        draws++;
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              teamName,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: _textPrimary,
+              ),
+            ),
+            Text(
+              '$wins승 $draws무 $losses패',
+              style: const TextStyle(
+                fontSize: 12,
+                color: _textSecondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: results.map((r) => _buildFormBadge(r)).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormBadge(String result) {
+    Color bgColor;
+    Color textColor = Colors.white;
+
+    switch (result) {
+      case 'W':
+        bgColor = _success;
+        break;
+      case 'L':
+        bgColor = _error;
+        break;
+      default:
+        bgColor = Colors.grey;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(right: 6),
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Center(
+        child: Text(
+          result,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 4. 득점/실점 통계
+  Widget _buildGoalStatsComparison(
+    AsyncValue<ApiFootballStanding?> homeAsync,
+    AsyncValue<ApiFootballStanding?> awayAsync,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: homeAsync.when(
+        data: (homeSt) => awayAsync.when(
+          data: (awaySt) {
+            if (homeSt == null && awaySt == null) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('통계 정보가 없습니다', style: TextStyle(color: _textSecondary)),
+                ),
+              );
+            }
+
+            final homePlayed = homeSt?.played ?? 1;
+            final awayPlayed = awaySt?.played ?? 1;
+            final homeAvgGf = ((homeSt?.goalsFor ?? 0) / homePlayed).toStringAsFixed(1);
+            final homeAvgGa = ((homeSt?.goalsAgainst ?? 0) / homePlayed).toStringAsFixed(1);
+            final awayAvgGf = ((awaySt?.goalsFor ?? 0) / awayPlayed).toStringAsFixed(1);
+            final awayAvgGa = ((awaySt?.goalsAgainst ?? 0) / awayPlayed).toStringAsFixed(1);
+
+            return Column(
+              children: [
+                _buildCompareRow('총 득점', '${homeSt?.goalsFor ?? 0}', '${awaySt?.goalsFor ?? 0}',
+                    homeBetter: (homeSt?.goalsFor ?? 0) > (awaySt?.goalsFor ?? 0)),
+                _buildCompareRow('총 실점', '${homeSt?.goalsAgainst ?? 0}', '${awaySt?.goalsAgainst ?? 0}',
+                    homeBetter: (homeSt?.goalsAgainst ?? 99) < (awaySt?.goalsAgainst ?? 99)),
+                _buildCompareRow('경기당 득점', homeAvgGf, awayAvgGf,
+                    homeBetter: double.parse(homeAvgGf) > double.parse(awayAvgGf)),
+                _buildCompareRow('경기당 실점', homeAvgGa, awayAvgGa,
+                    homeBetter: double.parse(homeAvgGa) < double.parse(awayAvgGa)),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => const Text('데이터 로드 실패'),
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => const Text('데이터 로드 실패'),
+      ),
+    );
+  }
+
+  // 5. 주요 선수 비교
+  Widget _buildTopPlayersComparison(
+    AsyncValue<List<ApiFootballTopScorer>> scorersAsync,
+    AsyncValue<List<ApiFootballTopScorer>> assistsAsync,
+    int homeTeamId,
+    int awayTeamId,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: scorersAsync.when(
+        data: (scorers) {
+          final homeScorer = scorers.where((s) => s.teamId == homeTeamId).toList();
+          final awayScorer = scorers.where((s) => s.teamId == awayTeamId).toList();
+
+          return assistsAsync.when(
+            data: (assists) {
+              final homeAssist = assists.where((a) => a.teamId == homeTeamId).toList();
+              final awayAssist = assists.where((a) => a.teamId == awayTeamId).toList();
+
+              if (homeScorer.isEmpty && awayScorer.isEmpty && homeAssist.isEmpty && awayAssist.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('선수 통계 정보가 없습니다', style: TextStyle(color: _textSecondary)),
+                  ),
+                );
+              }
+
+              return Column(
+                children: [
+                  // 득점 리더
+                  _buildPlayerCompareSection(
+                    '득점 리더',
+                    Icons.sports_soccer,
+                    homeScorer.isNotEmpty ? homeScorer.first : null,
+                    awayScorer.isNotEmpty ? awayScorer.first : null,
+                    (p) => '${p.goals ?? 0}골',
+                  ),
+                  const SizedBox(height: 16),
+                  // 도움 리더
+                  _buildPlayerCompareSection(
+                    '도움 리더',
+                    Icons.handshake_outlined,
+                    homeAssist.isNotEmpty ? homeAssist.first : null,
+                    awayAssist.isNotEmpty ? awayAssist.first : null,
+                    (p) => '${p.assists ?? 0}도움',
+                  ),
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, __) => const Text('도움 데이터 로드 실패'),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => const Center(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('선수 통계를 불러올 수 없습니다', style: TextStyle(color: _textSecondary)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlayerCompareSection(
+    String title,
+    IconData icon,
+    ApiFootballTopScorer? homePlayer,
+    ApiFootballTopScorer? awayPlayer,
+    String Function(ApiFootballTopScorer) statBuilder,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: _primary),
+            const SizedBox(width: 6),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _textSecondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _buildPlayerCard(homePlayer, statBuilder)),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: Text('vs', style: TextStyle(color: _textSecondary)),
+            ),
+            Expanded(child: _buildPlayerCard(awayPlayer, statBuilder, isAway: true)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlayerCard(ApiFootballTopScorer? player, String Function(ApiFootballTopScorer) statBuilder, {bool isAway = false}) {
+    if (player == null) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Center(
+          child: Text('-', style: TextStyle(color: _textSecondary)),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: isAway ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          if (!isAway && player.playerPhoto != null)
+            ClipOval(
+              child: CachedNetworkImage(
+                imageUrl: player.playerPhoto!,
+                width: 36,
+                height: 36,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(
+                  width: 36,
+                  height: 36,
+                  color: Colors.grey.shade200,
+                ),
+                errorWidget: (_, __, ___) => Container(
+                  width: 36,
+                  height: 36,
+                  color: Colors.grey.shade200,
+                  child: const Icon(Icons.person, size: 20),
+                ),
+              ),
+            ),
+          if (!isAway) const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: isAway ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                Text(
+                  player.playerName,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  statBuilder(player),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: _primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isAway) const SizedBox(width: 8),
+          if (isAway && player.playerPhoto != null)
+            ClipOval(
+              child: CachedNetworkImage(
+                imageUrl: player.playerPhoto!,
+                width: 36,
+                height: 36,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(
+                  width: 36,
+                  height: 36,
+                  color: Colors.grey.shade200,
+                ),
+                errorWidget: (_, __, ___) => Container(
+                  width: 36,
+                  height: 36,
+                  color: Colors.grey.shade200,
+                  child: const Icon(Icons.person, size: 20),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // 6. 상대전적 요약
+  Widget _buildH2HSummary(
+    AsyncValue<List<ApiFootballFixture>> h2hAsync,
+    int homeTeamId,
+    int awayTeamId,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: h2hAsync.when(
+        data: (fixtures) {
+          if (fixtures.isEmpty) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('상대전적 정보가 없습니다', style: TextStyle(color: _textSecondary)),
+              ),
+            );
+          }
+
+          int homeWins = 0, draws = 0, awayWins = 0;
+
+          // 최근 10경기만 사용
+          final recentFixtures = fixtures.take(10).toList();
+
+          for (final f in recentFixtures) {
+            final hGoals = f.homeGoals ?? 0;
+            final aGoals = f.awayGoals ?? 0;
+            final isHomeTeamHome = f.homeTeam.id == homeTeamId;
+
+            if (hGoals == aGoals) {
+              draws++;
+            } else if (hGoals > aGoals) {
+              if (isHomeTeamHome) {
+                homeWins++;
+              } else {
+                awayWins++;
+              }
+            } else {
+              if (isHomeTeamHome) {
+                awayWins++;
+              } else {
+                homeWins++;
+              }
+            }
+          }
+
+          final total = recentFixtures.length;
+
+          return Column(
+            children: [
+              Text(
+                '최근 $total경기 상대전적',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 승리 바
+              _buildH2HBar(homeWins, draws, awayWins, total),
+              const SizedBox(height: 16),
+              // 숫자 표시
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildH2HStat(match.homeTeam.name, homeWins, _primary),
+                  _buildH2HStat('무승부', draws, Colors.grey),
+                  _buildH2HStat(match.awayTeam.name, awayWins, _warning),
+                ],
+              ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => const Text('상대전적 로드 실패', style: TextStyle(color: _textSecondary)),
+      ),
+    );
+  }
+
+  Widget _buildH2HBar(int homeWins, int draws, int awayWins, int total) {
+    if (total == 0) return const SizedBox.shrink();
+
+    return Container(
+      height: 24,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.grey.shade200,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Row(
+          children: [
+            if (homeWins > 0)
+              Expanded(
+                flex: homeWins,
+                child: Container(
+                  color: _primary,
+                  child: Center(
+                    child: Text(
+                      '$homeWins',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+            if (draws > 0)
+              Expanded(
+                flex: draws,
+                child: Container(
+                  color: Colors.grey.shade400,
+                  child: Center(
+                    child: Text(
+                      '$draws',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+            if (awayWins > 0)
+              Expanded(
+                flex: awayWins,
+                child: Container(
+                  color: _warning,
+                  child: Center(
+                    child: Text(
+                      '$awayWins',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildH2HStat(String label, int value, Color color) {
+    return Column(
+      children: [
+        Text(
+          '$value승',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: _textSecondary,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
   }
 }
 
