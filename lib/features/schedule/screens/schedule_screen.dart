@@ -59,25 +59,33 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               _buildHeader(),
 
               Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      // 캘린더
-                      _buildCalendar(selectedDate),
+                child: RefreshIndicator(
+                  color: _primary,
+                  onRefresh: () async {
+                    ref.invalidate(filteredSchedulesProvider);
+                    ref.invalidate(scheduleLivescoresProvider);
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      children: [
+                        // 캘린더
+                        _buildCalendar(selectedDate),
 
-                      const SizedBox(height: 12),
+                        const SizedBox(height: 12),
 
-                      // 리그 필터
-                      _buildLeagueFilter(selectedLeague),
+                        // 리그 필터
+                        _buildLeagueFilter(selectedLeague),
 
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                      // 라이브 스코어
-                      _ScheduleLiveScoresSection(),
+                        // 라이브 스코어
+                        _ScheduleLiveScoresSection(),
 
-                      // 경기 목록
-                      _buildMatchList(schedulesAsync),
-                    ],
+                        // 경기 목록
+                        _buildMatchList(schedulesAsync),
+                      ],
+                    ),
                   ),
                 ),
               ),

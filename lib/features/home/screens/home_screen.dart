@@ -48,6 +48,8 @@ class HomeScreen extends ConsumerWidget {
               ref.invalidate(attendanceListProvider);
               ref.invalidate(favoriteTeamIdsProvider);
               ref.invalidate(soccerLivescoresProvider);
+              ref.invalidate(koreaNextMatchesProvider);
+              ref.invalidate(koreaPastMatchesProvider);
             },
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),

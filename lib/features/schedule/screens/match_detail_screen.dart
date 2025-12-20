@@ -194,6 +194,18 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
     super.dispose();
   }
 
+  void _refreshMatchData() {
+    final fixtureId = widget.match.id.toString();
+    ref.invalidate(matchDetailProvider(fixtureId));
+    ref.invalidate(matchLineupProvider(fixtureId));
+    ref.invalidate(matchStatsProvider(fixtureId));
+    ref.invalidate(matchTimelineProvider(fixtureId));
+    ref.invalidate(matchPredictionProvider(fixtureId));
+    ref.invalidate(matchOddsProvider(fixtureId));
+    ref.invalidate(matchPlayerStatsProvider(fixtureId));
+    ref.invalidate(matchInjuriesProvider(fixtureId));
+  }
+
   @override
   Widget build(BuildContext context) {
     final match = widget.match;
@@ -296,6 +308,11 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                     ),
                     textAlign: TextAlign.center,
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh, size: 22),
+                  color: _textSecondary,
+                  onPressed: () => _refreshMatchData(),
                 ),
                 _NotificationButton(matchId: match.id.toString(), match: match),
               ],
