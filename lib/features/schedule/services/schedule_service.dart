@@ -140,6 +140,7 @@ class ScheduleService {
       homeScore: fixture.homeGoals,
       awayScore: fixture.awayGoals,
       status: _convertStatus(fixture),
+      elapsed: fixture.status.elapsed, // 라이브 경기 경과 시간
     );
   }
 
