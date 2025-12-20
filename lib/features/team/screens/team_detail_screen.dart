@@ -1306,6 +1306,12 @@ class _LeagueStatsCard extends StatelessWidget {
                     goalsAgainst: stats.goals.goalsAgainstByMinute,
                   ),
                 ],
+
+                // 시즌 기록 (최다 승리, 최다 패배, 연승 기록)
+                if (stats.biggestWins != null || stats.biggestLoses != null || stats.biggestStreak != null) ...[
+                  const Divider(height: 24),
+                  _SeasonRecordsSection(stats: stats),
+                ],
               ],
             ),
           ),
@@ -1811,6 +1817,147 @@ class _GoalBar extends StatelessWidget {
               fontSize: 8,
               color: _textSecondary,
               height: 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 시즌 기록 섹션 (최다 승리/패배, 연승 기록)
+class _SeasonRecordsSection extends StatelessWidget {
+  final ApiFootballTeamSeasonStats stats;
+
+  static const _success = Color(0xFF10B981);
+  static const _error = Color(0xFFEF4444);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+
+  const _SeasonRecordsSection({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.emoji_events, size: 16, color: _textSecondary),
+            const SizedBox(width: 8),
+            Text(
+              '시즌 기록',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _textPrimary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // 연승 기록
+        if (stats.biggestStreak != null && stats.biggestStreak! > 0)
+          _RecordItem(
+            icon: Icons.local_fire_department,
+            label: '최다 연승',
+            value: '${stats.biggestStreak}연승',
+            color: _success,
+          ),
+
+        // 최다 득점 승리
+        if (stats.biggestWins != null) ...[
+          if (stats.biggestWins!.home != null)
+            _RecordItem(
+              icon: Icons.home,
+              label: '홈 최다 득점 승리',
+              value: stats.biggestWins!.home!,
+              color: _success,
+            ),
+          if (stats.biggestWins!.away != null)
+            _RecordItem(
+              icon: Icons.flight_takeoff,
+              label: '원정 최다 득점 승리',
+              value: stats.biggestWins!.away!,
+              color: _success,
+            ),
+        ],
+
+        // 최다 실점 패배
+        if (stats.biggestLoses != null) ...[
+          if (stats.biggestLoses!.home != null)
+            _RecordItem(
+              icon: Icons.home_outlined,
+              label: '홈 최다 실점 패배',
+              value: stats.biggestLoses!.home!,
+              color: _error,
+            ),
+          if (stats.biggestLoses!.away != null)
+            _RecordItem(
+              icon: Icons.flight_land,
+              label: '원정 최다 실점 패배',
+              value: stats.biggestLoses!.away!,
+              color: _error,
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _RecordItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  static const _textSecondary = Color(0xFF6B7280);
+
+  const _RecordItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 14, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: _textSecondary,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -3193,7 +3340,6 @@ class _TransferCard extends StatelessWidget {
   static const _error = Color(0xFFEF4444);
   static const _textPrimary = Color(0xFF111827);
   static const _textSecondary = Color(0xFF6B7280);
-  static const _border = Color(0xFFE5E7EB);
 
   const _TransferCard({required this.transfer});
 
