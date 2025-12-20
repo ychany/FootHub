@@ -55,16 +55,42 @@ class ScheduleService {
   }
 
   // Get schedules for a specific date (using API-Football)
+  // 한국시간 기준으로 해당 날짜의 경기를 반환
   Future<List<Match>> getSchedulesByDate(
     DateTime date, {
     List<String>? favoriteTeamIds,
   }) async {
     try {
-      // API-Football에서 경기 데이터 가져오기
-      final fixtures = await _apiService.getFixturesByDate(date);
+      // 한국시간 00:00~23:59 경기를 찾기 위해 UTC 기준 전날~당일 데이터 조회
+      // 한국시간 22일 00:00 = UTC 21일 15:00 이므로 전날 데이터도 필요
+      final prevDate = date.subtract(const Duration(days: 1));
+
+      final results = await Future.wait([
+        _apiService.getFixturesByDate(prevDate),
+        _apiService.getFixturesByDate(date),
+      ]);
+
+      final allFixtures = [...results[0], ...results[1]];
+
+      // 한국시간(dateKST) 기준으로 해당 날짜에 속하는 경기만 필터링
+      // 날짜만 비교 (년, 월, 일이 같은지 확인)
+      final targetYear = date.year;
+      final targetMonth = date.month;
+      final targetDay = date.day;
+
+      final filteredFixtures = allFixtures.where((fixture) {
+        final kstTime = fixture.dateKST;
+        return kstTime.year == targetYear &&
+               kstTime.month == targetMonth &&
+               kstTime.day == targetDay;
+      }).toList();
+
+      // 중복 제거 (같은 경기가 두 날짜에 걸쳐 조회될 수 있음)
+      final seen = <int>{};
+      final uniqueFixtures = filteredFixtures.where((f) => seen.add(f.id)).toList();
 
       // ApiFootballFixture를 Match로 변환
-      final matches = fixtures.map((fixture) => _convertFixtureToMatch(fixture)).toList();
+      final matches = uniqueFixtures.map((fixture) => _convertFixtureToMatch(fixture)).toList();
 
       if (favoriteTeamIds != null && favoriteTeamIds.isNotEmpty) {
         matches.sort((a, b) {
