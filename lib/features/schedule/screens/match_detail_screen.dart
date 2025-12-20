@@ -182,7 +182,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       setState(() {});
     });
@@ -206,13 +206,77 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
     ref.invalidate(matchInjuriesProvider(fixtureId));
   }
 
+  void _showMatchInfoModal(BuildContext context, ApiFootballFixture match) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // 핸들
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // 헤더
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      '경기 정보',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: _textPrimary,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // 컨텐츠
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(20),
+                  child: _InfoTab(match: match),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final match = widget.match;
 
     return Scaffold(
       backgroundColor: _background,
-      floatingActionButton: _tabController.index == 6
+      floatingActionButton: _tabController.index == 4
           ? null
           : FloatingActionButton.extended(
               onPressed: () => _addToDiary(context),
@@ -248,11 +312,9 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                   fontSize: 14,
                 ),
                 tabs: const [
-                  Tab(text: '정보'),
                   Tab(text: '예측'),
                   Tab(text: '라인업'),
                   Tab(text: '기록'),
-                  Tab(text: '중계'),
                   Tab(text: '전적'),
                   Tab(text: '댓글'),
                 ],
@@ -264,11 +326,9 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _InfoTab(match: match),
                   _PredictionTab(fixtureId: match.id.toString(), match: match),
                   _LineupTab(fixtureId: match.id.toString(), match: match),
-                  _StatsTab(fixtureId: match.id.toString(), match: match),
-                  _TimelineTab(fixtureId: match.id.toString(), match: match),
+                  _StatsAndTimelineTab(fixtureId: match.id.toString(), match: match),
                   _H2HTab(match: match),
                   _CommentsTab(matchId: match.id.toString()),
                 ],
@@ -313,6 +373,11 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                   icon: const Icon(Icons.refresh, size: 22),
                   color: _textSecondary,
                   onPressed: () => _refreshMatchData(),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.info_outline, size: 22),
+                  color: _textSecondary,
+                  onPressed: () => _showMatchInfoModal(context, match),
                 ),
                 _NotificationButton(matchId: match.id.toString(), match: match),
               ],
@@ -584,63 +649,63 @@ class _InfoTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return _buildContent();
+  }
+
+  /// 모달에서도 사용할 수 있도록 내부 컨텐츠를 별도 메서드로 분리
+  Widget _buildContent() {
+    return Container(
       padding: const EdgeInsets.all(16),
-      children: [
-        // Match Info Card
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.info_outline, color: _primary, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    '경기 정보',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: _textPrimary,
-                    ),
-                  ),
-                ],
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.info_outline, color: _primary, size: 20),
               ),
-              const SizedBox(height: 16),
-              _InfoRow(label: '리그', value: match.league.name),
-              _InfoRow(label: '시즌', value: '${match.league.season ?? '-'}'),
-              if (match.league.round != null && match.league.round!.isNotEmpty)
-                _InfoRow(label: '라운드', value: match.league.round!),
-              _InfoRow(
-                label: '날짜',
-                value: DateFormat('yyyy년 MM월 dd일 (E)', 'ko')
-                    .format(match.dateKST),
+              const SizedBox(width: 12),
+              const Text(
+                '경기 정보',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
+                ),
               ),
-              _InfoRow(
-                label: '시간',
-                value: DateFormat('HH:mm').format(match.dateKST),
-              ),
-              _InfoRow(label: '경기장', value: match.venue?.name ?? '-'),
-              _InfoRow(label: '상태', value: _getStatusText(match.status.short)),
-              if (match.referee != null)
-                _InfoRow(label: '주심', value: match.referee!),
             ],
           ),
-        ),
-      ],
+          const SizedBox(height: 16),
+          _InfoRow(label: '리그', value: match.league.name),
+          _InfoRow(label: '시즌', value: '${match.league.season ?? '-'}'),
+          if (match.league.round != null && match.league.round!.isNotEmpty)
+            _InfoRow(label: '라운드', value: match.league.round!),
+          _InfoRow(
+            label: '날짜',
+            value: DateFormat('yyyy년 MM월 dd일 (E)', 'ko')
+                .format(match.dateKST),
+          ),
+          _InfoRow(
+            label: '시간',
+            value: DateFormat('HH:mm').format(match.dateKST),
+          ),
+          _InfoRow(label: '경기장', value: match.venue?.name ?? '-'),
+          _InfoRow(label: '상태', value: _getStatusText(match.status.short)),
+          if (match.referee != null)
+            _InfoRow(label: '주심', value: match.referee!),
+        ],
+      ),
     );
   }
 
@@ -4167,7 +4232,8 @@ class _PlayerRow extends StatelessWidget {
 }
 
 // ============ Stats Tab ============
-class _StatsTab extends ConsumerWidget {
+/// 기록 + 중계 통합 탭
+class _StatsAndTimelineTab extends ConsumerWidget {
   final String fixtureId;
   final ApiFootballFixture match;
 
@@ -4175,156 +4241,248 @@ class _StatsTab extends ConsumerWidget {
   static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE5E7EB);
 
-  const _StatsTab({required this.fixtureId, required this.match});
+  const _StatsAndTimelineTab({required this.fixtureId, required this.match});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(matchStatsProvider(fixtureId));
+    final timelineAsync = ref.watch(matchTimelineProvider(fixtureId));
 
-    return statsAsync.when(
-      data: (statsList) {
-        if (statsList.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // 기록 섹션
+        _buildSectionHeader('기록', Icons.analytics_outlined),
+        const SizedBox(height: 12),
+        statsAsync.when(
+          data: (statsList) => _buildStatsContent(statsList),
+          loading: () => const SizedBox(
+            height: 100,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, _) => _buildErrorWidget('통계를 불러올 수 없습니다'),
+        ),
+
+        const SizedBox(height: 24),
+
+        // 중계 섹션
+        _buildSectionHeader('중계', Icons.timeline),
+        const SizedBox(height: 12),
+        timelineAsync.when(
+          data: (events) => _buildTimelineContent(events),
+          loading: () => const SizedBox(
+            height: 100,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, _) => _buildErrorWidget('타임라인을 불러올 수 없습니다'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: _textPrimary),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: _textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorWidget(String message) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Center(
+        child: Text(
+          message,
+          style: const TextStyle(color: _textSecondary, fontSize: 14),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsContent(List<ApiFootballTeamStats> statsList) {
+    if (statsList.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _border),
+        ),
+        child: const Center(
+          child: Text(
+            '통계 정보가 없습니다',
+            style: TextStyle(color: _textSecondary, fontSize: 14),
+          ),
+        ),
+      );
+    }
+
+    final homeStats = statsList.isNotEmpty ? statsList.first : null;
+    final awayStats = statsList.length > 1 ? statsList[1] : null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        children: [
+          // Team names header
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    shape: BoxShape.circle,
+                Expanded(
+                  child: Text(
+                    match.homeTeam.name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  child: Icon(Icons.analytics_outlined,
-                      size: 48, color: _textSecondary),
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  '통계 정보가 없습니다',
-                  style: TextStyle(
-                    color: _textSecondary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                const SizedBox(width: 60),
+                Expanded(
+                  child: Text(
+                    match.awayTeam.name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-          );
-        }
+          ),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
 
-        // API-Football returns stats per team
-        final homeStats = statsList.isNotEmpty ? statsList.first : null;
-        final awayStats = statsList.length > 1 ? statsList[1] : null;
-
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _border),
-              ),
-              child: Column(
-                children: [
-                  // Team names header
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            match.homeTeam.name,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: _textPrimary,
-                            ),
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 60),
-                        Expanded(
-                          child: Text(
-                            match.awayTeam.name,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: _textPrimary,
-                            ),
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  const SizedBox(height: 12),
-
-                  // Stats rows using API-Football format
-                  if (homeStats?.possession != null)
-                    _StatBar(
-                      label: '점유율',
-                      homeValue: _parsePercent(homeStats?.possession),
-                      awayValue: _parsePercent(awayStats?.possession),
-                      isPercentage: true,
-                    ),
-                  if (homeStats?.shotsTotal != null)
-                    _StatBar(
-                      label: '슈팅',
-                      homeValue: homeStats?.shotsTotal ?? 0,
-                      awayValue: awayStats?.shotsTotal ?? 0,
-                    ),
-                  if (homeStats?.shotsOnTarget != null)
-                    _StatBar(
-                      label: '유효 슈팅',
-                      homeValue: homeStats?.shotsOnTarget ?? 0,
-                      awayValue: awayStats?.shotsOnTarget ?? 0,
-                    ),
-                  if (homeStats?.corners != null)
-                    _StatBar(
-                      label: '코너킥',
-                      homeValue: homeStats?.corners ?? 0,
-                      awayValue: awayStats?.corners ?? 0,
-                    ),
-                  if (homeStats?.fouls != null)
-                    _StatBar(
-                      label: '파울',
-                      homeValue: homeStats?.fouls ?? 0,
-                      awayValue: awayStats?.fouls ?? 0,
-                    ),
-                  if (homeStats?.offsides != null)
-                    _StatBar(
-                      label: '오프사이드',
-                      homeValue: homeStats?.offsides ?? 0,
-                      awayValue: awayStats?.offsides ?? 0,
-                    ),
-                  if (homeStats?.yellowCards != null)
-                    _StatBar(
-                      label: '경고',
-                      homeValue: homeStats?.yellowCards ?? 0,
-                      awayValue: awayStats?.yellowCards ?? 0,
-                      color: Colors.amber,
-                    ),
-                  if (homeStats?.redCards != null)
-                    _StatBar(
-                      label: '퇴장',
-                      homeValue: homeStats?.redCards ?? 0,
-                      awayValue: awayStats?.redCards ?? 0,
-                      color: Colors.red,
-                    ),
-                ],
-              ),
+          // Stats rows
+          if (homeStats?.possession != null)
+            _StatBar(
+              label: '점유율',
+              homeValue: _parsePercent(homeStats?.possession),
+              awayValue: _parsePercent(awayStats?.possession),
+              isPercentage: true,
             ),
-          ],
-        );
-      },
-      loading: () => const LoadingIndicator(),
-      error: (e, _) => Center(
-        child: Text('오류: $e', style: const TextStyle(color: _textSecondary)),
+          if (homeStats?.shotsTotal != null)
+            _StatBar(
+              label: '슈팅',
+              homeValue: homeStats?.shotsTotal ?? 0,
+              awayValue: awayStats?.shotsTotal ?? 0,
+            ),
+          if (homeStats?.shotsOnTarget != null)
+            _StatBar(
+              label: '유효 슈팅',
+              homeValue: homeStats?.shotsOnTarget ?? 0,
+              awayValue: awayStats?.shotsOnTarget ?? 0,
+            ),
+          if (homeStats?.corners != null)
+            _StatBar(
+              label: '코너킥',
+              homeValue: homeStats?.corners ?? 0,
+              awayValue: awayStats?.corners ?? 0,
+            ),
+          if (homeStats?.fouls != null)
+            _StatBar(
+              label: '파울',
+              homeValue: homeStats?.fouls ?? 0,
+              awayValue: awayStats?.fouls ?? 0,
+            ),
+          if (homeStats?.offsides != null)
+            _StatBar(
+              label: '오프사이드',
+              homeValue: homeStats?.offsides ?? 0,
+              awayValue: awayStats?.offsides ?? 0,
+            ),
+          if (homeStats?.yellowCards != null)
+            _StatBar(
+              label: '경고',
+              homeValue: homeStats?.yellowCards ?? 0,
+              awayValue: awayStats?.yellowCards ?? 0,
+              color: Colors.amber,
+            ),
+          if (homeStats?.redCards != null)
+            _StatBar(
+              label: '퇴장',
+              homeValue: homeStats?.redCards ?? 0,
+              awayValue: awayStats?.redCards ?? 0,
+              color: Colors.red,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimelineContent(List<ApiFootballEvent> events) {
+    if (events.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _border),
+        ),
+        child: const Center(
+          child: Text(
+            '타임라인 정보가 없습니다',
+            style: TextStyle(color: _textSecondary, fontSize: 14),
+          ),
+        ),
+      );
+    }
+
+    // 시간순 정렬
+    final sortedEvents = List<ApiFootballEvent>.from(events)
+      ..sort((a, b) {
+        final aTime = a.elapsed ?? 0;
+        final bTime = b.elapsed ?? 0;
+        return aTime.compareTo(bTime);
+      });
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        children: List.generate(sortedEvents.length, (index) {
+          final event = sortedEvents[index];
+          final isFirst = index == 0;
+          final isLast = index == sortedEvents.length - 1;
+          final isHome = event.teamId == match.homeTeam.id;
+          return _TimelineItem(
+            event: event,
+            isFirst: isFirst,
+            isLast: isLast,
+            isHome: isHome,
+          );
+        }),
       ),
     );
   }
@@ -4423,84 +4581,6 @@ class _StatBar extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ============ Timeline Tab ============
-class _TimelineTab extends ConsumerWidget {
-  final String fixtureId;
-  final ApiFootballFixture match;
-
-  static const _textSecondary = Color(0xFF6B7280);
-
-  const _TimelineTab({required this.fixtureId, required this.match});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final timelineAsync = ref.watch(matchTimelineProvider(fixtureId));
-
-    return timelineAsync.when(
-      data: (events) {
-        if (events.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.timeline, size: 48, color: _textSecondary),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  '타임라인 정보가 없습니다',
-                  style: TextStyle(
-                    color: _textSecondary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        // 시간순 정렬
-        final sortedEvents = List<ApiFootballEvent>.from(events)
-          ..sort((a, b) {
-            final aTime = a.elapsed ?? 0;
-            final bTime = b.elapsed ?? 0;
-            return aTime.compareTo(bTime);
-          });
-
-        return Container(
-          color: Colors.white,
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            itemCount: sortedEvents.length,
-            itemBuilder: (context, index) {
-              final event = sortedEvents[index];
-              final isFirst = index == 0;
-              final isLast = index == sortedEvents.length - 1;
-              final isHome = event.teamId == match.homeTeam.id;
-              return _TimelineItem(
-                event: event,
-                isFirst: isFirst,
-                isLast: isLast,
-                isHome: isHome,
-              );
-            },
-          ),
-        );
-      },
-      loading: () => const LoadingIndicator(),
-      error: (e, _) => Center(
-        child: Text('오류: $e', style: const TextStyle(color: _textSecondary)),
       ),
     );
   }
