@@ -1,9 +1,11 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../../core/services/api_football_service.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../providers/schedule_provider.dart';
@@ -137,6 +139,13 @@ final leagueTopAssistsProvider =
     FutureProvider.family<List<ApiFootballTopScorer>, ({int leagueId, int season})>((ref, params) async {
   final service = ApiFootballService();
   return service.getTopAssists(params.leagueId, params.season);
+});
+
+// Provider for team season statistics (for radar chart)
+final teamSeasonStatsProvider =
+    FutureProvider.family<ApiFootballTeamSeasonStats?, ({int teamId, int leagueId, int season})>((ref, params) async {
+  final service = ApiFootballService();
+  return service.getTeamStatistics(params.teamId, params.leagueId, params.season);
 });
 
 class MatchDetailScreen extends ConsumerWidget {
@@ -348,11 +357,11 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                   fontSize: 14,
                 ),
                 tabs: const [
-                  Tab(text: '예측'),
-                  Tab(text: '라인업'),
-                  Tab(text: '기록'),
                   Tab(text: '비교'),
                   Tab(text: '전적'),
+                  Tab(text: '기록'),
+                  Tab(text: '라인업'),
+                  Tab(text: '예측'),
                   Tab(text: '댓글'),
                 ],
               ),
@@ -363,11 +372,11 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _PredictionTab(fixtureId: match.id.toString(), match: match),
-                  _LineupTab(fixtureId: match.id.toString(), match: match),
-                  _StatsAndTimelineTab(fixtureId: match.id.toString(), match: match),
                   _ComparisonTab(match: match),
                   _H2HTab(match: match),
+                  _StatsAndTimelineTab(fixtureId: match.id.toString(), match: match),
+                  _LineupTab(fixtureId: match.id.toString(), match: match),
+                  _PredictionTab(fixtureId: match.id.toString(), match: match),
                   _CommentsTab(matchId: match.id.toString()),
                 ],
               ),
@@ -5240,6 +5249,16 @@ class _ComparisonTab extends ConsumerWidget {
       leagueId: leagueId,
       season: season,
     )));
+    final homeSeasonStatsAsync = ref.watch(teamSeasonStatsProvider((
+      teamId: homeTeamId,
+      leagueId: leagueId,
+      season: season,
+    )));
+    final awaySeasonStatsAsync = ref.watch(teamSeasonStatsProvider((
+      teamId: awayTeamId,
+      leagueId: leagueId,
+      season: season,
+    )));
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -5272,14 +5291,21 @@ class _ComparisonTab extends ConsumerWidget {
 
         const SizedBox(height: 24),
 
-        // 5. 주요 선수 비교
+        // 5. 팀 스타일 비교 (레이더 차트)
+        _buildSectionHeader('팀 스타일 비교', Icons.radar),
+        const SizedBox(height: 12),
+        _buildRadarChartComparison(homeSeasonStatsAsync, awaySeasonStatsAsync),
+
+        const SizedBox(height: 24),
+
+        // 6. 주요 선수 비교
         _buildSectionHeader('주요 선수', Icons.person_outline),
         const SizedBox(height: 12),
         _buildTopPlayersComparison(topScorersAsync, topAssistsAsync, homeTeamId, awayTeamId),
 
         const SizedBox(height: 24),
 
-        // 6. 상대전적 요약
+        // 7. 상대전적 요약
         _buildSectionHeader('상대전적 요약', Icons.compare_arrows),
         const SizedBox(height: 12),
         _buildH2HSummary(h2hAsync, homeTeamId, awayTeamId),
@@ -5988,7 +6014,228 @@ class _ComparisonTab extends ConsumerWidget {
     );
   }
 
-  // 6. 상대전적 요약
+  // 5. 팀 스타일 비교 (레이더 차트)
+  Widget _buildRadarChartComparison(
+    AsyncValue<ApiFootballTeamSeasonStats?> homeStatsAsync,
+    AsyncValue<ApiFootballTeamSeasonStats?> awayStatsAsync,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: homeStatsAsync.when(
+        data: (homeStats) => awayStatsAsync.when(
+          data: (awayStats) {
+            if (homeStats == null && awayStats == null) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('시즌 통계 정보가 없습니다', style: TextStyle(color: _textSecondary)),
+                ),
+              );
+            }
+
+            // 레이더 차트 데이터 계산 (0-100 스케일로 정규화)
+            final homeData = _calculateRadarData(homeStats);
+            final awayData = _calculateRadarData(awayStats);
+
+            return Column(
+              children: [
+                // 범례
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildLegendItem(match.homeTeam.name, const Color(0xFF2563EB)),
+                    const SizedBox(width: 24),
+                    _buildLegendItem(match.awayTeam.name, const Color(0xFFEF4444)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // 레이더 차트
+                SizedBox(
+                  height: 280,
+                  child: RadarChart(
+                    RadarChartData(
+                      dataSets: [
+                        RadarDataSet(
+                          dataEntries: homeData.map((e) => RadarEntry(value: e)).toList(),
+                          fillColor: const Color(0xFF2563EB).withOpacity(0.2),
+                          borderColor: const Color(0xFF2563EB),
+                          borderWidth: 2,
+                          entryRadius: 3,
+                        ),
+                        RadarDataSet(
+                          dataEntries: awayData.map((e) => RadarEntry(value: e)).toList(),
+                          fillColor: const Color(0xFFEF4444).withOpacity(0.2),
+                          borderColor: const Color(0xFFEF4444),
+                          borderWidth: 2,
+                          entryRadius: 3,
+                        ),
+                      ],
+                      radarBackgroundColor: Colors.transparent,
+                      borderData: FlBorderData(show: false),
+                      radarBorderData: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
+                      titlePositionPercentageOffset: 0.2,
+                      titleTextStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: _textPrimary,
+                      ),
+                      getTitle: (index, angle) {
+                        const titles = ['승률', '공격력', '수비력', '클린시트', '홈 성적'];
+                        return RadarChartTitle(
+                          text: titles[index],
+                          angle: 0,
+                        );
+                      },
+                      tickCount: 4,
+                      ticksTextStyle: const TextStyle(
+                        fontSize: 10,
+                        color: _textSecondary,
+                      ),
+                      tickBorderData: const BorderSide(color: Color(0xFFE5E7EB), width: 0.5),
+                      gridBorderData: const BorderSide(color: Color(0xFFE5E7EB), width: 0.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // 상세 수치
+                _buildRadarStatsDetail(homeStats, awayStats),
+              ],
+            );
+          },
+          loading: () => const Center(child: Padding(
+            padding: EdgeInsets.all(32),
+            child: CircularProgressIndicator(),
+          )),
+          error: (_, __) => const Text('데이터 로드 실패', style: TextStyle(color: _textSecondary)),
+        ),
+        loading: () => const Center(child: Padding(
+          padding: EdgeInsets.all(32),
+          child: CircularProgressIndicator(),
+        )),
+        error: (_, __) => const Text('데이터 로드 실패', style: TextStyle(color: _textSecondary)),
+      ),
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.3),
+            border: Border.all(color: color, width: 2),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label.length > 10 ? '${label.substring(0, 10)}...' : label,
+          style: const TextStyle(fontSize: 12, color: _textPrimary),
+        ),
+      ],
+    );
+  }
+
+  List<double> _calculateRadarData(ApiFootballTeamSeasonStats? stats) {
+    if (stats == null) return [0, 0, 0, 0, 0];
+
+    final totalPlayed = stats.fixtures.played.total;
+    if (totalPlayed == 0) return [0, 0, 0, 0, 0];
+
+    // 1. 승률 (0-100)
+    final winRate = (stats.fixtures.wins.total / totalPlayed) * 100;
+
+    // 2. 공격력 (평균 득점 * 33, 최대 100) - 경기당 3골 이상이면 100
+    final avgGoals = stats.goals.goalsFor.total / totalPlayed;
+    final attackPower = math.min(avgGoals * 33, 100.0);
+
+    // 3. 수비력 (100 - 평균 실점 * 33) - 실점이 적을수록 높음
+    final avgConceded = stats.goals.goalsAgainst.total / totalPlayed;
+    final defensePower = math.max(100 - (avgConceded * 33), 0.0);
+
+    // 4. 클린시트 비율 (0-100)
+    final cleanSheetRate = (stats.cleanSheet.total / totalPlayed) * 100;
+
+    // 5. 홈 성적 (홈 승률 0-100)
+    final homePlayed = stats.fixtures.played.home;
+    final homeWinRate = homePlayed > 0
+        ? (stats.fixtures.wins.home / homePlayed) * 100
+        : 0.0;
+
+    return [winRate, attackPower, defensePower, cleanSheetRate, homeWinRate];
+  }
+
+  Widget _buildRadarStatsDetail(
+    ApiFootballTeamSeasonStats? homeStats,
+    ApiFootballTeamSeasonStats? awayStats,
+  ) {
+    final homePlayed = homeStats?.fixtures.played.total ?? 0;
+    final awayPlayed = awayStats?.fixtures.played.total ?? 0;
+
+    return Column(
+      children: [
+        const Divider(height: 24),
+        _buildCompareRow(
+          '승률',
+          homePlayed > 0
+              ? '${((homeStats!.fixtures.wins.total / homePlayed) * 100).toStringAsFixed(1)}%'
+              : '-',
+          awayPlayed > 0
+              ? '${((awayStats!.fixtures.wins.total / awayPlayed) * 100).toStringAsFixed(1)}%'
+              : '-',
+          homeBetter: homePlayed > 0 && awayPlayed > 0
+              ? (homeStats!.fixtures.wins.total / homePlayed) > (awayStats!.fixtures.wins.total / awayPlayed)
+              : null,
+        ),
+        _buildCompareRow(
+          '평균 득점',
+          homePlayed > 0
+              ? (homeStats!.goals.goalsFor.total / homePlayed).toStringAsFixed(2)
+              : '-',
+          awayPlayed > 0
+              ? (awayStats!.goals.goalsFor.total / awayPlayed).toStringAsFixed(2)
+              : '-',
+          homeBetter: homePlayed > 0 && awayPlayed > 0
+              ? (homeStats!.goals.goalsFor.total / homePlayed) > (awayStats!.goals.goalsFor.total / awayPlayed)
+              : null,
+        ),
+        _buildCompareRow(
+          '평균 실점',
+          homePlayed > 0
+              ? (homeStats!.goals.goalsAgainst.total / homePlayed).toStringAsFixed(2)
+              : '-',
+          awayPlayed > 0
+              ? (awayStats!.goals.goalsAgainst.total / awayPlayed).toStringAsFixed(2)
+              : '-',
+          homeBetter: homePlayed > 0 && awayPlayed > 0
+              ? (homeStats!.goals.goalsAgainst.total / homePlayed) < (awayStats!.goals.goalsAgainst.total / awayPlayed)
+              : null,
+        ),
+        _buildCompareRow(
+          '클린시트',
+          '${homeStats?.cleanSheet.total ?? 0}회',
+          '${awayStats?.cleanSheet.total ?? 0}회',
+          homeBetter: (homeStats?.cleanSheet.total ?? 0) > (awayStats?.cleanSheet.total ?? 0),
+        ),
+        _buildCompareRow(
+          '무득점 경기',
+          '${homeStats?.failedToScore.total ?? 0}회',
+          '${awayStats?.failedToScore.total ?? 0}회',
+          homeBetter: (homeStats?.failedToScore.total ?? 0) < (awayStats?.failedToScore.total ?? 0),
+        ),
+      ],
+    );
+  }
+
+  // 7. 상대전적 요약
   Widget _buildH2HSummary(
     AsyncValue<List<ApiFootballFixture>> h2hAsync,
     int homeTeamId,

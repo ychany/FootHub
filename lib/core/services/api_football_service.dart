@@ -107,6 +107,18 @@ class ApiFootballService {
         .toList();
   }
 
+  /// 팀이 참가하는 리그 목록 조회
+  Future<List<ApiFootballTeamLeague>> getTeamLeagues(int teamId, {int? season}) async {
+    final currentSeason = season ?? DateTime.now().year;
+    final endpoint = 'leagues?team=$teamId&season=$currentSeason';
+    final data = await _get(endpoint);
+    if (data == null || data['response'] == null) return [];
+
+    return (data['response'] as List)
+        .map((json) => ApiFootballTeamLeague.fromJson(json))
+        .toList();
+  }
+
   // ============ 경기장 ============
 
   /// 경기장 ID로 조회
@@ -658,6 +670,53 @@ class ApiFootballLeague {
 }
 
 /// 팀 모델
+/// 팀이 참가하는 리그 정보
+class ApiFootballTeamLeague {
+  final int id;
+  final String name;
+  final String type; // "League", "Cup" 등
+  final String? logo;
+  final String? country;
+  final String? countryCode;
+  final String? countryFlag;
+  final int season;
+
+  ApiFootballTeamLeague({
+    required this.id,
+    required this.name,
+    required this.type,
+    this.logo,
+    this.country,
+    this.countryCode,
+    this.countryFlag,
+    required this.season,
+  });
+
+  factory ApiFootballTeamLeague.fromJson(Map<String, dynamic> json) {
+    final league = json['league'] ?? {};
+    final country = json['country'] ?? {};
+    final seasons = json['seasons'] as List?;
+    final currentSeason = seasons?.isNotEmpty == true ? seasons!.last : {};
+
+    return ApiFootballTeamLeague(
+      id: league['id'] ?? 0,
+      name: league['name'] ?? '',
+      type: league['type'] ?? '',
+      logo: league['logo'],
+      country: country['name'],
+      countryCode: country['code'],
+      countryFlag: country['flag'],
+      season: currentSeason['year'] ?? DateTime.now().year,
+    );
+  }
+
+  /// 국내 리그인지 확인 (Cup이 아닌 League 타입)
+  bool get isDomesticLeague => type == 'League';
+
+  /// 컵 대회인지 확인
+  bool get isCup => type == 'Cup';
+}
+
 class ApiFootballTeam {
   final int id;
   final String name;
