@@ -112,6 +112,27 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           ),
           Row(
             children: [
+              // 새로고침 버튼
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    ref.invalidate(filteredSchedulesProvider);
+                    ref.invalidate(scheduleLivescoresProvider);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _border),
+                    ),
+                    child: Icon(Icons.refresh, size: 20, color: _primary),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               // 달력 선택 버튼
               Material(
                 color: Colors.transparent,
