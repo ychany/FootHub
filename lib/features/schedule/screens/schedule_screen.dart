@@ -393,6 +393,8 @@ class _LeagueMatchGroup extends StatelessWidget {
     required this.matches,
   });
 
+  int? get _leagueId => matches.isNotEmpty ? matches.first.leagueId : null;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -405,36 +407,45 @@ class _LeagueMatchGroup extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 리그 헤더
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-            ),
-            child: Row(
-              children: [
-                // 리그 로고 (첫 번째 경기에서 가져옴)
-                if (matches.isNotEmpty && matches.first.homeTeamLogo != null)
-                  _buildLeagueLogo(matches.first),
-                Expanded(
-                  child: Text(
-                    _getLeagueDisplayName(leagueName),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: _textPrimary,
+          // 리그 헤더 (탭하면 리그 경기 목록으로 이동)
+          GestureDetector(
+            onTap: () {
+              if (_leagueId != null) {
+                context.push('/league/$_leagueId/fixtures');
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+              ),
+              child: Row(
+                children: [
+                  // 리그 로고 (첫 번째 경기에서 가져옴)
+                  if (matches.isNotEmpty && matches.first.homeTeamLogo != null)
+                    _buildLeagueLogo(matches.first),
+                  Expanded(
+                    child: Text(
+                      _getLeagueDisplayName(leagueName),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _textPrimary,
+                      ),
                     ),
                   ),
-                ),
-                Text(
-                  '${matches.length}경기',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: _textSecondary,
+                  Text(
+                    '${matches.length}경기',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: _textSecondary,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  Icon(Icons.chevron_right, size: 16, color: _textSecondary),
+                ],
+              ),
             ),
           ),
           // 경기 목록
@@ -589,8 +600,30 @@ class _ScheduleMatchCard extends ConsumerWidget {
                       ),
                       const SizedBox(width: 6),
                     ],
-                    // 라이브 경기면 경과 시간, 아니면 킥오프 시간 표시
-                    if (match.isLive)
+                    // 킥오프 시간 (항상 표시, 라이브면 빨간색)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: match.isLive
+                            ? _error.withValues(alpha: 0.1)
+                            : _primaryLight,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        DateFormat('HH:mm').format(match.kickoff),
+                        style: TextStyle(
+                          color: match.isLive ? _error : _primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    // 라이브 경기면 경과 시간 추가 표시
+                    if (match.isLive) ...[
+                      const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -622,26 +655,8 @@ class _ScheduleMatchCard extends ConsumerWidget {
                             ),
                           ],
                         ),
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _primaryLight,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          DateFormat('HH:mm').format(match.kickoff),
-                          style: const TextStyle(
-                            color: _primary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
                       ),
+                    ],
                     // 경기 종료 시 "종료" 배지 추가
                     if (match.isFinished) ...[
                       const SizedBox(width: 6),
