@@ -109,14 +109,24 @@ class _LeagueFixturesScreenState extends ConsumerState<LeagueFixturesScreen> {
     );
   }
 
-  /// 가장 최근에 종료된 경기 찾기
-  ApiFootballFixture? _findLastFinishedFixture(List<ApiFootballFixture> fixtures) {
-    final finishedFixtures = fixtures.where((f) => f.isFinished).toList();
-    if (finishedFixtures.isEmpty) return null;
+  /// 오늘과 가장 가까운 경기 찾기
+  ApiFootballFixture? _findClosestFixture(List<ApiFootballFixture> fixtures) {
+    if (fixtures.isEmpty) return null;
 
-    // 날짜순 정렬 후 가장 최근 경기 반환
-    finishedFixtures.sort((a, b) => b.date.compareTo(a.date));
-    return finishedFixtures.first;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // 오늘 날짜와의 차이로 정렬
+    final sorted = List<ApiFootballFixture>.from(fixtures);
+    sorted.sort((a, b) {
+      final aDate = DateTime(a.date.year, a.date.month, a.date.day);
+      final bDate = DateTime(b.date.year, b.date.month, b.date.day);
+      final aDiff = (aDate.difference(today).inDays).abs();
+      final bDiff = (bDate.difference(today).inDays).abs();
+      return aDiff.compareTo(bDiff);
+    });
+
+    return sorted.first;
   }
 
   int _extractRoundNumber(String round) {
@@ -187,15 +197,15 @@ class _LeagueFixturesScreenState extends ConsumerState<LeagueFixturesScreen> {
       fixtureList.sort((a, b) => a.date.compareTo(b.date));
     }
 
-    // 가장 최근 종료된 경기 찾기
-    final lastFinishedFixture = _findLastFinishedFixture(fixtures);
-    if (lastFinishedFixture != null) {
-      _fixtureKeys.putIfAbsent(lastFinishedFixture.id, () => GlobalKey());
+    // 오늘과 가장 가까운 경기 찾기
+    final closestFixture = _findClosestFixture(fixtures);
+    if (closestFixture != null) {
+      _fixtureKeys.putIfAbsent(closestFixture.id, () => GlobalKey());
     }
 
-    // 최근 종료 경기로 스크롤
+    // 가장 가까운 경기로 스크롤
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToLastFinished(lastFinishedFixture?.id);
+      _scrollToClosestFixture(closestFixture?.id);
     });
 
     return SingleChildScrollView(
@@ -311,7 +321,7 @@ class _LeagueFixturesScreenState extends ConsumerState<LeagueFixturesScreen> {
     );
   }
 
-  void _scrollToLastFinished(int? fixtureId) {
+  void _scrollToClosestFixture(int? fixtureId) {
     if (_hasScrolled || fixtureId == null) return;
 
     if (_fixtureKeys[fixtureId]?.currentContext != null) {
