@@ -204,8 +204,12 @@ final scheduleNotifierProvider =
   return ScheduleNotifier(service, ref);
 });
 
-// League Filter Provider (기본값: EPL)
-final selectedLeagueProvider = StateProvider<String?>((ref) => 'English Premier League');
+// League Filter Provider (기본값: 주요 - 5대 리그)
+// null = 전체, 'major' = 주요(5대리그), 그 외 = 특정 리그
+final selectedLeagueProvider = StateProvider<String?>((ref) => 'major');
+
+// 5대 리그 ID 목록
+const majorLeagueIds = [39, 140, 135, 78, 61]; // EPL, 라리가, 세리에A, 분데스, 리그1
 
 // Filtered Schedules Provider
 final filteredSchedulesProvider = FutureProvider<List<Match>>((ref) async {
@@ -221,8 +225,11 @@ final filteredSchedulesProvider = FutureProvider<List<Match>>((ref) async {
     favoriteTeamIds: favoriteTeamIds,
   );
 
-  if (selectedLeague != null) {
-    // 리그 ID로 필터링 (가장 정확한 방법)
+  if (selectedLeague == 'major') {
+    // 주요: 5대 리그만 필터링
+    matches = matches.where((m) => majorLeagueIds.contains(m.leagueId)).toList();
+  } else if (selectedLeague != null) {
+    // 특정 리그 필터링
     final targetLeagueId = AppConstants.getLeagueIdByName(selectedLeague);
 
     if (targetLeagueId != null) {
@@ -235,6 +242,7 @@ final filteredSchedulesProvider = FutureProvider<List<Match>>((ref) async {
       }).toList();
     }
   }
+  // selectedLeague == null 이면 전체 (필터링 없음)
 
   // 시간순 정렬 (빠른 시간이 먼저)
   matches.sort((a, b) => a.kickoff.compareTo(b.kickoff));

@@ -6,19 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/services/api_football_service.dart';
 import '../../../shared/models/match_model.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../providers/schedule_provider.dart';
 import '../../diary/providers/diary_provider.dart';
-
-/// 축구 라이브스코어 Provider (API-Football)
-final scheduleLivescoresProvider =
-    FutureProvider<List<ApiFootballFixture>>((ref) async {
-  final service = ApiFootballService();
-  return service.getLiveFixtures();
-});
 
 class ScheduleScreen extends ConsumerStatefulWidget {
   const ScheduleScreen({super.key});
@@ -63,7 +55,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   color: _primary,
                   onRefresh: () async {
                     ref.invalidate(filteredSchedulesProvider);
-                    ref.invalidate(scheduleLivescoresProvider);
                   },
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -78,9 +69,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                         _buildLeagueFilter(selectedLeague),
 
                         const SizedBox(height: 16),
-
-                        // 라이브 스코어
-                        _ScheduleLiveScoresSection(),
 
                         // 경기 목록
                         _buildMatchList(schedulesAsync),
@@ -118,7 +106,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 child: InkWell(
                   onTap: () {
                     ref.invalidate(filteredSchedulesProvider);
-                    ref.invalidate(scheduleLivescoresProvider);
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
@@ -295,13 +282,15 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
+          // 주요 (5대 리그)
           _LeagueChip(
-            label: '전체',
-            isSelected: selectedLeague == null,
+            label: '주요',
+            isSelected: selectedLeague == 'major',
             onTap: () {
-              ref.read(selectedLeagueProvider.notifier).state = null;
+              ref.read(selectedLeagueProvider.notifier).state = 'major';
             },
           ),
+          // 개별 리그들
           ...AppConstants.supportedLeagues.map(
             (league) => _LeagueChip(
               label: league,
@@ -311,6 +300,14 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 ref.read(selectedLeagueProvider.notifier).state = league;
               },
             ),
+          ),
+          // 전체 (맨 뒤)
+          _LeagueChip(
+            label: '전체',
+            isSelected: selectedLeague == null,
+            onTap: () {
+              ref.read(selectedLeagueProvider.notifier).state = null;
+            },
           ),
         ],
       ),
@@ -332,15 +329,39 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             child: const EmptyScheduleState(),
           );
         }
+
+        // 리그별로 그룹화
+        final groupedMatches = <String, List<Match>>{};
+        for (final match in matches) {
+          final leagueName = match.league;
+          groupedMatches.putIfAbsent(leagueName, () => []).add(match);
+        }
+
+        // 리그 순서 정렬 (5대 리그 우선, 그 다음 가나다순)
+        final leagueOrder = [
+          'Premier League', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1',
+          'K League 1', 'K League 2', 'UEFA Champions League', 'UEFA Europa League',
+        ];
+        final sortedLeagues = groupedMatches.keys.toList()
+          ..sort((a, b) {
+            final aIndex = leagueOrder.indexWhere((l) => a.contains(l));
+            final bIndex = leagueOrder.indexWhere((l) => b.contains(l));
+            if (aIndex != -1 && bIndex != -1) return aIndex.compareTo(bIndex);
+            if (aIndex != -1) return -1;
+            if (bIndex != -1) return 1;
+            return a.compareTo(b);
+          });
+
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: Column(
-            children: matches
-                .map((match) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _ScheduleMatchCard(match: match),
-                    ))
-                .toList(),
+            children: sortedLeagues.map((league) {
+              final leagueMatches = groupedMatches[league]!;
+              return _LeagueMatchGroup(
+                leagueName: league,
+                matches: leagueMatches,
+              );
+            }).toList(),
           ),
         );
       },
@@ -356,6 +377,104 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         ),
       ),
     );
+  }
+}
+
+class _LeagueMatchGroup extends StatelessWidget {
+  final String leagueName;
+  final List<Match> matches;
+
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _LeagueMatchGroup({
+    required this.leagueName,
+    required this.matches,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 리그 헤더
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+            ),
+            child: Row(
+              children: [
+                // 리그 로고 (첫 번째 경기에서 가져옴)
+                if (matches.isNotEmpty && matches.first.homeTeamLogo != null)
+                  _buildLeagueLogo(matches.first),
+                Expanded(
+                  child: Text(
+                    _getLeagueDisplayName(leagueName),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _textPrimary,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${matches.length}경기',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 경기 목록
+          ...matches.asMap().entries.map((entry) {
+            final index = entry.key;
+            final match = entry.value;
+            return Column(
+              children: [
+                if (index > 0)
+                  Divider(height: 1, color: _border, indent: 14, endIndent: 14),
+                _ScheduleMatchCard(match: match, showLeague: false),
+              ],
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeagueLogo(Match match) {
+    // 리그 ID로 로고 URL 생성
+    if (match.leagueId != null) {
+      return Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Image.network(
+            'https://media.api-sports.io/football/leagues/${match.leagueId}.png',
+            width: 20,
+            height: 20,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  String _getLeagueDisplayName(String league) {
+    return AppConstants.getLeagueDisplayName(league);
   }
 }
 
@@ -406,6 +525,7 @@ class _LeagueChip extends StatelessWidget {
 
 class _ScheduleMatchCard extends ConsumerWidget {
   final Match match;
+  final bool showLeague;
 
   static const _primary = Color(0xFF2563EB);
   static const _primaryLight = Color(0xFFDBEAFE);
@@ -415,7 +535,7 @@ class _ScheduleMatchCard extends ConsumerWidget {
   static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE5E7EB);
 
-  const _ScheduleMatchCard({required this.match});
+  const _ScheduleMatchCard({required this.match, this.showLeague = true});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -426,12 +546,17 @@ class _ScheduleMatchCard extends ConsumerWidget {
       onTap: () => context.push('/match/${match.id}'),
       onLongPress: () => _showMatchOptions(context, ref),
       child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _border),
+        padding: EdgeInsets.symmetric(
+          horizontal: showLeague ? 12 : 14,
+          vertical: showLeague ? 12 : 10,
         ),
+        decoration: showLeague
+            ? BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _border),
+              )
+            : null,
         child: Column(
           children: [
             // 리그 & 시간 & 알림
@@ -440,28 +565,30 @@ class _ScheduleMatchCard extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        // A매치는 원래 리그명 그대로, 그 외는 축약 표시
-                        match.league == 'International Friendlies'
-                            ? match.league
-                            : AppConstants.getLeagueDisplayName(match.league),
-                        style: const TextStyle(
-                          color: _textSecondary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
+                    if (showLeague) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          // A매치는 원래 리그명 그대로, 그 외는 축약 표시
+                          match.league == 'International Friendlies'
+                              ? match.league
+                              : AppConstants.getLeagueDisplayName(match.league),
+                          style: const TextStyle(
+                            color: _textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
+                      const SizedBox(width: 6),
+                    ],
                     // 라이브 경기면 경과 시간, 아니면 킥오프 시간 표시
                     if (match.isLive)
                       Container(
@@ -1117,242 +1244,6 @@ class _NotificationSettingsDialogState extends ConsumerState<_NotificationSettin
         ),
       );
     }
-  }
-}
-
-class _ScheduleLiveScoresSection extends ConsumerWidget {
-  static const _error = Color(0xFFEF4444);
-  static const _textSecondary = Color(0xFF6B7280);
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final livescoresAsync = ref.watch(scheduleLivescoresProvider);
-
-    return livescoresAsync.when(
-      data: (events) {
-        final liveEvents = events.where((e) => e.isLive).toList();
-
-        if (liveEvents.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        return Container(
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _error.withValues(alpha: 0.3)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: _error,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: _error.withValues(alpha: 0.4),
-                          blurRadius: 4,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'LIVE',
-                    style: TextStyle(
-                      color: _error,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: _error.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${liveEvents.length}',
-                      style: TextStyle(
-                        color: _error,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => ref.invalidate(scheduleLivescoresProvider),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.refresh, size: 12, color: _textSecondary),
-                          const SizedBox(width: 3),
-                          Text(
-                            '새로고침',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: _textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 65,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: liveEvents.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final fixture = liveEvents[index];
-                    return _ScheduleLiveCard(fixture: fixture);
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _ScheduleLiveCard extends StatelessWidget {
-  final ApiFootballFixture fixture;
-
-  static const _primary = Color(0xFF2563EB);
-  static const _error = Color(0xFFEF4444);
-  static const _textPrimary = Color(0xFF111827);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _border = Color(0xFFE5E7EB);
-
-  const _ScheduleLiveCard({required this.fixture});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.push('/match/${fixture.id}'),
-      child: Container(
-        width: 160,
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    fixture.league.name,
-                    style: TextStyle(
-                      fontSize: 9,
-                      color: _textSecondary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: _error,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  child: Text(
-                    _getStatusDisplay(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Text(
-                    fixture.homeTeam.name,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: _textPrimary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.right,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: Text(
-                    fixture.scoreDisplay,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: _primary,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    fixture.awayTeam.name,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: _textPrimary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.left,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _getStatusDisplay() {
-    final elapsed = fixture.status.elapsed;
-    if (elapsed != null) {
-      return "$elapsed'";
-    }
-    return fixture.status.short;
   }
 }
 
