@@ -391,11 +391,15 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
     final dateTime = match.dateKST;
     final dateStr = DateFormat('yyyy.MM.dd (E) HH:mm', 'ko').format(dateTime);
 
-    // 골 이벤트 가져오기
+    // 골 & 레드카드 이벤트 가져오기
     final eventsAsync = ref.watch(matchTimelineProvider(match.id.toString()));
-    final goalEvents = eventsAsync.valueOrNull?.where((e) => e.type == 'Goal').toList() ?? [];
+    final allEvents = eventsAsync.valueOrNull ?? [];
+    final goalEvents = allEvents.where((e) => e.type == 'Goal').toList();
+    final redCardEvents = allEvents.where((e) => e.type == 'Card' && e.detail == 'Red Card').toList();
     final homeGoals = goalEvents.where((e) => e.teamId == match.homeTeam.id).toList();
     final awayGoals = goalEvents.where((e) => e.teamId == match.awayTeam.id).toList();
+    final homeRedCards = redCardEvents.where((e) => e.teamId == match.homeTeam.id).toList();
+    final awayRedCards = redCardEvents.where((e) => e.teamId == match.awayTeam.id).toList();
 
     return Container(
       color: Colors.white,
@@ -626,26 +630,32 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
             ),
           ),
 
-          // 골 득점자 표시 (경기 중이거나 종료된 경우)
-          if ((match.isLive || match.isFinished) && goalEvents.isNotEmpty)
+          // 골 득점자 & 레드카드 표시 (경기 중이거나 종료된 경우)
+          if ((match.isLive || match.isFinished) && (goalEvents.isNotEmpty || redCardEvents.isNotEmpty))
             Padding(
               padding: const EdgeInsets.only(top: 12, left: 20, right: 20),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 홈팀 골
+                  // 홈팀 이벤트
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: homeGoals.map((goal) => _buildGoalScorerRow(goal, isHome: true)).toList(),
+                      children: [
+                        ...homeGoals.map((goal) => _buildEventRow(goal, isHome: true, isGoal: true)),
+                        ...homeRedCards.map((card) => _buildEventRow(card, isHome: true, isGoal: false)),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 60), // 스코어 영역 공간
-                  // 원정팀 골
+                  // 원정팀 이벤트
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
-                      children: awayGoals.map((goal) => _buildGoalScorerRow(goal, isHome: false)).toList(),
+                      children: [
+                        ...awayGoals.map((goal) => _buildEventRow(goal, isHome: false, isGoal: true)),
+                        ...awayRedCards.map((card) => _buildEventRow(card, isHome: false, isGoal: false)),
+                      ],
                     ),
                   ),
                 ],
@@ -658,12 +668,31 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
     );
   }
 
-  Widget _buildGoalScorerRow(ApiFootballEvent goal, {required bool isHome}) {
-    final timeStr = goal.extra != null
-        ? "${goal.elapsed}+${goal.extra}'"
-        : "${goal.elapsed}'";
-    final isPenalty = goal.detail == 'Penalty';
-    final isOwnGoal = goal.detail == 'Own Goal';
+  Widget _buildEventRow(ApiFootballEvent event, {required bool isHome, required bool isGoal}) {
+    final timeStr = event.extra != null
+        ? "${event.elapsed}+${event.extra}'"
+        : "${event.elapsed}'";
+    final isPenalty = event.detail == 'Penalty';
+    final isOwnGoal = event.detail == 'Own Goal';
+
+    // 아이콘 및 색상 설정
+    IconData icon;
+    Color iconColor;
+    if (isGoal) {
+      icon = Icons.sports_soccer;
+      iconColor = isOwnGoal ? Colors.red : _textSecondary;
+    } else {
+      // 레드카드
+      icon = Icons.square_rounded;
+      iconColor = Colors.red;
+    }
+
+    // 라벨 설정
+    String label = event.playerName ?? '';
+    if (isGoal) {
+      if (isPenalty) label += ' (P)';
+      if (isOwnGoal) label += ' (자책)';
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
@@ -682,14 +711,14 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
             const SizedBox(width: 4),
           ],
           Icon(
-            Icons.sports_soccer,
+            icon,
             size: 12,
-            color: isOwnGoal ? Colors.red : _textSecondary,
+            color: iconColor,
           ),
           const SizedBox(width: 4),
           Flexible(
             child: Text(
-              '${goal.playerName ?? ''}${isPenalty ? ' (P)' : ''}${isOwnGoal ? ' (자책)' : ''}',
+              label,
               style: TextStyle(
                 fontSize: 12,
                 color: _textPrimary,
@@ -1949,11 +1978,8 @@ class _LineupTab extends ConsumerStatefulWidget {
 }
 
 class _LineupTabState extends ConsumerState<_LineupTab> {
-  static const _primary = Color(0xFF2563EB);
   static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE5E7EB);
-
-  bool _showPitchView = true; // 기본: 피치 뷰
 
   @override
   Widget build(BuildContext context) {
@@ -1967,10 +1993,6 @@ class _LineupTabState extends ConsumerState<_LineupTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 뷰 전환 토글
-          _buildViewToggle(),
-          const SizedBox(height: 16),
-
           // 라인업 섹션
           lineupAsync.when(
             data: (lineups) {
@@ -1986,49 +2008,45 @@ class _LineupTabState extends ConsumerState<_LineupTab> {
               final homePlayerStats = playerStats?.isNotEmpty == true ? playerStats!.first : null;
               final awayPlayerStats = playerStats != null && playerStats.length > 1 ? playerStats[1] : null;
 
-              // 교체 이벤트 가져오기
-              final substitutions = eventsAsync.valueOrNull
-                  ?.where((e) => e.isSubstitution)
-                  .toList() ?? [];
+              // 이벤트 가져오기
+              final allEvents = eventsAsync.valueOrNull ?? [];
+              final substitutions = allEvents.where((e) => e.isSubstitution).toList();
 
-              if (_showPitchView) {
-                return _FootballPitchView(
-                  homeLineup: homeLineup,
-                  awayLineup: awayLineup,
-                  homeTeam: widget.match.homeTeam,
-                  awayTeam: widget.match.awayTeam,
-                  homePlayerStats: homePlayerStats,
-                  awayPlayerStats: awayPlayerStats,
-                  substitutions: substitutions,
-                );
-              } else {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _TeamLineup(
-                        teamName: homeLineup?.teamName ?? widget.match.homeTeam.name,
-                        formation: homeLineup?.formation,
-                        players: homeLineup?.startXI ?? [],
-                        substitutes: homeLineup?.substitutes ?? [],
-                        isHome: true,
-                        playerStats: homePlayerStats,
-                      ),
+              // 선수별 이벤트 매핑 (playerId -> events)
+              final playerEvents = <int, List<ApiFootballEvent>>{};
+              for (final event in allEvents) {
+                if (event.playerId != null) {
+                  playerEvents.putIfAbsent(event.playerId!, () => []).add(event);
+                }
+                // 어시스트 선수도 추가
+                if (event.assistId != null && event.type == 'Goal') {
+                  playerEvents.putIfAbsent(event.assistId!, () => []).add(
+                    ApiFootballEvent(
+                      elapsed: event.elapsed,
+                      extra: event.extra,
+                      teamId: event.teamId,
+                      teamName: event.teamName,
+                      playerId: event.assistId,
+                      playerName: event.assistName,
+                      assistId: null,
+                      assistName: null,
+                      type: 'Assist',
+                      detail: 'Assist',
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _TeamLineup(
-                        teamName: awayLineup?.teamName ?? widget.match.awayTeam.name,
-                        formation: awayLineup?.formation,
-                        players: awayLineup?.startXI ?? [],
-                        substitutes: awayLineup?.substitutes ?? [],
-                        isHome: false,
-                        playerStats: awayPlayerStats,
-                      ),
-                    ),
-                  ],
-                );
+                  );
+                }
               }
+
+              return _FootballPitchView(
+                homeLineup: homeLineup,
+                awayLineup: awayLineup,
+                homeTeam: widget.match.homeTeam,
+                awayTeam: widget.match.awayTeam,
+                homePlayerStats: homePlayerStats,
+                awayPlayerStats: awayPlayerStats,
+                substitutions: substitutions,
+                playerEvents: playerEvents,
+              );
             },
             loading: () => const Padding(
               padding: EdgeInsets.only(top: 24),
@@ -2048,88 +2066,6 @@ class _LineupTabState extends ConsumerState<_LineupTab> {
             homeTeamName: widget.match.homeTeam.name,
             awayTeamId: widget.match.awayTeam.id,
             awayTeamName: widget.match.awayTeam.name,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildViewToggle() {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _showPitchView = true),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: _showPitchView ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: _showPitchView
-                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)]
-                      : null,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.sports_soccer,
-                      size: 16,
-                      color: _showPitchView ? _primary : _textSecondary,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '피치 뷰',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: _showPitchView ? _primary : _textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _showPitchView = false),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: !_showPitchView ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: !_showPitchView
-                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)]
-                      : null,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.list,
-                      size: 16,
-                      color: !_showPitchView ? _primary : _textSecondary,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '리스트 뷰',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: !_showPitchView ? _primary : _textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           ),
         ],
       ),
@@ -2181,6 +2117,7 @@ class _FootballPitchView extends StatelessWidget {
   final FixturePlayerStats? homePlayerStats;
   final FixturePlayerStats? awayPlayerStats;
   final List<ApiFootballEvent> substitutions;
+  final Map<int, List<ApiFootballEvent>> playerEvents;
 
   static const _pitchGreen = Color(0xFF2E7D32);
   static const _textPrimary = Color(0xFF111827);
@@ -2194,6 +2131,7 @@ class _FootballPitchView extends StatelessWidget {
     this.homePlayerStats,
     this.awayPlayerStats,
     this.substitutions = const [],
+    this.playerEvents = const {},
   });
 
   @override
@@ -2457,6 +2395,7 @@ class _FootballPitchView extends StatelessWidget {
                         player: player,
                         stats: stats,
                         isHome: isHome,
+                        events: playerEvents[player.id] ?? [],
                       ),
                     ),
                   ],
@@ -2830,11 +2769,13 @@ class _PlayerMarker extends StatelessWidget {
   final ApiFootballLineupPlayer player;
   final PlayerMatchStats? stats;
   final bool isHome;
+  final List<ApiFootballEvent> events;
 
   const _PlayerMarker({
     required this.player,
     this.stats,
     required this.isHome,
+    this.events = const [],
   });
 
   @override
@@ -2922,6 +2863,16 @@ class _PlayerMarker extends StatelessWidget {
                     ),
                   ),
                 ),
+              // 이벤트 아이콘들 (좌측 상단)
+              if (events.isNotEmpty)
+                Positioned(
+                  left: -6,
+                  top: -6,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: _buildEventIcons(),
+                  ),
+                ),
             ],
           ),
 
@@ -2965,6 +2916,91 @@ class _PlayerMarker extends StatelessWidget {
     if (rating >= 6.5) return const Color(0xFFF59E0B);
     if (rating >= 6.0) return const Color(0xFFF97316);
     return const Color(0xFFEF4444);
+  }
+
+  List<Widget> _buildEventIcons() {
+    final icons = <Widget>[];
+
+    final goals = events.where((e) => e.type == 'Goal' && e.detail != 'Own Goal').length;
+    final ownGoals = events.where((e) => e.type == 'Goal' && e.detail == 'Own Goal').length;
+    final assists = events.where((e) => e.type == 'Assist').length;
+    final yellowCards = events.where((e) => e.type == 'Card' && e.detail == 'Yellow Card').length;
+    final redCards = events.where((e) => e.type == 'Card' && e.detail == 'Red Card').length;
+
+    // 골 아이콘
+    for (int i = 0; i < goals; i++) {
+      icons.add(Container(
+        width: 16,
+        height: 16,
+        margin: const EdgeInsets.only(right: 2),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.black, width: 1),
+        ),
+        child: const Icon(Icons.sports_soccer, size: 11, color: Colors.black),
+      ));
+    }
+
+    // 자책골 아이콘
+    for (int i = 0; i < ownGoals; i++) {
+      icons.add(Container(
+        width: 16,
+        height: 16,
+        margin: const EdgeInsets.only(right: 2),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.red, width: 1),
+        ),
+        child: const Icon(Icons.sports_soccer, size: 11, color: Colors.red),
+      ));
+    }
+
+    // 어시스트 아이콘 (축구화)
+    for (int i = 0; i < assists; i++) {
+      icons.add(Container(
+        width: 16,
+        height: 16,
+        margin: const EdgeInsets.only(right: 2),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.green, width: 1),
+        ),
+        child: const Center(child: Text('👟', style: TextStyle(fontSize: 10))),
+      ));
+    }
+
+    // 옐로카드 아이콘
+    for (int i = 0; i < yellowCards; i++) {
+      icons.add(Container(
+        width: 10,
+        height: 12,
+        margin: const EdgeInsets.only(right: 1),
+        decoration: BoxDecoration(
+          color: Colors.amber,
+          borderRadius: BorderRadius.circular(1),
+          border: Border.all(color: Colors.white, width: 0.5),
+        ),
+      ));
+    }
+
+    // 레드카드 아이콘
+    for (int i = 0; i < redCards; i++) {
+      icons.add(Container(
+        width: 10,
+        height: 12,
+        margin: const EdgeInsets.only(right: 1),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(1),
+          border: Border.all(color: Colors.white, width: 0.5),
+        ),
+      ));
+    }
+
+    return icons;
   }
 
   void _showPlayerDetail(BuildContext context) {
@@ -4054,294 +4090,6 @@ class _TeamInjuriesList extends StatelessWidget {
     if (injury.isInjury) return '부상';
     if (injury.isDoubtful) return '불투명';
     return '결장';
-  }
-}
-
-class _TeamLineup extends StatelessWidget {
-  final String teamName;
-  final String? formation;
-  final List<ApiFootballLineupPlayer> players;
-  final List<ApiFootballLineupPlayer> substitutes;
-  final bool isHome;
-  final FixturePlayerStats? playerStats;
-
-  static const _primary = Color(0xFF2563EB);
-  static const _secondary = Color(0xFF8B5CF6);
-  static const _textPrimary = Color(0xFF111827);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _border = Color(0xFFE5E7EB);
-
-  const _TeamLineup({
-    required this.teamName,
-    this.formation,
-    required this.players,
-    required this.substitutes,
-    required this.isHome,
-    this.playerStats,
-  });
-
-  PlayerMatchStats? _findPlayerStats(int playerId) {
-    if (playerStats == null) return null;
-    try {
-      return playerStats!.players.firstWhere((p) => p.id == playerId);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Team Name Header
-          Row(
-            children: [
-              Container(
-                width: 4,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: isHome ? _primary : _secondary,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  teamName,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: _textPrimary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          if (formation != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              formation!,
-              style: const TextStyle(
-                fontSize: 12,
-                color: _textSecondary,
-              ),
-            ),
-          ],
-          const Divider(height: 16),
-
-          // Starting XI
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: _primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.sports_soccer, size: 12, color: _primary),
-                const SizedBox(width: 4),
-                Text(
-                  '선발 (${players.length})',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: _primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (players.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                '선발 정보 없음',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: _textSecondary,
-                ),
-              ),
-            )
-          else
-            ...players.map((p) => _PlayerRow(
-              player: p,
-              stats: _findPlayerStats(p.id),
-            )),
-
-          // Substitutes
-          if (substitutes.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.swap_horiz, size: 12, color: _textSecondary),
-                  const SizedBox(width: 4),
-                  Text(
-                    '교체 (${substitutes.length})',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: _textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...substitutes.map((p) => _PlayerRow(
-              player: p,
-              isSubstitute: true,
-              stats: _findPlayerStats(p.id),
-            )),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _PlayerRow extends StatelessWidget {
-  final ApiFootballLineupPlayer player;
-  final bool isSubstitute;
-  final PlayerMatchStats? stats;
-
-  static const _primary = Color(0xFF2563EB);
-  static const _textPrimary = Color(0xFF111827);
-  static const _textSecondary = Color(0xFF6B7280);
-
-  const _PlayerRow({
-    required this.player,
-    this.isSubstitute = false,
-    this.stats,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final rating = stats?.ratingValue;
-
-    return InkWell(
-      onTap: player.id > 0 ? () => _showPlayerDetail(context, player) : null,
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-        child: Row(
-          children: [
-            // Squad Number
-            Container(
-              width: 22,
-              height: 22,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSubstitute
-                    ? Colors.grey.shade200
-                    : _primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                player.number?.toString() ?? '-',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: isSubstitute ? _textSecondary : _primary,
-                  fontSize: 10,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Player Name
-            Expanded(
-              child: Text(
-                player.name,
-                style: TextStyle(
-                  color: isSubstitute ? _textSecondary : _textPrimary,
-                  fontSize: 12,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            // Rating Badge (평점이 있을 경우)
-            if (rating != null) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _getRatingColor(rating).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  rating.toStringAsFixed(1),
-                  style: TextStyle(
-                    color: _getRatingColor(rating),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-            ],
-            // Position Badge
-            if (player.pos != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _getPositionColor(player.pos!).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  player.pos!,
-                  style: TextStyle(
-                    color: _getPositionColor(player.pos!),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 9,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showPlayerDetail(BuildContext context, ApiFootballLineupPlayer player) {
-    _showPlayerStatsModal(context, player, stats);
-  }
-
-  Color _getRatingColor(double rating) {
-    if (rating >= 7.5) return const Color(0xFF22C55E); // 초록 (Excellent)
-    if (rating >= 7.0) return const Color(0xFF84CC16); // 연두 (Good)
-    if (rating >= 6.5) return const Color(0xFFF59E0B); // 노랑 (Average)
-    if (rating >= 6.0) return const Color(0xFFF97316); // 주황 (Below Average)
-    return const Color(0xFFEF4444); // 빨강 (Poor)
-  }
-
-  Color _getPositionColor(String position) {
-    switch (position.toUpperCase()) {
-      case 'G':
-        return Colors.orange;
-      case 'D':
-        return Colors.blue;
-      case 'M':
-        return Colors.green;
-      case 'F':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
   }
 }
 
