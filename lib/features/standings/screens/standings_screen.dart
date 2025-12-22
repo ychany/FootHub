@@ -409,9 +409,15 @@ class StandingsScreen extends ConsumerWidget {
             children: [
               _LeagueOverviewCard(standings: standings),
               const SizedBox(height: 12),
+              _RecentFormCard(standings: standings),
+              const SizedBox(height: 12),
               _TopTeamsCard(standings: standings),
               const SizedBox(height: 12),
+              _HomeAwayComparisonCard(standings: standings),
+              const SizedBox(height: 12),
               _GoalStatsCard(standings: standings),
+              const SizedBox(height: 12),
+              _BottomTeamsCard(standings: standings),
               const SizedBox(height: 12),
               _TopCardsCard(
                 topYellowAsync: topYellowAsync,
@@ -1083,6 +1089,314 @@ class _StatCell extends StatelessWidget {
         text,
         style: TextStyle(fontSize: 12, color: color),
         textAlign: TextAlign.center,
+      ),
+    );
+  }
+}
+
+// 최근 폼 카드
+class _RecentFormCard extends StatelessWidget {
+  final List<ApiFootballStanding> standings;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _success = Color(0xFF10B981);
+  static const _warning = Color(0xFFF59E0B);
+  static const _error = Color(0xFFEF4444);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _RecentFormCard({required this.standings});
+
+  @override
+  Widget build(BuildContext context) {
+    final teamsWithForm = standings.where((s) => s.form != null && s.form!.isNotEmpty).toList();
+    if (teamsWithForm.isEmpty) return const SizedBox.shrink();
+
+    final topTeams = teamsWithForm.take(5).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.trending_up, color: _warning, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text('최근 폼', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _textPrimary)),
+              const Spacer(),
+              Text('최근 5경기', style: TextStyle(fontSize: 11, color: _textSecondary)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...topTeams.map((team) => _buildFormRow(context, team)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormRow(BuildContext context, ApiFootballStanding team) {
+    final form = team.form ?? '';
+    final formChars = form.split('').take(5).toList();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        onTap: () => context.push('/team/${team.teamId}'),
+        child: Row(
+          children: [
+            Container(
+              width: 22, height: 22, alignment: Alignment.center,
+              decoration: BoxDecoration(color: _primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+              child: Text('${team.rank}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _primary)),
+            ),
+            const SizedBox(width: 8),
+            if (team.teamLogo != null)
+              CachedNetworkImage(imageUrl: team.teamLogo!, width: 20, height: 20, errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 20)),
+            const SizedBox(width: 8),
+            Expanded(child: Text(team.teamName, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+            const SizedBox(width: 8),
+            Row(children: formChars.map((char) => _buildFormBadge(char)).toList()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormBadge(String result) {
+    Color bgColor;
+    String label;
+    switch (result.toUpperCase()) {
+      case 'W': bgColor = _success; label = '승'; break;
+      case 'D': bgColor = _textSecondary; label = '무'; break;
+      case 'L': bgColor = _error; label = '패'; break;
+      default: bgColor = Colors.grey.shade300; label = '-';
+    }
+    return Container(
+      width: 22, height: 22, margin: const EdgeInsets.only(left: 3), alignment: Alignment.center,
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(4)),
+      child: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white)),
+    );
+  }
+}
+
+// 홈/원정 성적 비교 카드
+class _HomeAwayComparisonCard extends StatelessWidget {
+  final List<ApiFootballStanding> standings;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _success = Color(0xFF10B981);
+  static const _warning = Color(0xFFF59E0B);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _HomeAwayComparisonCard({required this.standings});
+
+  @override
+  Widget build(BuildContext context) {
+    final homeWinRateSorted = [...standings]..sort((a, b) {
+      final aHomeGames = (a.homeWin ?? 0) + (a.homeDraw ?? 0) + (a.homeLose ?? 0);
+      final bHomeGames = (b.homeWin ?? 0) + (b.homeDraw ?? 0) + (b.homeLose ?? 0);
+      final aRate = aHomeGames > 0 ? (a.homeWin ?? 0) / aHomeGames : 0.0;
+      final bRate = bHomeGames > 0 ? (b.homeWin ?? 0) / bHomeGames : 0.0;
+      return bRate.compareTo(aRate);
+    });
+
+    final awayWinRateSorted = [...standings]..sort((a, b) {
+      final aAwayGames = (a.awayWin ?? 0) + (a.awayDraw ?? 0) + (a.awayLose ?? 0);
+      final bAwayGames = (b.awayWin ?? 0) + (b.awayDraw ?? 0) + (b.awayLose ?? 0);
+      final aRate = aAwayGames > 0 ? (a.awayWin ?? 0) / aAwayGames : 0.0;
+      final bRate = bAwayGames > 0 ? (b.awayWin ?? 0) / bAwayGames : 0.0;
+      return bRate.compareTo(aRate);
+    });
+
+    final topHomeTeams = homeWinRateSorted.take(3).toList();
+    final topAwayTeams = awayWinRateSorted.take(3).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: _border)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: _primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                child: Icon(Icons.compare_arrows, color: _primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text('홈/원정 강자', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _textPrimary)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [Icon(Icons.home, size: 16, color: _success), const SizedBox(width: 4), Text('홈 강자', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _success))]),
+                    const SizedBox(height: 10),
+                    ...topHomeTeams.asMap().entries.map((entry) {
+                      final team = entry.value;
+                      final homeGames = (team.homeWin ?? 0) + (team.homeDraw ?? 0) + (team.homeLose ?? 0);
+                      final winRate = homeGames > 0 ? ((team.homeWin ?? 0) / homeGames * 100).toInt() : 0;
+                      return _buildCompactTeamRow(context, entry.key + 1, team, '$winRate%', _success);
+                    }),
+                  ],
+                ),
+              ),
+              Container(width: 1, height: 120, color: _border, margin: const EdgeInsets.symmetric(horizontal: 12)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [Icon(Icons.flight, size: 16, color: _warning), const SizedBox(width: 4), Text('원정 강자', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _warning))]),
+                    const SizedBox(height: 10),
+                    ...topAwayTeams.asMap().entries.map((entry) {
+                      final team = entry.value;
+                      final awayGames = (team.awayWin ?? 0) + (team.awayDraw ?? 0) + (team.awayLose ?? 0);
+                      final winRate = awayGames > 0 ? ((team.awayWin ?? 0) / awayGames * 100).toInt() : 0;
+                      return _buildCompactTeamRow(context, entry.key + 1, team, '$winRate%', _warning);
+                    }),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactTeamRow(BuildContext context, int rank, ApiFootballStanding team, String rate, Color color) {
+    return InkWell(
+      onTap: () => context.push('/team/${team.teamId}'),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          children: [
+            Text('$rank', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _textSecondary)),
+            const SizedBox(width: 6),
+            if (team.teamLogo != null) CachedNetworkImage(imageUrl: team.teamLogo!, width: 18, height: 18, errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 18)),
+            const SizedBox(width: 6),
+            Expanded(child: Text(team.teamName, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+              child: Text(rate, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 하위 팀 분석 카드
+class _BottomTeamsCard extends StatelessWidget {
+  final List<ApiFootballStanding> standings;
+
+  static const _error = Color(0xFFEF4444);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _BottomTeamsCard({required this.standings});
+
+  @override
+  Widget build(BuildContext context) {
+    final sortedByLose = [...standings]..sort((a, b) => b.lose.compareTo(a.lose));
+    final topLosers = sortedByLose.take(3).toList();
+
+    final sortedByGoalsAgainst = [...standings]..sort((a, b) => b.goalsAgainst.compareTo(a.goalsAgainst));
+    final topConceding = sortedByGoalsAgainst.take(3).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: _border)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: _error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                child: Icon(Icons.trending_down, color: _error, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text('하위권 분석', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _textPrimary)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('최다 패배', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _textSecondary)),
+                    const SizedBox(height: 10),
+                    ...topLosers.asMap().entries.map((entry) => _buildBottomTeamRow(context, entry.key + 1, entry.value, '${entry.value.lose}패')),
+                  ],
+                ),
+              ),
+              Container(width: 1, height: 100, color: _border, margin: const EdgeInsets.symmetric(horizontal: 12)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('최다 실점', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _textSecondary)),
+                    const SizedBox(height: 10),
+                    ...topConceding.asMap().entries.map((entry) => _buildBottomTeamRow(context, entry.key + 1, entry.value, '${entry.value.goalsAgainst}실점')),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomTeamRow(BuildContext context, int rank, ApiFootballStanding team, String stat) {
+    return InkWell(
+      onTap: () => context.push('/team/${team.teamId}'),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          children: [
+            Text('$rank', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _textSecondary)),
+            const SizedBox(width: 6),
+            if (team.teamLogo != null) CachedNetworkImage(imageUrl: team.teamLogo!, width: 18, height: 18, errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 18)),
+            const SizedBox(width: 6),
+            Expanded(child: Text(team.teamName, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(color: _error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+              child: Text(stat, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _error)),
+            ),
+          ],
+        ),
       ),
     );
   }
