@@ -493,6 +493,71 @@ class ApiFootballService {
         .toList();
   }
 
+  /// 리그 순위표 (조별 리그 포함 - 그룹별로 반환)
+  /// 조별 리그인 경우 Map<그룹명, 순위목록> 형태로 반환
+  Future<Map<String, List<ApiFootballStanding>>> getStandingsGrouped(int leagueId, int season) async {
+    final data = await _get('standings?league=$leagueId&season=$season');
+    if (data == null || data['response'] == null || (data['response'] as List).isEmpty) {
+      return {};
+    }
+
+    final leagueData = (data['response'] as List).first;
+    if (leagueData['league'] == null || leagueData['league']['standings'] == null) {
+      return {};
+    }
+
+    final standings = leagueData['league']['standings'] as List;
+    if (standings.isEmpty) return {};
+
+    final result = <String, List<ApiFootballStanding>>{};
+
+    for (int i = 0; i < standings.length; i++) {
+      final group = standings[i] as List;
+      if (group.isEmpty) continue;
+
+      // 그룹명 추출 (첫 번째 팀의 group 필드에서)
+      final firstTeam = group.first;
+      String groupName = firstTeam['group'] as String? ?? 'Group ${i + 1}';
+
+      // "Group A" -> "A조" 형식으로 변환
+      if (groupName.startsWith('Group ')) {
+        final letter = groupName.substring(6);
+        groupName = '$letter조';
+      }
+
+      result[groupName] = group
+          .map((json) => ApiFootballStanding.fromJson(json))
+          .toList();
+    }
+
+    return result;
+  }
+
+  /// 조별 리그인지 확인 (그룹이 2개 이상이고 각 그룹의 팀 수가 비슷한 경우)
+  Future<bool> isGroupStageLeague(int leagueId, int season) async {
+    final data = await _get('standings?league=$leagueId&season=$season');
+    if (data == null || data['response'] == null || (data['response'] as List).isEmpty) {
+      return false;
+    }
+
+    final leagueData = (data['response'] as List).first;
+    if (leagueData['league'] == null || leagueData['league']['standings'] == null) {
+      return false;
+    }
+
+    final standings = leagueData['league']['standings'] as List;
+    if (standings.length <= 1) return false;
+
+    // 그룹이 여러 개이고, 각 그룹의 팀 수가 비슷하면 조별 리그
+    // (K리그 스플릿 같은 경우는 팀 수 차이가 크므로 제외)
+    final groupSizes = standings.map((g) => (g as List).length).toList();
+    final maxSize = groupSizes.reduce((a, b) => a > b ? a : b);
+    final minSize = groupSizes.reduce((a, b) => a < b ? a : b);
+
+    // 그룹별 팀 수 차이가 2 이하이면 조별 리그로 판단
+    return (maxSize - minSize) <= 2 && standings.length >= 2;
+  }
+
   // ============ 득점왕/어시스트왕 ============
 
   /// 리그 득점왕 순위
