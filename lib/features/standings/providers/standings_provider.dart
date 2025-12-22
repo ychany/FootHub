@@ -109,6 +109,18 @@ final leagueStandingsProvider = FutureProvider.family<List<ApiFootballStanding>,
   return service.getStandings(key.leagueId, key.season);
 });
 
+/// 리그 순위 Provider - 그룹별 (조별 리그용)
+final leagueStandingsGroupedProvider = FutureProvider.family<Map<String, List<ApiFootballStanding>>, StandingsKey>((ref, key) async {
+  final service = ref.watch(_apiFootballServiceProvider);
+  return service.getStandingsGrouped(key.leagueId, key.season);
+});
+
+/// 조별 리그 여부 확인 Provider
+final isGroupStageProvider = FutureProvider.family<bool, StandingsKey>((ref, key) async {
+  final service = ref.watch(_apiFootballServiceProvider);
+  return service.isGroupStageLeague(key.leagueId, key.season);
+});
+
 /// 선택된 리그+시즌의 순위
 final selectedLeagueStandingsProvider = FutureProvider<List<ApiFootballStanding>>((ref) async {
   final selectedLeague = ref.watch(selectedStandingsLeagueProvider);
