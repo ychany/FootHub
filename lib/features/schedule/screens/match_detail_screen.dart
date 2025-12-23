@@ -4512,28 +4512,30 @@ class _TimelineItem extends StatelessWidget {
     final isCard = event.isCard;
     final isSubst = event.isSubstitution;
 
-    return IntrinsicHeight(
-      child: Row(
-        children: [
-          // 홈팀 영역 (왼쪽)
-          Expanded(
-            child: isHome
-                ? _buildEventContent(isGoal, isCard, isSubst, true)
-                : const SizedBox(),
-          ),
+    return Padding(
+      padding: EdgeInsets.only(top: isFirst ? 12 : 0),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            // 홈팀 영역 (왼쪽)
+            Expanded(
+              child: isHome
+                  ? _buildEventContent(isGoal, isCard, isSubst, true)
+                  : const SizedBox(),
+            ),
 
-          // 중앙 타임라인
-          SizedBox(
-            width: 60,
-            child: Column(
-              children: [
-                // 상단 연결선
-                if (!isFirst)
-                  Container(
-                    width: 2,
-                    height: 8,
-                    color: Colors.grey.shade300,
-                  ),
+            // 중앙 타임라인
+            SizedBox(
+              width: 60,
+              child: Column(
+                children: [
+                  // 상단 연결선
+                  if (!isFirst)
+                    Container(
+                      width: 2,
+                      height: 8,
+                      color: Colors.grey.shade300,
+                    ),
                 // 시간 원
                 Container(
                   width: 44,
@@ -4579,6 +4581,7 @@ class _TimelineItem extends StatelessWidget {
                 : const SizedBox(),
           ),
         ],
+        ),
       ),
     );
   }
