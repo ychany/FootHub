@@ -1273,10 +1273,10 @@ class _NationalTeamSection extends ConsumerWidget {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(5),
-                        child: selectedTeam.countryFlag != null
+                        child: selectedTeam.teamLogo != null
                             ? Image.network(
-                                selectedTeam.countryFlag!,
-                                fit: BoxFit.cover,
+                                selectedTeam.teamLogo!,
+                                fit: BoxFit.contain,
                                 errorBuilder: (_, __, ___) => Container(
                                   color: _gradientStart,
                                   child: const Icon(Icons.flag, color: Colors.white, size: 16),

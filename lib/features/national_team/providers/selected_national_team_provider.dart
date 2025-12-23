@@ -39,12 +39,12 @@ class SelectedNationalTeam {
   }
 
   // 기본값: 대한민국
+  // 참고: API-Football의 국기는 SVG만 제공하므로 countryFlag는 사용하지 않음
   static const defaultTeam = SelectedNationalTeam(
     teamId: TeamIds.southKorea,
     teamName: 'South Korea',
     teamLogo: 'https://media.api-sports.io/football/teams/17.png',
     countryCode: 'KR',
-    countryFlag: 'https://media.api-sports.io/flags/kr.svg',
   );
 }
 
