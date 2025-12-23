@@ -163,14 +163,53 @@ class ApiFootballService {
   // ============ 선수 ============
 
   /// 선수 검색 (이름으로)
+  /// API-Football 제약: search는 최소 4글자, league 또는 team 파라미터 필수
   Future<List<ApiFootballPlayer>> searchPlayers(String query) async {
-    final season = DateTime.now().year;
-    final data = await _get('players?search=${Uri.encodeComponent(query)}&season=$season');
-    if (data == null || data['response'] == null) return [];
+    if (query.length < 4) return [];
 
-    return (data['response'] as List)
-        .map((json) => ApiFootballPlayer.fromJson(json))
-        .toList();
+    final currentYear = DateTime.now().year;
+    final allPlayers = <int, ApiFootballPlayer>{};
+
+    // 주요 리그 목록
+    const leagues = [
+      39, 140, 135, 78, 61,  // 5대 리그
+      40, 141, 136, 79, 62,  // 2부 리그
+      292, 293,  // K리그
+      2, 3, 848,  // 유럽 대회
+      94, 88, 144, 203, 307, 253,  // 기타
+    ];
+
+    final seasons = [currentYear, currentYear - 1];
+
+    final futures = <Future<List<ApiFootballPlayer>>>[];
+    for (final leagueId in leagues) {
+      for (final season in seasons) {
+        futures.add(() async {
+          try {
+            final data = await _get('players?search=${Uri.encodeComponent(query)}&league=$leagueId&season=$season');
+            if (data != null && data['response'] != null) {
+              return (data['response'] as List)
+                  .map((json) => ApiFootballPlayer.fromJson(json))
+                  .toList();
+            }
+          } catch (e) {
+            // 무시
+          }
+          return <ApiFootballPlayer>[];
+        }());
+      }
+    }
+
+    final results = await Future.wait(futures);
+    for (final players in results) {
+      for (final player in players) {
+        if (!allPlayers.containsKey(player.id)) {
+          allPlayers[player.id] = player;
+        }
+      }
+    }
+
+    return allPlayers.values.toList();
   }
 
   /// 선수 ID로 조회

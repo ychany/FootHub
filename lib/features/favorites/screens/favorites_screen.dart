@@ -666,10 +666,8 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
   Widget _buildPlayerResults() {
     final searchQuery = ref.watch(playerSearchQueryProvider);
 
-    if (searchQuery.isEmpty) {
-      return const Center(
-        child: Text('선수 이름으로 검색하세요'),
-      );
+    if (searchQuery.length < 4) {
+      return const SizedBox.shrink();
     }
 
     final searchResults = ref.watch(playerSearchResultsProvider);
