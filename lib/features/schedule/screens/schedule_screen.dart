@@ -282,12 +282,20 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          // 주요 (5대 리그)
+          // 주요 (5대 리그 + 대륙컵 + 국제대회)
           _LeagueChip(
             label: '주요',
             isSelected: selectedLeague == 'major',
             onTap: () {
               ref.read(selectedLeagueProvider.notifier).state = 'major';
+            },
+          ),
+          // 전체 (주요 다음)
+          _LeagueChip(
+            label: '전체',
+            isSelected: selectedLeague == null,
+            onTap: () {
+              ref.read(selectedLeagueProvider.notifier).state = null;
             },
           ),
           // 개별 리그들
@@ -300,14 +308,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 ref.read(selectedLeagueProvider.notifier).state = league;
               },
             ),
-          ),
-          // 전체 (맨 뒤)
-          _LeagueChip(
-            label: '전체',
-            isSelected: selectedLeague == null,
-            onTap: () {
-              ref.read(selectedLeagueProvider.notifier).state = null;
-            },
           ),
         ],
       ),
