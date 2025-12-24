@@ -204,12 +204,19 @@ final scheduleNotifierProvider =
   return ScheduleNotifier(service, ref);
 });
 
-// League Filter Provider (기본값: 주요 - 5대 리그)
-// null = 전체, 'major' = 주요(5대리그), 그 외 = 특정 리그
+// League Filter Provider (기본값: 주요 - 5대 리그 + 대륙컵 + 국제대회)
+// null = 전체, 'major' = 주요, 그 외 = 특정 리그
 final selectedLeagueProvider = StateProvider<String?>((ref) => 'major');
 
-// 5대 리그 ID 목록
-const majorLeagueIds = [39, 140, 135, 78, 61]; // EPL, 라리가, 세리에A, 분데스, 리그1
+// 주요 리그 ID 목록 (5대 리그 + 대륙컵 + 국제대회)
+const majorLeagueIds = [
+  // 5대 리그
+  39, 140, 135, 78, 61, // EPL, 라리가, 세리에A, 분데스, 리그1
+  // 유럽 대회
+  2, 3, 848, // UCL, UEL, UECL
+  // 국제대회
+  1, 4, 81, 6, 9, // 월드컵, 유로, 아시안컵, 아프리카네이션스컵, 코파아메리카
+];
 
 // Filtered Schedules Provider
 final filteredSchedulesProvider = FutureProvider<List<Match>>((ref) async {
