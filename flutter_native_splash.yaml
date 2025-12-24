@@ -1,0 +1,23 @@
+flutter_native_splash:
+  # 배경색 (라이트모드 - 흰색)
+  color: "#FFFFFF"
+
+  # 다크모드 배경색 (다크 그레이)
+  color_dark: "#121212"
+
+  # 이미지 (없으면 텍스트만)
+  # image: assets/splash/logo.png
+
+  # 안드로이드 12+ 설정
+  android_12:
+    color: "#FFFFFF"
+    color_dark: "#121212"
+
+  # iOS 설정
+  ios: true
+
+  # 웹 설정 (필요시)
+  web: false
+
+  # 전체화면
+  fullscreen: true

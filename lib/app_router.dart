@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/login_screen.dart';
+import 'features/splash/screens/splash_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/attendance/screens/attendance_list_screen.dart';
 import 'features/attendance/screens/attendance_detail_screen.dart';
@@ -34,28 +34,15 @@ import 'features/league/screens/league_list_screen.dart';
 import 'features/league/screens/league_detail_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
-
   return GoRouter(
-    initialLocation: '/home',
-    redirect: (context, state) {
-      final isLoggedIn = authState.value != null;
-      final location = state.matchedLocation;
-      final isLoggingIn = location == '/login';
-
-      // 로그인하지 않은 경우 로그인 페이지로 리다이렉트
-      if (!isLoggedIn && !isLoggingIn) {
-        return '/login';
-      }
-
-      // 이미 로그인한 경우 로그인 페이지 접근 시 홈으로 리다이렉트
-      if (isLoggedIn && isLoggingIn) {
-        return '/home';
-      }
-
-      return null;
-    },
+    initialLocation: '/splash',
     routes: [
+      // Splash
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+
       // Login
       GoRoute(
         path: '/login',

@@ -64,6 +64,9 @@ dependencies:
   url_launcher: ^6.2.5
   flutter_dotenv: ^6.0.0
 
+  # Splash Screen
+  flutter_native_splash: ^2.4.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
