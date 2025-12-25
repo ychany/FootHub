@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import '../../../core/utils/error_helper.dart';
 import '../models/post_model.dart';
 import '../providers/community_provider.dart';
 import '../../../l10n/app_localizations.dart';
@@ -69,7 +70,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()))),
+          SnackBar(content: Text(ErrorHelper.getLocalizedErrorMessage(context, e))),
         );
       }
     }
@@ -93,7 +94,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()))),
+          SnackBar(content: Text(ErrorHelper.getLocalizedErrorMessage(context, e))),
         );
       }
     } finally {
@@ -137,7 +138,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
+            SnackBar(content: Text(ErrorHelper.getLocalizedErrorMessage(context, e))),
           );
         }
       }
@@ -443,7 +444,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                                   );
                                 },
                                 loading: () => const Center(child: CircularProgressIndicator()),
-                                error: (e, _) => Text(AppLocalizations.of(context)!.loadCommentsFailed(e.toString())),
+                                error: (e, _) => Text(ErrorHelper.getLocalizedErrorMessage(context, e)),
                               ),
                             ],
                           ),
@@ -508,7 +509,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()))),
+          error: (e, _) => Center(child: Text(ErrorHelper.getLocalizedErrorMessage(context, e))),
         ),
       ),
     );
@@ -543,7 +544,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
+            SnackBar(content: Text(ErrorHelper.getLocalizedErrorMessage(context, e))),
           );
         }
       }

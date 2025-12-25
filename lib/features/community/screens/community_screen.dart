@@ -8,6 +8,7 @@ import '../providers/community_provider.dart';
 import '../../../core/services/api_football_service.dart';
 import '../../../core/constants/api_football_ids.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../core/utils/error_helper.dart';
 
 class CommunityScreen extends ConsumerStatefulWidget {
   const CommunityScreen({super.key});
@@ -339,7 +340,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                       children: [
                         const Icon(Icons.error_outline, size: 48, color: Colors.grey),
                         const SizedBox(height: 16),
-                        Text('${AppLocalizations.of(context)!.errorOccurred}\n$e', textAlign: TextAlign.center),
+                        Text('${AppLocalizations.of(context)!.errorOccurred}\n${ErrorHelper.getLocalizedErrorMessage(context, e)}', textAlign: TextAlign.center),
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () => ref.read(postsNotifierProvider.notifier).refresh(),

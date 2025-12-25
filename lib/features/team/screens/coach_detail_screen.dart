@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/services/api_football_service.dart';
+import '../../../core/utils/error_helper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -730,7 +731,7 @@ class _CoachDetailContent extends ConsumerWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              career.periodText,
+                              ErrorHelper.getLocalizedPeriodText(context, career.periodText),
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: _textSecondary,
@@ -1087,7 +1088,7 @@ class _CoachSidelinedItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  record.typeKorean,
+                  ErrorHelper.getLocalizedInjuryType(context, record.typeKey),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1096,7 +1097,7 @@ class _CoachSidelinedItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  record.periodDisplay,
+                  ErrorHelper.getLocalizedPeriodText(context, record.periodDisplay),
                   style: TextStyle(
                     fontSize: 12,
                     color: _textSecondary,

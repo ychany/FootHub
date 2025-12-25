@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/api_football_ids.dart';
 import '../../../core/services/api_football_service.dart';
+import '../../../core/utils/error_helper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../providers/standings_provider.dart';
@@ -311,7 +312,7 @@ class StandingsScreen extends ConsumerWidget {
       },
       loading: () => const LoadingIndicator(),
       error: (e, _) => ErrorState(
-        message: e.toString(),
+        message: ErrorHelper.getLocalizedErrorMessage(context, e),
         onRetry: () => ref.invalidate(leagueStandingsProvider(standingsKey)),
       ),
     );
@@ -348,7 +349,7 @@ class StandingsScreen extends ConsumerWidget {
       },
       loading: () => const LoadingIndicator(),
       error: (e, _) => ErrorState(
-        message: e.toString(),
+        message: ErrorHelper.getLocalizedErrorMessage(context, e),
         onRetry: () => ref.invalidate(topScorersProvider(standingsKey)),
       ),
     );
@@ -385,7 +386,7 @@ class StandingsScreen extends ConsumerWidget {
       },
       loading: () => const LoadingIndicator(),
       error: (e, _) => ErrorState(
-        message: e.toString(),
+        message: ErrorHelper.getLocalizedErrorMessage(context, e),
         onRetry: () => ref.invalidate(topAssistsProvider(standingsKey)),
       ),
     );
@@ -443,7 +444,7 @@ class StandingsScreen extends ConsumerWidget {
       },
       loading: () => const LoadingIndicator(),
       error: (e, _) => Center(
-        child: Text(l10n.errorWithMessage(e.toString()), style: const TextStyle(color: _textSecondary)),
+        child: Text(ErrorHelper.getLocalizedErrorMessage(context, e), style: const TextStyle(color: _textSecondary)),
       ),
     );
   }

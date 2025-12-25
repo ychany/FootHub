@@ -1534,25 +1534,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get injurySuspension => 'Suspended';
 
   @override
-  String get injuryKnee => 'Knee Injury';
+  String get injuryKnee => 'Knee injury';
 
   @override
-  String get injuryHamstring => 'Hamstring';
+  String get injuryHamstring => 'Hamstring injury';
 
   @override
-  String get injuryAnkle => 'Ankle Injury';
+  String get injuryAnkle => 'Ankle injury';
 
   @override
-  String get injuryMuscle => 'Muscle Injury';
+  String get injuryMuscle => 'Muscle injury';
 
   @override
-  String get injuryBack => 'Back Injury';
+  String get injuryBack => 'Back injury';
 
   @override
   String get injuryIllness => 'Illness';
 
   @override
-  String get injuryGeneral => 'Injured';
+  String get injuryGeneral => 'Injury';
 
   @override
   String get injuryDoubtful => 'Doubtful';
@@ -1933,10 +1933,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get betHandicap => 'Handicap';
 
   @override
-  String get betFirstHalfWinner => 'First Half Winner';
+  String get betFirstHalfWinner => '1st Half Winner';
 
   @override
-  String get betSecondHalfWinner => 'Second Half Winner';
+  String get betSecondHalfWinner => '2nd Half Winner';
 
   @override
   String get betHalfTimeFullTime => 'HT/FT';
@@ -3748,4 +3748,153 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachInfo => 'Coach Info';
+
+  @override
+  String get errorLoginRequired => 'Login required';
+
+  @override
+  String get errorPostNotFound => 'Post not found';
+
+  @override
+  String get errorPostEditPermissionDenied => 'No permission to edit';
+
+  @override
+  String get errorPostDeletePermissionDenied => 'No permission to delete';
+
+  @override
+  String get errorCommentNotFound => 'Comment not found';
+
+  @override
+  String get errorCommentDeletePermissionDenied => 'No permission to delete';
+
+  @override
+  String get errorNetworkError => 'Network error occurred';
+
+  @override
+  String get errorUnknown => 'An unknown error occurred';
+
+  @override
+  String get injuryGroin => 'Groin injury';
+
+  @override
+  String get injuryShoulder => 'Shoulder injury';
+
+  @override
+  String get injuryAchilles => 'Achilles injury';
+
+  @override
+  String get injuryCalf => 'Calf injury';
+
+  @override
+  String get injuryThigh => 'Thigh injury';
+
+  @override
+  String get injuryHip => 'Hip injury';
+
+  @override
+  String get injuryFracture => 'Fracture';
+
+  @override
+  String get injuryConcussion => 'Concussion';
+
+  @override
+  String get injuryLigament => 'Ligament injury';
+
+  @override
+  String get injurySurgery => 'Surgery';
+
+  @override
+  String get statusSuspension => 'Suspension';
+
+  @override
+  String get statusRedCard => 'Red card ban';
+
+  @override
+  String get statusYellowCard => 'Yellow card accumulation';
+
+  @override
+  String get statusBan => 'Ban';
+
+  @override
+  String get statusDisciplinary => 'Disciplinary';
+
+  @override
+  String get statusMissing => 'Missing';
+
+  @override
+  String get statusPersonal => 'Personal reasons';
+
+  @override
+  String get statusInternational => 'International duty';
+
+  @override
+  String get statusRest => 'Rest';
+
+  @override
+  String get statusFitness => 'Fitness';
+
+  @override
+  String get statusSuspended => 'Suspended';
+
+  @override
+  String get statusInjury => 'Injury';
+
+  @override
+  String get statusDoubtful => 'Doubtful';
+
+  @override
+  String get statusAbsent => 'Absent';
+
+  @override
+  String get betFirstHalfOU => '1st Half O/U';
+
+  @override
+  String get betSecondHalfOU => '2nd Half O/U';
+
+  @override
+  String get betHalfFullTime => 'Half/Full Time';
+
+  @override
+  String get betHomeTeamGoals => 'Home Team Goals';
+
+  @override
+  String get betAwayTeamGoals => 'Away Team Goals';
+
+  @override
+  String get betDrawNoBet => 'Draw No Bet';
+
+  @override
+  String get betResultBothScore => 'Result + Both Score';
+
+  @override
+  String get betFirstHalfExact => '1st Half Exact Score';
+
+  @override
+  String get betGoalsDifference => 'Goals Difference';
+
+  @override
+  String get periodOngoing => 'Ongoing';
+
+  @override
+  String get periodCurrent => 'Current';
+
+  @override
+  String get errorNetwork => 'Please check your internet connection';
+
+  @override
+  String get errorTimeout => 'Server is not responding. Please try again later';
+
+  @override
+  String get errorServer =>
+      'A temporary error occurred. Please try again later';
+
+  @override
+  String get errorFirebasePermission =>
+      'You don\'t have permission to access this';
+
+  @override
+  String get errorFirebaseNotFound => 'The requested data was not found';
+
+  @override
+  String get errorFirebaseUnavailable => 'Service is temporarily unavailable';
 }

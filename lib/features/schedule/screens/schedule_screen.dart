@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/error_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/models/match_model.dart';
 import '../../../shared/widgets/empty_state.dart';
@@ -378,7 +379,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       error: (e, _) => Padding(
         padding: const EdgeInsets.all(16),
         child: ErrorState(
-          message: e.toString(),
+          message: ErrorHelper.getLocalizedErrorMessage(context, e),
           onRetry: () => ref.invalidate(filteredSchedulesProvider),
         ),
       ),
@@ -1094,7 +1095,7 @@ class _NotificationSettingsDialogState extends ConsumerState<_NotificationSettin
           height: 100,
           child: Center(
             child: Text(
-              AppLocalizations.of(context)!.errorWithMessage(e.toString()),
+              ErrorHelper.getLocalizedErrorMessage(context, e),
               style: TextStyle(color: _textSecondary),
             ),
           ),

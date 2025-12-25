@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import '../../../core/utils/error_helper.dart';
 import '../providers/community_provider.dart';
 import '../models/post_model.dart';
 import '../../attendance/models/attendance_record.dart';
@@ -194,7 +195,7 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()))),
+          SnackBar(content: Text(ErrorHelper.getLocalizedErrorMessage(context, e))),
         );
       }
     } finally {
@@ -313,7 +314,7 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
                     );
                   },
                   loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(child: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()))),
+                  error: (e, _) => Center(child: Text(ErrorHelper.getLocalizedErrorMessage(context, e))),
                 ),
               ),
             ],
@@ -377,7 +378,7 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
       },
       error: (e, _) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
+          SnackBar(content: Text(ErrorHelper.getLocalizedErrorMessage(context, e))),
         );
       },
     );

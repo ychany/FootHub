@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../attendance/models/attendance_record.dart';
 import '../services/user_profile_service.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../core/utils/error_helper.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -85,7 +86,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = ErrorHelper.getLocalizedErrorMessage(context, e);
         _isLoading = false;
       });
     }

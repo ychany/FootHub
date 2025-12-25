@@ -1499,7 +1499,7 @@ class CoachCareer {
   /// 재직 기간 텍스트
   String get periodText {
     final startY = startYear?.toString() ?? '?';
-    final endY = end == null ? '현재' : (endYear?.toString() ?? '?');
+    final endY = end == null ? 'current' : (endYear?.toString() ?? '?');
     return '$startY - $endY';
   }
 }
@@ -2927,12 +2927,12 @@ class ApiFootballInjury {
     return '❌'; // 기타 결장
   }
 
-  /// 상태 텍스트 (한국어)
-  String get statusText {
-    if (isSuspended) return '출전 정지';
-    if (isInjury) return '부상';
-    if (isDoubtful) return '출전 불투명';
-    return '결장';
+  /// 상태 키 (UI에서 ErrorHelper.getLocalizedPlayerStatus로 변환)
+  String get statusKey {
+    if (isSuspended) return 'suspended';
+    if (isInjury) return 'injury';
+    if (isDoubtful) return 'doubtful';
+    return 'absent';
   }
 }
 
@@ -3130,51 +3130,9 @@ class ApiFootballBetType {
     );
   }
 
-  /// 한국어 배팅 종류명
-  String get koreanName {
-    switch (name.toLowerCase()) {
-      case 'match winner':
-        return '승무패';
-      case 'home/away':
-        return '홈/원정';
-      case 'asian handicap':
-        return '핸디캡';
-      case 'goals over/under':
-        return '오버/언더';
-      case 'goals over/under first half':
-        return '전반 오버/언더';
-      case 'goals over/under second half':
-        return '후반 오버/언더';
-      case 'ht/ft double':
-        return '전반/풀타임';
-      case 'both teams score':
-        return '양팀 득점';
-      case 'exact score':
-        return '정확한 스코어';
-      case 'double chance':
-        return '더블찬스';
-      case 'first half winner':
-        return '전반 승패';
-      case 'second half winner':
-        return '후반 승패';
-      case 'odd/even':
-        return '홀/짝';
-      case 'total - home':
-        return '홈팀 골';
-      case 'total - away':
-        return '원정팀 골';
-      case 'draw no bet':
-        return '무승부 제외';
-      case 'results/both teams score':
-        return '결과+양팀득점';
-      case 'correct score - first half':
-        return '전반 정확한 스코어';
-      case 'winning margin':
-        return '골 차이';
-      default:
-        return name;
-    }
-  }
+  /// 배팅 종류 키 (UI에서 ErrorHelper.getLocalizedBetType으로 변환)
+  /// 원본 name을 그대로 반환하고 UI 레이어에서 로컬라이즈
+  String get betTypeKey => name;
 }
 
 /// 부상/출전정지 이력 모델
@@ -3240,47 +3198,9 @@ class ApiFootballSidelined {
   /// 기타 결장인지 확인
   bool get isOther => !isInjury && !isSuspension;
 
-  /// 한국어 타입명
-  String get typeKorean {
-    final typeLower = type.toLowerCase();
-
-    // 구체적인 부상 부위
-    if (typeLower.contains('knee')) return '무릎 부상';
-    if (typeLower.contains('hamstring')) return '햄스트링 부상';
-    if (typeLower.contains('muscle')) return '근육 부상';
-    if (typeLower.contains('ankle')) return '발목 부상';
-    if (typeLower.contains('groin')) return '사타구니 부상';
-    if (typeLower.contains('back')) return '허리 부상';
-    if (typeLower.contains('shoulder')) return '어깨 부상';
-    if (typeLower.contains('achilles')) return '아킬레스 부상';
-    if (typeLower.contains('calf')) return '종아리 부상';
-    if (typeLower.contains('thigh')) return '허벅지 부상';
-    if (typeLower.contains('hip')) return '엉덩이 부상';
-    if (typeLower.contains('broken') || typeLower.contains('fracture')) return '골절';
-    if (typeLower.contains('concussion')) return '뇌진탕';
-    if (typeLower.contains('ligament') || typeLower.contains('acl') || typeLower.contains('mcl')) return '인대 부상';
-    if (typeLower.contains('surgery')) return '수술';
-    if (typeLower.contains('illness')) return '질병';
-
-    // 일반 부상
-    if (typeLower.contains('injury')) return '부상';
-
-    // 출전정지
-    if (typeLower.contains('suspension') || typeLower.contains('suspended')) return '출전정지';
-    if (typeLower.contains('red card')) return '레드카드 징계';
-    if (typeLower.contains('yellow card')) return '옐로카드 누적';
-    if (typeLower.contains('ban')) return '출전금지';
-    if (typeLower.contains('disciplinary')) return '징계';
-
-    // 기타
-    if (typeLower.contains('missing')) return '결장';
-    if (typeLower.contains('personal')) return '개인 사유';
-    if (typeLower.contains('international')) return '국가대표 차출';
-    if (typeLower.contains('rest')) return '휴식';
-    if (typeLower.contains('fitness')) return '컨디션 조절';
-
-    return type; // 원본 반환
-  }
+  /// 타입 키 (UI에서 ErrorHelper.getLocalizedInjuryType으로 변환)
+  /// 원본 type을 그대로 반환하고 UI 레이어에서 로컬라이즈
+  String get typeKey => type;
 
   /// 시작일 DateTime
   DateTime? get startDate => DateTime.tryParse(start);
@@ -3288,11 +3208,12 @@ class ApiFootballSidelined {
   /// 종료일 DateTime
   DateTime? get endDate => end != null ? DateTime.tryParse(end!) : null;
 
-  /// 기간 표시 (예: "2024.01.15 ~ 2024.02.20" 또는 "2024.01.15 ~ 진행 중")
+  /// 기간 표시 (예: "2024.01.15 ~ 2024.02.20" 또는 "2024.01.15 ~ ongoing")
+  /// UI에서 'ongoing'을 로컬라이즈해야 함
   String get periodDisplay {
     final startStr = _formatDate(start);
     if (isOngoing) {
-      return '$startStr ~ 진행 중';
+      return '$startStr ~ ongoing';
     }
     final endStr = _formatDate(end!);
     return '$startStr ~ $endStr';

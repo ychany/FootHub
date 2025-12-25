@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../core/errors/app_exception.dart';
 import '../models/post_model.dart';
 
 class CommunityService {
@@ -65,7 +66,7 @@ class CommunityService {
     int? statsTopStadiumCount,
   }) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('로그인이 필요합니다');
+    if (user == null) throw AppException(AppErrorCode.loginRequired);
 
     final post = Post(
       id: '',
@@ -130,11 +131,11 @@ class CommunityService {
     bool clearStats = false,
   }) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('로그인이 필요합니다');
+    if (user == null) throw AppException(AppErrorCode.loginRequired);
 
     final post = await getPost(postId);
-    if (post == null) throw Exception('게시글을 찾을 수 없습니다');
-    if (post.authorId != user.uid) throw Exception('수정 권한이 없습니다');
+    if (post == null) throw AppException(AppErrorCode.postNotFound);
+    if (post.authorId != user.uid) throw AppException(AppErrorCode.postEditPermissionDenied);
 
     final updateData = <String, dynamic>{
       'title': title,
@@ -194,11 +195,11 @@ class CommunityService {
   // 게시글 삭제
   Future<void> deletePost(String postId) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('로그인이 필요합니다');
+    if (user == null) throw AppException(AppErrorCode.loginRequired);
 
     final post = await getPost(postId);
-    if (post == null) throw Exception('게시글을 찾을 수 없습니다');
-    if (post.authorId != user.uid) throw Exception('삭제 권한이 없습니다');
+    if (post == null) throw AppException(AppErrorCode.postNotFound);
+    if (post.authorId != user.uid) throw AppException(AppErrorCode.postDeletePermissionDenied);
 
     // 댓글 삭제
     final comments = await _commentsCollection.where('postId', isEqualTo: postId).get();
@@ -219,7 +220,7 @@ class CommunityService {
   // 좋아요 토글
   Future<bool> toggleLike(String postId) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('로그인이 필요합니다');
+    if (user == null) throw AppException(AppErrorCode.loginRequired);
 
     final likeId = '${user.uid}_$postId';
     final likeDoc = _likesCollection.doc(likeId);
@@ -286,7 +287,7 @@ class CommunityService {
     required String content,
   }) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('로그인이 필요합니다');
+    if (user == null) throw AppException(AppErrorCode.loginRequired);
 
     final comment = Comment(
       id: '',
@@ -312,13 +313,13 @@ class CommunityService {
   // 댓글 삭제
   Future<void> deleteComment(String commentId, String postId) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('로그인이 필요합니다');
+    if (user == null) throw AppException(AppErrorCode.loginRequired);
 
     final commentDoc = await _commentsCollection.doc(commentId).get();
-    if (!commentDoc.exists) throw Exception('댓글을 찾을 수 없습니다');
+    if (!commentDoc.exists) throw AppException(AppErrorCode.commentNotFound);
 
     final comment = Comment.fromFirestore(commentDoc);
-    if (comment.authorId != user.uid) throw Exception('삭제 권한이 없습니다');
+    if (comment.authorId != user.uid) throw AppException(AppErrorCode.commentDeletePermissionDenied);
 
     await _commentsCollection.doc(commentId).delete();
 

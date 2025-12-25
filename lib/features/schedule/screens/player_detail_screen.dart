@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/services/api_football_service.dart';
+import '../../../core/utils/error_helper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../favorites/providers/favorites_provider.dart';
 import '../../../l10n/app_localizations.dart';
@@ -1932,7 +1933,7 @@ class _SidelinedItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  record.typeKorean,
+                  ErrorHelper.getLocalizedInjuryType(context, record.typeKey),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1941,7 +1942,7 @@ class _SidelinedItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  record.periodDisplay,
+                  ErrorHelper.getLocalizedPeriodText(context, record.periodDisplay),
                   style: TextStyle(
                     fontSize: 12,
                     color: _textSecondary,

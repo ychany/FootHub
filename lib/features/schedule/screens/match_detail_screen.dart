@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../core/services/api_football_service.dart';
+import '../../../core/utils/error_helper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../l10n/app_localizations.dart';
 import '../providers/schedule_provider.dart';
@@ -207,7 +208,7 @@ class MatchDetailScreen extends ConsumerWidget {
               children: [
                 Icon(Icons.error_outline, size: 64, color: _error),
                 const SizedBox(height: 16),
-                Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()), style: TextStyle(color: _textSecondary)),
+                Text(ErrorHelper.getLocalizedErrorMessage(context, e), style: TextStyle(color: _textSecondary)),
               ],
             ),
           ),
@@ -2159,7 +2160,7 @@ class _LineupTabState extends ConsumerState<_LineupTab> {
             error: (e, _) => Builder(
               builder: (context) => Container(
                 padding: const EdgeInsets.all(16),
-                child: Text(AppLocalizations.of(context)!.lineupLoadError(e.toString()), style: TextStyle(color: _textSecondary)),
+                child: Text(AppLocalizations.of(context)!.lineupLoadError(ErrorHelper.getLocalizedErrorMessage(context, e)), style: TextStyle(color: _textSecondary)),
               ),
             ),
           ),
@@ -5026,7 +5027,7 @@ class _MatchNotificationDialogState extends ConsumerState<_MatchNotificationDial
         error: (e, _) => SizedBox(
           height: 100,
           child: Center(
-            child: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()), style: TextStyle(color: _textSecondary)),
+            child: Text(ErrorHelper.getLocalizedErrorMessage(context, e), style: TextStyle(color: _textSecondary)),
           ),
         ),
       ),
@@ -5555,7 +5556,7 @@ class _ComparisonTab extends ConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
-        child: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()), style: const TextStyle(color: _textSecondary)),
+        child: Text(ErrorHelper.getLocalizedErrorMessage(context, e), style: const TextStyle(color: _textSecondary)),
       ),
     );
   }
@@ -7424,7 +7425,7 @@ class _CommentsTabState extends State<_CommentsTab> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.commentWriteFailed(e.toString()))),
+          SnackBar(content: Text(AppLocalizations.of(context)!.commentWriteFailed(ErrorHelper.getLocalizedErrorMessage(context, e)))),
         );
       }
     } finally {
@@ -7466,7 +7467,7 @@ class _CommentsTabState extends State<_CommentsTab> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.deleteFailed(e.toString()))),
+            SnackBar(content: Text(l10n.deleteFailed(ErrorHelper.getLocalizedErrorMessage(context, e)))),
           );
         }
       }

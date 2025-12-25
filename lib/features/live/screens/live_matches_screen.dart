@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/services/api_football_service.dart';
+import '../../../core/utils/error_helper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../profile/providers/timezone_provider.dart';
 import '../../../l10n/app_localizations.dart';
@@ -118,7 +119,7 @@ class _LiveMatchesScreenState extends ConsumerState<LiveMatchesScreen> {
                     return _buildContent(fixtures);
                   },
                   loading: () => const LoadingIndicator(),
-                  error: (e, _) => _buildError(e.toString()),
+                  error: (e, _) => _buildError(ErrorHelper.getLocalizedErrorMessage(context, e)),
                 ),
               ),
             ],

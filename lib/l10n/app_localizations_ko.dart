@@ -1534,7 +1534,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get injuryKnee => '무릎 부상';
 
   @override
-  String get injuryHamstring => '햄스트링';
+  String get injuryHamstring => '햄스트링 부상';
 
   @override
   String get injuryAnkle => '발목 부상';
@@ -1911,7 +1911,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get betDoubleChance => '더블찬스';
 
   @override
-  String get betBothTeamsScore => '양팀 모두 득점';
+  String get betBothTeamsScore => '양팀 득점';
 
   @override
   String get betExactScore => '정확한 스코어';
@@ -1929,10 +1929,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get betHandicap => '핸디캡';
 
   @override
-  String get betFirstHalfWinner => '전반전 승자';
+  String get betFirstHalfWinner => '전반 승패';
 
   @override
-  String get betSecondHalfWinner => '후반전 승자';
+  String get betSecondHalfWinner => '후반 승패';
 
   @override
   String get betHalfTimeFullTime => '전반/후반 결과';
@@ -3725,4 +3725,151 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachInfo => '감독 정보';
+
+  @override
+  String get errorLoginRequired => '로그인이 필요합니다';
+
+  @override
+  String get errorPostNotFound => '게시글을 찾을 수 없습니다';
+
+  @override
+  String get errorPostEditPermissionDenied => '수정 권한이 없습니다';
+
+  @override
+  String get errorPostDeletePermissionDenied => '삭제 권한이 없습니다';
+
+  @override
+  String get errorCommentNotFound => '댓글을 찾을 수 없습니다';
+
+  @override
+  String get errorCommentDeletePermissionDenied => '삭제 권한이 없습니다';
+
+  @override
+  String get errorNetworkError => '네트워크 오류가 발생했습니다';
+
+  @override
+  String get errorUnknown => '알 수 없는 오류가 발생했습니다';
+
+  @override
+  String get injuryGroin => '사타구니 부상';
+
+  @override
+  String get injuryShoulder => '어깨 부상';
+
+  @override
+  String get injuryAchilles => '아킬레스 부상';
+
+  @override
+  String get injuryCalf => '종아리 부상';
+
+  @override
+  String get injuryThigh => '허벅지 부상';
+
+  @override
+  String get injuryHip => '엉덩이 부상';
+
+  @override
+  String get injuryFracture => '골절';
+
+  @override
+  String get injuryConcussion => '뇌진탕';
+
+  @override
+  String get injuryLigament => '인대 부상';
+
+  @override
+  String get injurySurgery => '수술';
+
+  @override
+  String get statusSuspension => '출전정지';
+
+  @override
+  String get statusRedCard => '레드카드 징계';
+
+  @override
+  String get statusYellowCard => '옐로카드 누적';
+
+  @override
+  String get statusBan => '출전금지';
+
+  @override
+  String get statusDisciplinary => '징계';
+
+  @override
+  String get statusMissing => '결장';
+
+  @override
+  String get statusPersonal => '개인 사유';
+
+  @override
+  String get statusInternational => '국가대표 차출';
+
+  @override
+  String get statusRest => '휴식';
+
+  @override
+  String get statusFitness => '컨디션 조절';
+
+  @override
+  String get statusSuspended => '출전 정지';
+
+  @override
+  String get statusInjury => '부상';
+
+  @override
+  String get statusDoubtful => '출전 불투명';
+
+  @override
+  String get statusAbsent => '결장';
+
+  @override
+  String get betFirstHalfOU => '전반 오버/언더';
+
+  @override
+  String get betSecondHalfOU => '후반 오버/언더';
+
+  @override
+  String get betHalfFullTime => '전반/풀타임';
+
+  @override
+  String get betHomeTeamGoals => '홈팀 골';
+
+  @override
+  String get betAwayTeamGoals => '원정팀 골';
+
+  @override
+  String get betDrawNoBet => '무승부 제외';
+
+  @override
+  String get betResultBothScore => '결과+양팀득점';
+
+  @override
+  String get betFirstHalfExact => '전반 정확한 스코어';
+
+  @override
+  String get betGoalsDifference => '골 차이';
+
+  @override
+  String get periodOngoing => '진행 중';
+
+  @override
+  String get periodCurrent => '현재';
+
+  @override
+  String get errorNetwork => '인터넷 연결을 확인해주세요';
+
+  @override
+  String get errorTimeout => '서버 응답이 없습니다. 잠시 후 다시 시도해주세요';
+
+  @override
+  String get errorServer => '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요';
+
+  @override
+  String get errorFirebasePermission => '접근 권한이 없습니다';
+
+  @override
+  String get errorFirebaseNotFound => '요청한 데이터를 찾을 수 없습니다';
+
+  @override
+  String get errorFirebaseUnavailable => '서비스를 일시적으로 사용할 수 없습니다';
 }

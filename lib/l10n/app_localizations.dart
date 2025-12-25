@@ -3023,7 +3023,7 @@ abstract class AppLocalizations {
   /// No description provided for @injuryHamstring.
   ///
   /// In ko, this message translates to:
-  /// **'햄스트링'**
+  /// **'햄스트링 부상'**
   String get injuryHamstring;
 
   /// No description provided for @injuryAnkle.
@@ -3737,7 +3737,7 @@ abstract class AppLocalizations {
   /// No description provided for @betBothTeamsScore.
   ///
   /// In ko, this message translates to:
-  /// **'양팀 모두 득점'**
+  /// **'양팀 득점'**
   String get betBothTeamsScore;
 
   /// No description provided for @betExactScore.
@@ -3773,13 +3773,13 @@ abstract class AppLocalizations {
   /// No description provided for @betFirstHalfWinner.
   ///
   /// In ko, this message translates to:
-  /// **'전반전 승자'**
+  /// **'전반 승패'**
   String get betFirstHalfWinner;
 
   /// No description provided for @betSecondHalfWinner.
   ///
   /// In ko, this message translates to:
-  /// **'후반전 승자'**
+  /// **'후반 승패'**
   String get betSecondHalfWinner;
 
   /// No description provided for @betHalfTimeFullTime.
@@ -7117,6 +7117,300 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'감독 정보'**
   String get coachInfo;
+
+  /// No description provided for @errorLoginRequired.
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인이 필요합니다'**
+  String get errorLoginRequired;
+
+  /// No description provided for @errorPostNotFound.
+  ///
+  /// In ko, this message translates to:
+  /// **'게시글을 찾을 수 없습니다'**
+  String get errorPostNotFound;
+
+  /// No description provided for @errorPostEditPermissionDenied.
+  ///
+  /// In ko, this message translates to:
+  /// **'수정 권한이 없습니다'**
+  String get errorPostEditPermissionDenied;
+
+  /// No description provided for @errorPostDeletePermissionDenied.
+  ///
+  /// In ko, this message translates to:
+  /// **'삭제 권한이 없습니다'**
+  String get errorPostDeletePermissionDenied;
+
+  /// No description provided for @errorCommentNotFound.
+  ///
+  /// In ko, this message translates to:
+  /// **'댓글을 찾을 수 없습니다'**
+  String get errorCommentNotFound;
+
+  /// No description provided for @errorCommentDeletePermissionDenied.
+  ///
+  /// In ko, this message translates to:
+  /// **'삭제 권한이 없습니다'**
+  String get errorCommentDeletePermissionDenied;
+
+  /// No description provided for @errorNetworkError.
+  ///
+  /// In ko, this message translates to:
+  /// **'네트워크 오류가 발생했습니다'**
+  String get errorNetworkError;
+
+  /// No description provided for @errorUnknown.
+  ///
+  /// In ko, this message translates to:
+  /// **'알 수 없는 오류가 발생했습니다'**
+  String get errorUnknown;
+
+  /// No description provided for @injuryGroin.
+  ///
+  /// In ko, this message translates to:
+  /// **'사타구니 부상'**
+  String get injuryGroin;
+
+  /// No description provided for @injuryShoulder.
+  ///
+  /// In ko, this message translates to:
+  /// **'어깨 부상'**
+  String get injuryShoulder;
+
+  /// No description provided for @injuryAchilles.
+  ///
+  /// In ko, this message translates to:
+  /// **'아킬레스 부상'**
+  String get injuryAchilles;
+
+  /// No description provided for @injuryCalf.
+  ///
+  /// In ko, this message translates to:
+  /// **'종아리 부상'**
+  String get injuryCalf;
+
+  /// No description provided for @injuryThigh.
+  ///
+  /// In ko, this message translates to:
+  /// **'허벅지 부상'**
+  String get injuryThigh;
+
+  /// No description provided for @injuryHip.
+  ///
+  /// In ko, this message translates to:
+  /// **'엉덩이 부상'**
+  String get injuryHip;
+
+  /// No description provided for @injuryFracture.
+  ///
+  /// In ko, this message translates to:
+  /// **'골절'**
+  String get injuryFracture;
+
+  /// No description provided for @injuryConcussion.
+  ///
+  /// In ko, this message translates to:
+  /// **'뇌진탕'**
+  String get injuryConcussion;
+
+  /// No description provided for @injuryLigament.
+  ///
+  /// In ko, this message translates to:
+  /// **'인대 부상'**
+  String get injuryLigament;
+
+  /// No description provided for @injurySurgery.
+  ///
+  /// In ko, this message translates to:
+  /// **'수술'**
+  String get injurySurgery;
+
+  /// No description provided for @statusSuspension.
+  ///
+  /// In ko, this message translates to:
+  /// **'출전정지'**
+  String get statusSuspension;
+
+  /// No description provided for @statusRedCard.
+  ///
+  /// In ko, this message translates to:
+  /// **'레드카드 징계'**
+  String get statusRedCard;
+
+  /// No description provided for @statusYellowCard.
+  ///
+  /// In ko, this message translates to:
+  /// **'옐로카드 누적'**
+  String get statusYellowCard;
+
+  /// No description provided for @statusBan.
+  ///
+  /// In ko, this message translates to:
+  /// **'출전금지'**
+  String get statusBan;
+
+  /// No description provided for @statusDisciplinary.
+  ///
+  /// In ko, this message translates to:
+  /// **'징계'**
+  String get statusDisciplinary;
+
+  /// No description provided for @statusMissing.
+  ///
+  /// In ko, this message translates to:
+  /// **'결장'**
+  String get statusMissing;
+
+  /// No description provided for @statusPersonal.
+  ///
+  /// In ko, this message translates to:
+  /// **'개인 사유'**
+  String get statusPersonal;
+
+  /// No description provided for @statusInternational.
+  ///
+  /// In ko, this message translates to:
+  /// **'국가대표 차출'**
+  String get statusInternational;
+
+  /// No description provided for @statusRest.
+  ///
+  /// In ko, this message translates to:
+  /// **'휴식'**
+  String get statusRest;
+
+  /// No description provided for @statusFitness.
+  ///
+  /// In ko, this message translates to:
+  /// **'컨디션 조절'**
+  String get statusFitness;
+
+  /// No description provided for @statusSuspended.
+  ///
+  /// In ko, this message translates to:
+  /// **'출전 정지'**
+  String get statusSuspended;
+
+  /// No description provided for @statusInjury.
+  ///
+  /// In ko, this message translates to:
+  /// **'부상'**
+  String get statusInjury;
+
+  /// No description provided for @statusDoubtful.
+  ///
+  /// In ko, this message translates to:
+  /// **'출전 불투명'**
+  String get statusDoubtful;
+
+  /// No description provided for @statusAbsent.
+  ///
+  /// In ko, this message translates to:
+  /// **'결장'**
+  String get statusAbsent;
+
+  /// No description provided for @betFirstHalfOU.
+  ///
+  /// In ko, this message translates to:
+  /// **'전반 오버/언더'**
+  String get betFirstHalfOU;
+
+  /// No description provided for @betSecondHalfOU.
+  ///
+  /// In ko, this message translates to:
+  /// **'후반 오버/언더'**
+  String get betSecondHalfOU;
+
+  /// No description provided for @betHalfFullTime.
+  ///
+  /// In ko, this message translates to:
+  /// **'전반/풀타임'**
+  String get betHalfFullTime;
+
+  /// No description provided for @betHomeTeamGoals.
+  ///
+  /// In ko, this message translates to:
+  /// **'홈팀 골'**
+  String get betHomeTeamGoals;
+
+  /// No description provided for @betAwayTeamGoals.
+  ///
+  /// In ko, this message translates to:
+  /// **'원정팀 골'**
+  String get betAwayTeamGoals;
+
+  /// No description provided for @betDrawNoBet.
+  ///
+  /// In ko, this message translates to:
+  /// **'무승부 제외'**
+  String get betDrawNoBet;
+
+  /// No description provided for @betResultBothScore.
+  ///
+  /// In ko, this message translates to:
+  /// **'결과+양팀득점'**
+  String get betResultBothScore;
+
+  /// No description provided for @betFirstHalfExact.
+  ///
+  /// In ko, this message translates to:
+  /// **'전반 정확한 스코어'**
+  String get betFirstHalfExact;
+
+  /// No description provided for @betGoalsDifference.
+  ///
+  /// In ko, this message translates to:
+  /// **'골 차이'**
+  String get betGoalsDifference;
+
+  /// No description provided for @periodOngoing.
+  ///
+  /// In ko, this message translates to:
+  /// **'진행 중'**
+  String get periodOngoing;
+
+  /// No description provided for @periodCurrent.
+  ///
+  /// In ko, this message translates to:
+  /// **'현재'**
+  String get periodCurrent;
+
+  /// No description provided for @errorNetwork.
+  ///
+  /// In ko, this message translates to:
+  /// **'인터넷 연결을 확인해주세요'**
+  String get errorNetwork;
+
+  /// No description provided for @errorTimeout.
+  ///
+  /// In ko, this message translates to:
+  /// **'서버 응답이 없습니다. 잠시 후 다시 시도해주세요'**
+  String get errorTimeout;
+
+  /// No description provided for @errorServer.
+  ///
+  /// In ko, this message translates to:
+  /// **'일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요'**
+  String get errorServer;
+
+  /// No description provided for @errorFirebasePermission.
+  ///
+  /// In ko, this message translates to:
+  /// **'접근 권한이 없습니다'**
+  String get errorFirebasePermission;
+
+  /// No description provided for @errorFirebaseNotFound.
+  ///
+  /// In ko, this message translates to:
+  /// **'요청한 데이터를 찾을 수 없습니다'**
+  String get errorFirebaseNotFound;
+
+  /// No description provided for @errorFirebaseUnavailable.
+  ///
+  /// In ko, this message translates to:
+  /// **'서비스를 일시적으로 사용할 수 없습니다'**
+  String get errorFirebaseUnavailable;
 }
 
 class _AppLocalizationsDelegate

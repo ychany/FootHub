@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/error_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/services/storage_service.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -397,7 +398,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.photoUploadFailed(e.toString()))),
+          SnackBar(content: Text(l10n.photoUploadFailed(ErrorHelper.getLocalizedErrorMessage(context, e)))),
         );
       }
     }
@@ -436,7 +437,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.updateFailed(e.toString()))),
+          SnackBar(content: Text(l10n.updateFailed(ErrorHelper.getLocalizedErrorMessage(context, e)))),
         );
       }
     } finally {

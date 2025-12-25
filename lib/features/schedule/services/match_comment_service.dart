@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../core/errors/app_exception.dart';
 import '../models/match_comment.dart';
 
 class MatchCommentService {
@@ -40,7 +41,7 @@ class MatchCommentService {
     required String content,
   }) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('로그인이 필요합니다');
+    if (user == null) throw AppException(AppErrorCode.loginRequired);
 
     final comment = MatchComment(
       id: '',
@@ -60,13 +61,13 @@ class MatchCommentService {
   /// 댓글 삭제
   Future<void> deleteComment(String commentId) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('로그인이 필요합니다');
+    if (user == null) throw AppException(AppErrorCode.loginRequired);
 
     final commentDoc = await _commentsCollection.doc(commentId).get();
-    if (!commentDoc.exists) throw Exception('댓글을 찾을 수 없습니다');
+    if (!commentDoc.exists) throw AppException(AppErrorCode.commentNotFound);
 
     final comment = MatchComment.fromFirestore(commentDoc);
-    if (comment.authorId != user.uid) throw Exception('삭제 권한이 없습니다');
+    if (comment.authorId != user.uid) throw AppException(AppErrorCode.commentDeletePermissionDenied);
 
     await _commentsCollection.doc(commentId).delete();
   }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/services/api_football_service.dart';
+import '../../../core/utils/error_helper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../providers/standings_provider.dart';
@@ -356,7 +357,7 @@ class _LeagueStandingsScreenState extends ConsumerState<LeagueStandingsScreen> {
       },
       loading: () => const LoadingIndicator(),
       error: (e, _) => ErrorState(
-        message: e.toString(),
+        message: ErrorHelper.getLocalizedErrorMessage(context, e),
         onRetry: () => ref.invalidate(externalLeagueStandingsProvider(standingsKey)),
       ),
     );
@@ -391,7 +392,7 @@ class _LeagueStandingsScreenState extends ConsumerState<LeagueStandingsScreen> {
       },
       loading: () => const LoadingIndicator(),
       error: (e, _) => ErrorState(
-        message: e.toString(),
+        message: ErrorHelper.getLocalizedErrorMessage(context, e),
         onRetry: () => ref.invalidate(topScorersProvider(standingsKey)),
       ),
     );
@@ -426,7 +427,7 @@ class _LeagueStandingsScreenState extends ConsumerState<LeagueStandingsScreen> {
       },
       loading: () => const LoadingIndicator(),
       error: (e, _) => ErrorState(
-        message: e.toString(),
+        message: ErrorHelper.getLocalizedErrorMessage(context, e),
         onRetry: () => ref.invalidate(topAssistsProvider(standingsKey)),
       ),
     );
@@ -467,7 +468,7 @@ class _LeagueStandingsScreenState extends ConsumerState<LeagueStandingsScreen> {
       },
       loading: () => const LoadingIndicator(),
       error: (e, _) => Center(
-        child: Text(l10n.errorLabel(e.toString()), style: TextStyle(color: _textSecondary)),
+        child: Text(ErrorHelper.getLocalizedErrorMessage(context, e), style: TextStyle(color: _textSecondary)),
       ),
     );
   }

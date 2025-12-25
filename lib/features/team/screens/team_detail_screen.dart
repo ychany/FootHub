@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/services/api_football_service.dart';
+import '../../../core/utils/error_helper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../providers/team_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
@@ -65,7 +66,7 @@ class TeamDetailScreen extends ConsumerWidget {
                 _buildAppBar(context),
                 Expanded(
                   child: Center(
-                    child: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()),
+                    child: Text(ErrorHelper.getLocalizedErrorMessage(context, e),
                         style: const TextStyle(color: _textSecondary)),
                   ),
                 ),
@@ -915,7 +916,7 @@ class _StatisticsTab extends ConsumerWidget {
           children: [
             Icon(Icons.error_outline, size: 48, color: _textSecondary),
             const SizedBox(height: 12),
-            Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()), style: TextStyle(color: _textSecondary, fontSize: 14)),
+            Text(ErrorHelper.getLocalizedErrorMessage(context, e), style: TextStyle(color: _textSecondary, fontSize: 14)),
           ],
         ),
       ),
@@ -2153,7 +2154,7 @@ class _ScheduleTab extends ConsumerWidget {
           children: [
             Icon(Icons.error_outline, size: 48, color: _textSecondary),
             const SizedBox(height: 12),
-            Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()), style: TextStyle(color: _textSecondary, fontSize: 14)),
+            Text(ErrorHelper.getLocalizedErrorMessage(context, e), style: TextStyle(color: _textSecondary, fontSize: 14)),
           ],
         ),
       ),
@@ -2483,7 +2484,7 @@ class _PlayersTab extends ConsumerWidget {
       },
       loading: () => const LoadingIndicator(),
       error: (e, _) => Center(
-        child: Builder(builder: (context) => Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()), style: TextStyle(color: _textSecondary))),
+        child: Builder(builder: (context) => Text(ErrorHelper.getLocalizedErrorMessage(context, e), style: TextStyle(color: _textSecondary))),
       ),
     );
   }
@@ -3311,7 +3312,7 @@ class _TransfersTabState extends ConsumerState<_TransfersTab> {
           children: [
             Icon(Icons.error_outline, size: 48, color: _textSecondary),
             const SizedBox(height: 12),
-            Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()), style: TextStyle(color: _textSecondary, fontSize: 14)),
+            Text(ErrorHelper.getLocalizedErrorMessage(context, e), style: TextStyle(color: _textSecondary, fontSize: 14)),
           ],
         ),
       ),

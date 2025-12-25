@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/services/api_football_service.dart';
+import '../../../core/utils/error_helper.dart';
 import '../../../shared/services/storage_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -1605,7 +1606,7 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.saveFailed(e.toString()))));
+            .showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.saveFailed(ErrorHelper.getLocalizedErrorMessage(context, e)))));
       }
     } finally {
       if (mounted) {

@@ -9,6 +9,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/services/api_football_service.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/error_helper.dart';
 import '../../../shared/services/storage_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/attendance_record.dart';
@@ -1992,7 +1993,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l10n.saveFailed(e.toString()))));
+            .showSnackBar(SnackBar(content: Text(l10n.saveFailed(ErrorHelper.getLocalizedErrorMessage(context, e)))));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

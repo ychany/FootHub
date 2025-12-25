@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/error_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/models/team_model.dart';
 import '../../../shared/models/player_model.dart';
@@ -206,7 +207,7 @@ class _TeamsTab extends ConsumerWidget {
       },
       loading: () => const LoadingIndicator(),
       error: (e, _) => ErrorState(
-        message: e.toString(),
+        message: ErrorHelper.getLocalizedErrorMessage(context, e),
         onRetry: () => ref.invalidate(favoriteTeamsProvider),
       ),
     );
@@ -243,7 +244,7 @@ class _PlayersTab extends ConsumerWidget {
       },
       loading: () => const LoadingIndicator(),
       error: (e, _) => ErrorState(
-        message: e.toString(),
+        message: ErrorHelper.getLocalizedErrorMessage(context, e),
         onRetry: () => ref.invalidate(favoritePlayersProvider),
       ),
     );

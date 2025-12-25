@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/notification_settings_provider.dart';
 import '../services/notification_settings_service.dart';
+import '../../../core/utils/error_helper.dart';
 import '../../../l10n/app_localizations.dart';
 
 class NotificationSettingsScreen extends ConsumerWidget {
@@ -44,7 +45,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
         body: settingsAsync.when(
           data: (settings) => _buildContent(context, ref, settings),
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text(l10n.errorWithMsg(e.toString()))),
+          error: (e, _) => Center(child: Text(ErrorHelper.getLocalizedErrorMessage(context, e))),
         ),
       ),
     );
