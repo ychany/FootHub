@@ -1868,11 +1868,14 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
     setState(() => _isSearching = true);
     try {
       final fixtures = await _apiFootballService.getFixturesByDate(_selectedDate);
-      // 리그 필터가 있으면 적용
       if (_searchLeague != null) {
-        final filtered = fixtures.where((f) =>
-          f.league.name.toLowerCase().contains(_searchLeague!.toLowerCase())
-        ).toList();
+        final leagueId = AppConstants.getLeagueIdByName(_searchLeague!);
+        final filtered = fixtures.where((f) {
+          if (leagueId != null) {
+            return f.league.id == leagueId;
+          }
+          return AppConstants.isLeagueMatch(f.league.name, _searchLeague!);
+        }).toList();
         setState(() => _searchResults = filtered);
       } else {
         setState(() => _searchResults = fixtures);
