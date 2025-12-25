@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/local_notification_service.dart';
 import '../../../shared/models/match_model.dart';
 import '../models/notification_setting.dart';
 import '../services/schedule_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
+import '../../profile/providers/notification_settings_provider.dart';
 import '../../profile/providers/timezone_provider.dart';
 
 // Schedule Service Provider
@@ -128,6 +130,7 @@ final userNotificationSettingsProvider =
 class ScheduleNotifier extends StateNotifier<AsyncValue<void>> {
   final ScheduleService _service;
   final Ref _ref;
+  final LocalNotificationService _notificationService = LocalNotificationService();
 
   ScheduleNotifier(this._service, this._ref)
       : super(const AsyncValue.data(null));
@@ -150,12 +153,75 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<void>> {
         notifyLineup: notifyLineup,
         notifyResult: notifyResult,
       );
+
+      // Schedule actual local notifications
+      await _scheduleMatchNotifications(
+        matchId: matchId,
+        notifyKickoff: notifyKickoff,
+      );
+
       state = const AsyncValue.data(null);
       // Invalidate related providers
       _ref.invalidate(matchNotificationProvider(matchId));
       _ref.invalidate(hasNotificationProvider(matchId));
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> _scheduleMatchNotifications({
+    required String matchId,
+    required bool notifyKickoff,
+  }) async {
+    try {
+      // Get match details
+      final match = await _service.getMatch(matchId);
+      if (match == null) return;
+
+      // Get user's notification settings
+      final settingsAsync = _ref.read(notificationSettingsProvider);
+      final settings = settingsAsync.value;
+      if (settings == null || !settings.pushNotifications) return;
+
+      // Cancel any existing notifications for this match
+      await _notificationService.cancelMatchNotifications(matchId);
+
+      // Schedule reminder notification if match reminder is enabled
+      if (settings.matchReminder) {
+        final reminderId = LocalNotificationService.generateNotificationId(
+          matchId,
+          NotificationType.reminder,
+        );
+        await _notificationService.scheduleMatchReminder(
+          notificationId: reminderId,
+          matchId: matchId,
+          homeTeam: match.homeTeamName,
+          awayTeam: match.awayTeamName,
+          league: match.league,
+          kickoffTime: match.kickoff,
+          minutesBefore: settings.matchReminderMinutes,
+        );
+      }
+
+      // Schedule kickoff notification if enabled
+      if (notifyKickoff) {
+        final kickoffId = LocalNotificationService.generateNotificationId(
+          matchId,
+          NotificationType.kickoff,
+        );
+        await _notificationService.scheduleKickoffNotification(
+          notificationId: kickoffId,
+          matchId: matchId,
+          homeTeam: match.homeTeamName,
+          awayTeam: match.awayTeamName,
+          league: match.league,
+          kickoffTime: match.kickoff,
+        );
+      }
+    } catch (e) {
+      // Log error but don't fail the main operation
+      // ignore: avoid_print
+      print('Failed to schedule notifications: $e');
     }
   }
 
@@ -189,6 +255,10 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       await _service.removeNotification(userId, matchId);
+
+      // Cancel local notifications for this match
+      await _notificationService.cancelMatchNotifications(matchId);
+
       state = const AsyncValue.data(null);
       _ref.invalidate(matchNotificationProvider(matchId));
       _ref.invalidate(hasNotificationProvider(matchId));

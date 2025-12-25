@@ -3,19 +3,58 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/notification_settings_provider.dart';
 import '../services/notification_settings_service.dart';
+import '../../../core/services/local_notification_service.dart';
 import '../../../core/utils/error_helper.dart';
 import '../../../l10n/app_localizations.dart';
 
-class NotificationSettingsScreen extends ConsumerWidget {
+class NotificationSettingsScreen extends ConsumerStatefulWidget {
   const NotificationSettingsScreen({super.key});
 
+  @override
+  ConsumerState<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
+}
+
+class _NotificationSettingsScreenState extends ConsumerState<NotificationSettingsScreen> {
   static const _primary = Color(0xFF2563EB);
   static const _primaryLight = Color(0xFFDBEAFE);
   static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
   static const _background = Color(0xFFF9FAFB);
+  static const _success = Color(0xFF10B981);
+  static const _error = Color(0xFFEF4444);
+
+  bool? _permissionGranted;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    _checkPermission();
+  }
+
+  Future<void> _checkPermission() async {
+    final granted = await LocalNotificationService().areNotificationsEnabled();
+    if (mounted) {
+      setState(() => _permissionGranted = granted);
+    }
+  }
+
+  Future<void> _requestPermission() async {
+    final granted = await LocalNotificationService().requestPermissions();
+    if (mounted) {
+      setState(() => _permissionGranted = granted);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(granted
+              ? '알림 권한이 허용되었습니다'
+              : '알림 권한이 거부되었습니다. 설정에서 허용해주세요'),
+          backgroundColor: granted ? _success : _error,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settingsAsync = ref.watch(notificationSettingsProvider);
     final l10n = AppLocalizations.of(context)!;
 
@@ -43,7 +82,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
           centerTitle: true,
         ),
         body: settingsAsync.when(
-          data: (settings) => _buildContent(context, ref, settings),
+          data: (settings) => _buildContent(settings),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text(ErrorHelper.getLocalizedErrorMessage(context, e))),
         ),
@@ -51,7 +90,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, WidgetRef ref, NotificationSettings settings) {
+  Widget _buildContent(NotificationSettings settings) {
     final notifier = ref.read(notificationSettingsNotifierProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
 
@@ -156,6 +195,11 @@ class NotificationSettingsScreen extends ConsumerWidget {
 
           const SizedBox(height: 32),
 
+          // 권한 상태 및 요청 버튼
+          _buildPermissionCard(l10n),
+
+          const SizedBox(height: 16),
+
           // 안내 메시지
           Container(
             padding: const EdgeInsets.all(16),
@@ -196,6 +240,100 @@ class NotificationSettingsScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPermissionCard(AppLocalizations l10n) {
+    final isGranted = _permissionGranted == true;
+    final isChecking = _permissionGranted == null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isGranted ? _success.withValues(alpha: 0.3) : _error.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isGranted
+                  ? _success.withValues(alpha: 0.1)
+                  : _error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isGranted ? Icons.check_circle : Icons.error_outline,
+              color: isGranted ? _success : _error,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '알림 권한 상태',
+                  style: const TextStyle(
+                    color: _textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isChecking
+                      ? '확인 중...'
+                      : isGranted
+                          ? '알림 권한이 허용되어 있습니다'
+                          : '알림을 받으려면 권한을 허용해주세요',
+                  style: TextStyle(
+                    color: _textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!isGranted && !isChecking)
+            TextButton(
+              onPressed: _requestPermission,
+              style: TextButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                '권한 요청',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+            ),
+          if (isGranted)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _success.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '허용됨',
+                style: TextStyle(
+                  color: _success,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
         ],
       ),
     );

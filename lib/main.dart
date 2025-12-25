@@ -10,6 +10,7 @@ import 'l10n/app_localizations.dart';
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/providers/locale_provider.dart';
+import 'core/services/local_notification_service.dart';
 import 'app_router.dart';
 
 void main() async {
@@ -32,6 +33,9 @@ void main() async {
 
   // 한국어 날짜 포맷 초기화
   await initializeDateFormatting('ko', null);
+
+  // 로컬 알림 서비스 초기화
+  await LocalNotificationService().initialize();
 
   runApp(
     const ProviderScope(
