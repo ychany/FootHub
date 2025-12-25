@@ -8,6 +8,9 @@ import '../../../core/services/api_football_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/photo_carousel.dart';
+import '../../../shared/widgets/football_pitch_view.dart';
+import '../../../shared/widgets/team_comparison_widget.dart';
+import '../../../shared/widgets/standings_table.dart';
 import '../models/attendance_record.dart';
 import '../providers/attendance_provider.dart';
 
@@ -38,11 +41,29 @@ final attendanceMatchLineupProvider =
   return service.getFixtureLineups(id);
 });
 
+// Provider for player statistics (API-Football)
+final attendancePlayerStatsProvider =
+    FutureProvider.family<List<FixturePlayerStats>, String>((ref, fixtureId) async {
+  final service = ApiFootballService();
+  final id = int.tryParse(fixtureId);
+  if (id == null) return [];
+  return service.getFixturePlayers(id);
+});
+
 // Provider for head to head (API-Football)
 final attendanceH2HProvider =
     FutureProvider.family<List<ApiFootballFixture>, ({int homeTeamId, int awayTeamId})>((ref, params) async {
   final service = ApiFootballService();
   return service.getHeadToHead(params.homeTeamId, params.awayTeamId);
+});
+
+// Provider for fixture detail (to get leagueId)
+final attendanceFixtureProvider =
+    FutureProvider.family<ApiFootballFixture?, String>((ref, fixtureId) async {
+  final service = ApiFootballService();
+  final id = int.tryParse(fixtureId);
+  if (id == null) return null;
+  return service.getFixtureById(id);
 });
 
 // Provider for venue info (API-Football)
@@ -128,7 +149,6 @@ class _DetailContentState extends ConsumerState<_DetailContent>
   static const _textPrimary = Color(0xFF111827);
   static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE5E7EB);
-  static const _background = Color(0xFFF9FAFB);
   static const _warning = Color(0xFFF59E0B);
   static const _error = Color(0xFFEF4444);
 
@@ -154,245 +174,251 @@ class _DetailContentState extends ConsumerState<_DetailContent>
     final l10n = AppLocalizations.of(context)!;
     final hasMatchId = record.matchId != null;
 
-    return NestedScrollView(
-      headerSliverBuilder: (context, innerBoxIsScrolled) {
-        return [
-          _buildAppBar(context),
-          if (hasMatchId)
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _TabBarDelegate(
-                TabBar(
-                  controller: _tabController,
-                  labelColor: _primary,
-                  unselectedLabelColor: _textSecondary,
-                  indicatorColor: _primary,
-                  indicatorWeight: 3,
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                  unselectedLabelStyle: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                  tabs: [
-                    Tab(text: l10n.diary),
-                    Tab(text: l10n.details),
-                    Tab(text: l10n.broadcast),
-                    Tab(text: l10n.lineup),
-                    Tab(text: l10n.h2h),
-                  ],
-                ),
-                _background,
-              ),
-            ),
-        ];
-      },
-      body: hasMatchId
-          ? TabBarView(
+    return Column(
+      children: [
+        // 헤더 영역 (고정)
+        _buildHeader(context),
+
+        // 탭바 (고정)
+        if (hasMatchId)
+          Container(
+            color: Colors.white,
+            child: TabBar(
               controller: _tabController,
-              children: [
-                _DiaryTab(record: record),
-                _StatsTab(matchId: record.matchId!, record: record),
-                _TimelineTab(matchId: record.matchId!, record: record),
-                _LineupTab(matchId: record.matchId!, record: record),
-                _H2HTab(record: record),
+              labelColor: _primary,
+              unselectedLabelColor: _textSecondary,
+              indicatorColor: _primary,
+              indicatorWeight: 3,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+              tabs: [
+                Tab(text: l10n.diary),
+                Tab(text: l10n.tabComparison),
+                Tab(text: l10n.tabStats),
+                Tab(text: l10n.tabLineup),
+                Tab(text: l10n.tabRanking),
               ],
-            )
-          : _DiaryTab(record: record),
+            ),
+          ),
+
+        // 탭 컨텐츠 (스크롤)
+        Expanded(
+          child: hasMatchId
+              ? TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _DiaryTab(record: record),
+                    _ComparisonTab(record: record),
+                    _StatsAndTimelineTab(matchId: record.matchId!, record: record),
+                    _LineupTab(matchId: record.matchId!, record: record),
+                    _StandingsTabWrapper(record: record),
+                  ],
+                )
+              : _DiaryTab(record: record),
+        ),
+      ],
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
-    return SliverAppBar(
-      expandedHeight: 240,
-      pinned: true,
-      backgroundColor: Colors.white,
-      foregroundColor: _textPrimary,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          color: Colors.white,
-          child: SafeArea(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 상단 앱바 영역
+            Row(
               children: [
-                const SizedBox(height: 48),
-                // 리그 배지
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _primaryLight,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    record.league,
-                    style: const TextStyle(
-                      color: _primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  color: _textPrimary,
+                  onPressed: () => context.pop(),
                 ),
-                const SizedBox(height: 16),
-                // Teams Row
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      // 홈팀
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: record.homeTeamId.isNotEmpty
-                              ? () => context.push('/team/${record.homeTeamId}')
-                              : null,
-                          child: Column(
-                            children: [
-                              _buildTeamLogo(record.homeTeamLogo, 56),
-                              const SizedBox(height: 8),
-                              Text(
-                                record.homeTeamName,
-                                style: const TextStyle(
-                                  color: _textPrimary,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // 스코어 (고정 너비)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: _primaryLight,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _primary.withValues(alpha: 0.3)),
-                        ),
-                        child: Text(
-                          record.scoreDisplay,
-                          style: const TextStyle(
-                            color: _primary,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      // 어웨이팀
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: record.awayTeamId.isNotEmpty
-                              ? () => context.push('/team/${record.awayTeamId}')
-                              : null,
-                          child: Column(
-                            children: [
-                              _buildTeamLogo(record.awayTeamLogo, 56),
-                              const SizedBox(height: 8),
-                              Text(
-                                record.awayTeamName,
-                                style: const TextStyle(
-                                  color: _textPrimary,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                const Spacer(),
+                IconButton(
+                  icon: Icon(
+                    record.isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: record.isFavorite ? _error : _textSecondary,
                   ),
+                  onPressed: () {
+                    // TODO: Toggle favorite
+                  },
                 ),
-                const SizedBox(height: 16),
-                // Rating & Mood indicator
-                if (record.rating != null || record.mood != null)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (record.rating != null) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _warning.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                                color: _warning.withValues(alpha: 0.3)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.star,
-                                  color: _warning, size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                record.rating!.toStringAsFixed(1),
-                                style: const TextStyle(
-                                  color: _warning,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      if (record.rating != null && record.mood != null)
-                        const SizedBox(width: 8),
-                      if (record.mood != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _primaryLight,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                                color: _primary.withValues(alpha: 0.3)),
-                          ),
-                          child: Text(
-                            '${record.mood!.emoji} ${record.mood!.getLocalizedLabel(context)}',
-                            style: const TextStyle(
-                              color: _primary,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  color: _textSecondary,
+                  onPressed: () {
+                    context.push('/attendance/${record.id}/edit');
+                  },
+                ),
               ],
             ),
-          ),
+
+            // 리그 배지
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _primaryLight,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                record.league,
+                style: const TextStyle(
+                  color: _primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Teams Row
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  // 홈팀
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: record.homeTeamId.isNotEmpty
+                          ? () => context.push('/team/${record.homeTeamId}')
+                          : null,
+                      child: Column(
+                        children: [
+                          _buildTeamLogo(record.homeTeamLogo, 56),
+                          const SizedBox(height: 8),
+                          Text(
+                            record.homeTeamName,
+                            style: const TextStyle(
+                              color: _textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // 스코어 (고정 너비)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _primaryLight,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _primary.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      record.scoreDisplay,
+                      style: const TextStyle(
+                        color: _primary,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  // 어웨이팀
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: record.awayTeamId.isNotEmpty
+                          ? () => context.push('/team/${record.awayTeamId}')
+                          : null,
+                      child: Column(
+                        children: [
+                          _buildTeamLogo(record.awayTeamLogo, 56),
+                          const SizedBox(height: 8),
+                          Text(
+                            record.awayTeamName,
+                            style: const TextStyle(
+                              color: _textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Rating & Mood indicator
+            if (record.rating != null || record.mood != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (record.rating != null) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _warning.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: _warning.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.star, color: _warning, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              record.rating!.toStringAsFixed(1),
+                              style: const TextStyle(
+                                color: _warning,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (record.rating != null && record.mood != null)
+                      const SizedBox(width: 8),
+                    if (record.mood != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _primaryLight,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: _primary.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          '${record.mood!.emoji} ${record.mood!.getLocalizedLabel(context)}',
+                          style: const TextStyle(
+                            color: _primary,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+          ],
         ),
       ),
-      actions: [
-        IconButton(
-          icon: Icon(
-            record.isFavorite ? Icons.favorite : Icons.favorite_border,
-            color: record.isFavorite ? _error : _textSecondary,
-          ),
-          onPressed: () {
-            // TODO: Toggle favorite
-          },
-        ),
-        IconButton(
-          icon: const Icon(Icons.edit_outlined),
-          color: _textSecondary,
-          onPressed: () {
-            context.push('/attendance/${record.id}/edit');
-          },
-        ),
-      ],
     );
   }
 
@@ -429,43 +455,6 @@ class _DetailContentState extends ConsumerState<_DetailContent>
             ),
     );
   }
-}
-
-// ============ Tab Bar Delegate ============
-class _TabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar tabBar;
-  final Color backgroundColor;
-
-  _TabBarDelegate(this.tabBar, this.backgroundColor);
-
-  @override
-  Widget build(context, shrinkOffset, overlapsContent) {
-    return Container(
-      color: backgroundColor,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            bottom: BorderSide(
-              color: const Color(0xFFE5E7EB),
-              width: 1,
-            ),
-          ),
-        ),
-        child: tabBar,
-      ),
-    );
-  }
-
-  @override
-  double get maxExtent => tabBar.preferredSize.height;
-
-  @override
-  double get minExtent => tabBar.preferredSize.height;
-
-  @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) =>
-      false;
 }
 
 // ============ Diary Tab ============
@@ -906,676 +895,340 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-// ============ Stats Tab ============
-class _StatsTab extends ConsumerWidget {
+// ============ Stats & Timeline Tab (Combined) ============
+class _StatsAndTimelineTab extends ConsumerWidget {
   final String matchId;
   final AttendanceRecord record;
 
-  static const _primary = Color(0xFF2563EB);
   static const _textPrimary = Color(0xFF111827);
   static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE5E7EB);
-  static const _warning = Color(0xFFF59E0B);
-  static const _error = Color(0xFFEF4444);
 
-  const _StatsTab({required this.matchId, required this.record});
+  const _StatsAndTimelineTab({required this.matchId, required this.record});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
     final statsAsync = ref.watch(attendanceMatchStatsProvider(matchId));
+    final timelineAsync = ref.watch(attendanceMatchTimelineProvider(matchId));
 
-    return statsAsync.when(
-      data: (statsList) {
-        if (statsList.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.analytics_outlined,
-                      size: 48, color: _textSecondary),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.noStatsInfo,
-                  style: const TextStyle(
-                    color: _textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.statsAfterMatch,
-                  style: const TextStyle(color: _textSecondary, fontSize: 13),
-                ),
-              ],
-            ),
-          );
-        }
+    final l10n = AppLocalizations.of(context)!;
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // 기록 섹션
+        _buildSectionHeader(l10n.sectionStats, Icons.analytics_outlined),
+        const SizedBox(height: 12),
+        statsAsync.when(
+          data: (statsList) => _buildStatsContent(context, statsList),
+          loading: () => const SizedBox(
+            height: 100,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, _) => _buildErrorWidget(l10n.noStatsInfo),
+        ),
 
-        // API-Football returns stats as List<ApiFootballTeamStats>
-        // Index 0 = home team, Index 1 = away team
-        final homeStats = statsList.isNotEmpty ? statsList[0] : null;
-        final awayStats = statsList.length > 1 ? statsList[1] : null;
+        const SizedBox(height: 24),
 
-        int? getStat(ApiFootballTeamStats? stats, String type) {
-          if (stats == null) return null;
-          final value = stats.statistics[type];
-          if (value == null) return null;
-          if (value is int) return value;
-          if (value is String) {
-            // Handle percentage like "55%"
-            return int.tryParse(value.replaceAll('%', ''));
-          }
-          return null;
-        }
-
-        final homePossession = getStat(homeStats, 'Ball Possession');
-        final awayPossession = getStat(awayStats, 'Ball Possession');
-        final homeShots = getStat(homeStats, 'Total Shots');
-        final awayShots = getStat(awayStats, 'Total Shots');
-        final homeShotsOnTarget = getStat(homeStats, 'Shots on Goal');
-        final awayShotsOnTarget = getStat(awayStats, 'Shots on Goal');
-        final homeCorners = getStat(homeStats, 'Corner Kicks');
-        final awayCorners = getStat(awayStats, 'Corner Kicks');
-        final homeFouls = getStat(homeStats, 'Fouls');
-        final awayFouls = getStat(awayStats, 'Fouls');
-        final homeOffsides = getStat(homeStats, 'Offsides');
-        final awayOffsides = getStat(awayStats, 'Offsides');
-        final homeYellowCards = getStat(homeStats, 'Yellow Cards');
-        final awayYellowCards = getStat(awayStats, 'Yellow Cards');
-        final homeRedCards = getStat(homeStats, 'Red Cards');
-        final awayRedCards = getStat(awayStats, 'Red Cards');
-
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Team names header
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _border),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      record.homeTeamName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: _textPrimary,
-                      ),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'VS',
-                      style: TextStyle(
-                        color: _primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      record.awayTeamName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: _textPrimary,
-                      ),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Stats rows
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _border),
-              ),
-              child: Column(
-                children: [
-                  if (homePossession != null)
-                    _StatBar(
-                      label: l10n.possession,
-                      homeValue: homePossession,
-                      awayValue: awayPossession ?? 0,
-                      isPercentage: true,
-                    ),
-                  if (homeShots != null)
-                    _StatBar(
-                      label: l10n.shots,
-                      homeValue: homeShots,
-                      awayValue: awayShots ?? 0,
-                    ),
-                  if (homeShotsOnTarget != null)
-                    _StatBar(
-                      label: l10n.shotsOnTarget,
-                      homeValue: homeShotsOnTarget,
-                      awayValue: awayShotsOnTarget ?? 0,
-                    ),
-                  if (homeCorners != null)
-                    _StatBar(
-                      label: l10n.corners,
-                      homeValue: homeCorners,
-                      awayValue: awayCorners ?? 0,
-                    ),
-                  if (homeFouls != null)
-                    _StatBar(
-                      label: l10n.fouls,
-                      homeValue: homeFouls,
-                      awayValue: awayFouls ?? 0,
-                    ),
-                  if (homeOffsides != null)
-                    _StatBar(
-                      label: l10n.offsides,
-                      homeValue: homeOffsides,
-                      awayValue: awayOffsides ?? 0,
-                    ),
-                  if (homeYellowCards != null)
-                    _StatBar(
-                      label: l10n.yellowCards,
-                      homeValue: homeYellowCards,
-                      awayValue: awayYellowCards ?? 0,
-                      color: _warning,
-                    ),
-                  if (homeRedCards != null)
-                    _StatBar(
-                      label: l10n.redCards,
-                      homeValue: homeRedCards,
-                      awayValue: awayRedCards ?? 0,
-                      color: _error,
-                    ),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-      loading: () => const LoadingIndicator(),
-      error: (e, _) => Center(child: Text('Error: $e')),
+        // 중계 섹션
+        _buildSectionHeader(l10n.sectionBroadcast, Icons.timeline),
+        const SizedBox(height: 12),
+        timelineAsync.when(
+          data: (events) => _buildTimelineContent(context, events),
+          loading: () => const SizedBox(
+            height: 100,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, _) => _buildErrorWidget(l10n.noTimelineInfo),
+        ),
+      ],
     );
   }
-}
 
-class _StatBar extends StatelessWidget {
-  final String label;
-  final int homeValue;
-  final int awayValue;
-  final bool isPercentage;
-  final Color? color;
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: _textPrimary),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: _textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
 
-  static const _primary = Color(0xFF2563EB);
-  static const _textPrimary = Color(0xFF111827);
-  static const _textSecondary = Color(0xFF6B7280);
+  Widget _buildErrorWidget(String message) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Center(
+        child: Text(
+          message,
+          style: const TextStyle(color: _textSecondary, fontSize: 14),
+        ),
+      ),
+    );
+  }
 
-  const _StatBar({
-    required this.label,
-    required this.homeValue,
-    required this.awayValue,
-    this.isPercentage = false,
-    this.color,
-  });
+  Widget _buildStatsContent(BuildContext context, List<ApiFootballTeamStats> statsList) {
+    final l10n = AppLocalizations.of(context)!;
+    if (statsList.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _border),
+        ),
+        child: Center(
+          child: Text(
+            l10n.noStatsInfo,
+            style: const TextStyle(color: _textSecondary, fontSize: 14),
+          ),
+        ),
+      );
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    final total = homeValue + awayValue;
-    final homeRatio = total > 0 ? homeValue / total : 0.5;
-    final awayRatio = total > 0 ? awayValue / total : 0.5;
-    final barColor = color ?? _primary;
+    final homeStats = statsList.isNotEmpty ? statsList[0] : null;
+    final awayStats = statsList.length > 1 ? statsList[1] : null;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+    int? getStat(ApiFootballTeamStats? stats, String type) {
+      if (stats == null) return null;
+      final value = stats.statistics[type];
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is String) {
+        return int.tryParse(value.replaceAll('%', ''));
+      }
+      return null;
+    }
+
+    final homePossession = getStat(homeStats, 'Ball Possession');
+    final awayPossession = getStat(awayStats, 'Ball Possession');
+    final homeShots = getStat(homeStats, 'Total Shots');
+    final awayShots = getStat(awayStats, 'Total Shots');
+    final homeShotsOnTarget = getStat(homeStats, 'Shots on Goal');
+    final awayShotsOnTarget = getStat(awayStats, 'Shots on Goal');
+    final homeCorners = getStat(homeStats, 'Corner Kicks');
+    final awayCorners = getStat(awayStats, 'Corner Kicks');
+    final homeFouls = getStat(homeStats, 'Fouls');
+    final awayFouls = getStat(awayStats, 'Fouls');
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
       child: Column(
         children: [
+          // Team names header
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                isPercentage ? '$homeValue%' : '$homeValue',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: _textPrimary,
+              Expanded(
+                child: Text(
+                  record.homeTeamName,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: _textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: _textSecondary,
-                ),
-              ),
-              Text(
-                isPercentage ? '$awayValue%' : '$awayValue',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: _textPrimary,
+              const SizedBox(width: 40),
+              Expanded(
+                child: Text(
+                  record.awayTeamName,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: _textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                flex: (homeRatio * 100).round().clamp(1, 99),
-                child: Container(
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: barColor,
-                    borderRadius: const BorderRadius.horizontal(
-                      left: Radius.circular(4),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                flex: (awayRatio * 100).round().clamp(1, 99),
-                child: Container(
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: barColor.withValues(alpha: 0.3),
-                    borderRadius: const BorderRadius.horizontal(
-                      right: Radius.circular(4),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          // Stats rows
+          if (homePossession != null && awayPossession != null)
+            _StatBar(
+              label: l10n.possession,
+              homeValue: homePossession,
+              awayValue: awayPossession,
+              isPercentage: true,
+            ),
+          if (homeShots != null && awayShots != null)
+            _StatBar(
+              label: l10n.shots,
+              homeValue: homeShots,
+              awayValue: awayShots,
+            ),
+          if (homeShotsOnTarget != null && awayShotsOnTarget != null)
+            _StatBar(
+              label: l10n.shotsOnTarget,
+              homeValue: homeShotsOnTarget,
+              awayValue: awayShotsOnTarget,
+            ),
+          if (homeCorners != null && awayCorners != null)
+            _StatBar(
+              label: l10n.corners,
+              homeValue: homeCorners,
+              awayValue: awayCorners,
+            ),
+          if (homeFouls != null && awayFouls != null)
+            _StatBar(
+              label: l10n.fouls,
+              homeValue: homeFouls,
+              awayValue: awayFouls,
+            ),
         ],
       ),
     );
   }
-}
 
-// ============ Timeline Tab ============
-class _TimelineTab extends ConsumerWidget {
-  final String matchId;
-  final AttendanceRecord record;
-
-  static const _textPrimary = Color(0xFF111827);
-  static const _textSecondary = Color(0xFF6B7280);
-
-  const _TimelineTab({required this.matchId, required this.record});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final timelineAsync = ref.watch(attendanceMatchTimelineProvider(matchId));
-
-    return timelineAsync.when(
-      data: (timeline) {
-        if (timeline.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    shape: BoxShape.circle,
-                  ),
-                  child:
-                      Icon(Icons.timeline, size: 48, color: _textSecondary),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  AppLocalizations.of(context)!.noTimelineInfo,
-                  style: const TextStyle(
-                    color: _textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  AppLocalizations.of(context)!.updatedAfterMatch,
-                  style: const TextStyle(color: _textSecondary, fontSize: 13),
-                ),
-              ],
-            ),
-          );
-        }
-
-        // 시간순 정렬
-        final sortedTimeline = List<ApiFootballEvent>.from(timeline)
-          ..sort((a, b) {
-            final aTime = a.elapsed ?? 0;
-            final bTime = b.elapsed ?? 0;
-            return aTime.compareTo(bTime);
-          });
-
-        return Container(
-          color: Colors.white,
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            itemCount: sortedTimeline.length,
-            itemBuilder: (context, index) {
-              final event = sortedTimeline[index];
-              final isFirst = index == 0;
-              final isLast = index == sortedTimeline.length - 1;
-              // homeTeamId를 int로 파싱하여 비교
-              final homeTeamId = int.tryParse(record.homeTeamId) ?? 0;
-              final isHomeTeam = event.teamId == homeTeamId;
-              return _TimelineItem(
-                event: event,
-                isFirst: isFirst,
-                isLast: isLast,
-                isHomeTeam: isHomeTeam,
-              );
-            },
+  Widget _buildTimelineContent(BuildContext context, List<ApiFootballEvent> events) {
+    final l10n = AppLocalizations.of(context)!;
+    if (events.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _border),
+        ),
+        child: Center(
+          child: Text(
+            l10n.noTimelineInfo,
+            style: const TextStyle(color: _textSecondary, fontSize: 14),
           ),
-        );
-      },
-      loading: () => const LoadingIndicator(),
-      error: (e, _) => Center(child: Text('Error: $e')),
-    );
-  }
-}
+        ),
+      );
+    }
 
-class _TimelineItem extends StatelessWidget {
-  final ApiFootballEvent event;
-  final bool isFirst;
-  final bool isLast;
-  final bool isHomeTeam;
+    // Sort by elapsed time
+    final sortedEvents = List<ApiFootballEvent>.from(events)
+      ..sort((a, b) => (a.elapsed ?? 0).compareTo(b.elapsed ?? 0));
 
-  static const _textPrimary = Color(0xFF111827);
-  static const _textSecondary = Color(0xFF6B7280);
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: sortedEvents.length,
+        separatorBuilder: (_, __) => Divider(height: 1, color: _border),
+        itemBuilder: (context, index) {
+          final event = sortedEvents[index];
+          final isHomeTeam = event.teamId == int.tryParse(record.homeTeamId);
 
-  const _TimelineItem({
-    required this.event,
-    this.isFirst = false,
-    this.isLast = false,
-    this.isHomeTeam = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isGoal = event.type.toLowerCase() == 'goal';
-    final isCard = event.type.toLowerCase() == 'card';
-    final isSubst = event.type.toLowerCase() == 'subst';
-
-    return IntrinsicHeight(
-      child: Row(
-        children: [
-          // 홈팀 영역 (왼쪽)
-          Expanded(
-            child: isHomeTeam
-                ? _buildEventContent(isGoal, isCard, isSubst, true)
-                : const SizedBox(),
-          ),
-
-          // 중앙 타임라인
-          SizedBox(
-            width: 60,
-            child: Column(
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
               children: [
-                // 상단 연결선
-                if (!isFirst)
-                  Container(
-                    width: 2,
-                    height: 8,
-                    color: Colors.grey.shade300,
-                  ),
-                // 시간 원
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: _getEventColor().withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _getEventColor(),
-                      width: 2,
+                // Time
+                SizedBox(
+                  width: 40,
+                  child: Text(
+                    "${event.elapsed ?? 0}'",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: _textPrimary,
                     ),
                   ),
+                ),
+                // Event icon
+                _getEventIcon(event),
+                const SizedBox(width: 12),
+                // Event info
+                Expanded(
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: isHomeTeam
+                        ? CrossAxisAlignment.start
+                        : CrossAxisAlignment.end,
                     children: [
                       Text(
-                        _timeDisplay,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: _getEventColor(),
+                        event.playerName ?? '',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                          color: _textPrimary,
                         ),
                       ),
+                      if (event.assistName != null)
+                        Text(
+                          '(${event.assistName})',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: _textSecondary,
+                          ),
+                        ),
                     ],
                   ),
                 ),
-                // 하단 연결선
-                if (!isLast)
-                  Expanded(
-                    child: Container(
-                      width: 2,
-                      color: Colors.grey.shade300,
-                    ),
-                  ),
               ],
             ),
-          ),
-
-          // 원정팀 영역 (오른쪽)
-          Expanded(
-            child: !isHomeTeam
-                ? _buildEventContent(isGoal, isCard, isSubst, false)
-                : const SizedBox(),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
-  String get _timeDisplay {
-    final elapsed = event.elapsed ?? 0;
-    final extra = event.extra;
-    if (extra != null && extra > 0) {
-      return "$elapsed'+$extra";
-    }
-    return "$elapsed'";
-  }
-
-  Widget _buildEventContent(bool isGoal, bool isCard, bool isSubst, bool isHome) {
-    return Container(
-      margin: EdgeInsets.only(
-        left: isHome ? 16 : 8,
-        right: isHome ? 8 : 16,
-        bottom: 12,
-      ),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _getEventColor().withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: _getEventColor().withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: isHome ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          // 이벤트 타입 뱃지
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                _getEventIcon(),
-                size: 14,
-                color: _getEventColor(),
-              ),
-              const SizedBox(width: 4),
-              Builder(
-                builder: (context) => Text(
-                  _getEventTypeText(context),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: _getEventColor(),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-
-          // 선수 이름
-          Text(
-            event.playerName ?? '',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _textPrimary,
-            ),
-            textAlign: isHome ? TextAlign.right : TextAlign.left,
-          ),
-
-          // 어시스트 또는 세부 정보
-          if (isGoal && event.assistName != null && event.assistName!.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Builder(builder: (context) => Text(
-              AppLocalizations.of(context)!.assistBy(event.assistName!),
-              style: TextStyle(
-                fontSize: 11,
-                color: _textSecondary,
-              ),
-              textAlign: isHome ? TextAlign.right : TextAlign.left,
-            )),
-          ] else if (isSubst && event.assistName != null && event.assistName!.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.arrow_upward, size: 10, color: Colors.green),
-                const SizedBox(width: 2),
-                Text(
-                  event.assistName!,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.green.shade700,
-                  ),
-                ),
-              ],
-            ),
-          ] else if (event.detail != null && event.detail!.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Text(
-              event.detail!,
-              style: TextStyle(
-                fontSize: 11,
-                color: _textSecondary,
-              ),
-              textAlign: isHome ? TextAlign.right : TextAlign.left,
-            ),
-          ],
-
-          // 팀 이름
-          const SizedBox(height: 4),
-          Text(
-            event.teamName,
-            style: TextStyle(
-              fontSize: 10,
-              color: _textSecondary,
-            ),
-            textAlign: isHome ? TextAlign.right : TextAlign.left,
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _getEventTypeText(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    switch (event.type.toLowerCase()) {
-      case 'goal':
-        if (event.detail?.toLowerCase().contains('penalty') == true) {
-          return l10n.penaltyGoal;
-        } else if (event.detail?.toLowerCase().contains('own') == true) {
-          return l10n.ownGoal;
+  Widget _getEventIcon(ApiFootballEvent event) {
+    switch (event.type) {
+      case 'Goal':
+        if (event.detail == 'Own Goal') {
+          return const Icon(Icons.sports_soccer, color: Colors.red, size: 20);
         }
-        return l10n.goal;
-      case 'card':
-        if (event.detail?.toLowerCase().contains('yellow') == true) {
-          return l10n.yellowCard;
-        } else if (event.detail?.toLowerCase().contains('red') == true) {
-          return l10n.redCard;
+        return const Icon(Icons.sports_soccer, color: Color(0xFF10B981), size: 20);
+      case 'Card':
+        if (event.detail == 'Yellow Card') {
+          return Container(
+            width: 14,
+            height: 18,
+            decoration: BoxDecoration(
+              color: Colors.amber,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          );
+        } else if (event.detail == 'Red Card') {
+          return Container(
+            width: 14,
+            height: 18,
+            decoration: BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          );
         }
-        return l10n.card;
+        return const Icon(Icons.style, size: 20);
       case 'subst':
-        return l10n.substitution;
-      case 'var':
-        return 'VAR';
+        return const Icon(Icons.swap_horiz, color: Color(0xFF2563EB), size: 20);
+      case 'Var':
+        return const Icon(Icons.visibility, color: Colors.purple, size: 20);
       default:
-        return event.type;
-    }
-  }
-
-  IconData _getEventIcon() {
-    switch (event.type.toLowerCase()) {
-      case 'goal':
-        return Icons.sports_soccer;
-      case 'card':
-        return Icons.style;
-      case 'subst':
-        return Icons.swap_horiz;
-      case 'var':
-        return Icons.tv;
-      default:
-        return Icons.circle;
-    }
-  }
-
-  Color _getEventColor() {
-    switch (event.type.toLowerCase()) {
-      case 'goal':
-        return const Color(0xFF10B981);
-      case 'card':
-        if (event.detail?.toLowerCase().contains('red') == true) {
-          return const Color(0xFFEF4444);
-        }
-        return const Color(0xFFF59E0B);
-      case 'subst':
-        return const Color(0xFF3B82F6);
-      case 'var':
-        return const Color(0xFF8B5CF6);
-      default:
-        return const Color(0xFF6B7280);
+        return const Icon(Icons.circle, size: 8, color: _textSecondary);
     }
   }
 }
-
 // ============ Lineup Tab ============
 class _LineupTab extends ConsumerWidget {
   final String matchId;
@@ -1589,6 +1242,8 @@ class _LineupTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lineupAsync = ref.watch(attendanceMatchLineupProvider(matchId));
+    final playerStatsAsync = ref.watch(attendancePlayerStatsProvider(matchId));
+    final eventsAsync = ref.watch(attendanceMatchTimelineProvider(matchId));
 
     return lineupAsync.when(
       data: (lineupList) {
@@ -1629,33 +1284,64 @@ class _LineupTab extends ConsumerWidget {
         final homeLineup = lineupList.isNotEmpty ? lineupList[0] : null;
         final awayLineup = lineupList.length > 1 ? lineupList[1] : null;
 
-        return SingleChildScrollView(
+        // 선수 통계 매핑
+        final playerStats = playerStatsAsync.valueOrNull;
+        final homePlayerStats = playerStats?.isNotEmpty == true ? playerStats!.first : null;
+        final awayPlayerStats = playerStats != null && playerStats.length > 1 ? playerStats[1] : null;
+
+        // 이벤트 가져오기
+        final allEvents = eventsAsync.valueOrNull ?? [];
+        final substitutions = allEvents.where((e) => e.isSubstitution).toList();
+
+        // 선수별 이벤트 매핑 (playerId -> events)
+        final playerEvents = <int, List<ApiFootballEvent>>{};
+        for (final event in allEvents) {
+          if (event.playerId != null) {
+            playerEvents.putIfAbsent(event.playerId!, () => []).add(event);
+          }
+          // 어시스트 선수도 추가
+          if (event.assistId != null && event.type == 'Goal') {
+            playerEvents.putIfAbsent(event.assistId!, () => []).add(
+              ApiFootballEvent(
+                elapsed: event.elapsed,
+                extra: event.extra,
+                teamId: event.teamId,
+                teamName: event.teamName,
+                playerId: event.assistId,
+                playerName: event.assistName,
+                assistId: null,
+                assistName: null,
+                type: 'Assist',
+                detail: 'Assist',
+              ),
+            );
+          }
+        }
+
+        // FootballPitchView에 필요한 팀 정보 생성
+        final homeTeam = ApiFootballFixtureTeam(
+          id: int.tryParse(record.homeTeamId) ?? 0,
+          name: record.homeTeamName,
+          logo: record.homeTeamLogo,
+        );
+        final awayTeam = ApiFootballFixtureTeam(
+          id: int.tryParse(record.awayTeamId) ?? 0,
+          name: record.awayTeamName,
+          logo: record.awayTeamLogo,
+        );
+
+        // FootballPitchView 공통 위젯 사용
+        return Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Home Team
-              Expanded(
-                child: _TeamLineup(
-                  teamName: homeLineup?.teamName ?? record.homeTeamName,
-                  formation: homeLineup?.formation,
-                  players: homeLineup?.startXI ?? [],
-                  substitutes: homeLineup?.substitutes ?? [],
-                  isHome: true,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Away Team
-              Expanded(
-                child: _TeamLineup(
-                  teamName: awayLineup?.teamName ?? record.awayTeamName,
-                  formation: awayLineup?.formation,
-                  players: awayLineup?.startXI ?? [],
-                  substitutes: awayLineup?.substitutes ?? [],
-                  isHome: false,
-                ),
-              ),
-            ],
+          child: FootballPitchView(
+            homeLineup: homeLineup,
+            awayLineup: awayLineup,
+            homeTeam: homeTeam,
+            awayTeam: awayTeam,
+            homePlayerStats: homePlayerStats,
+            awayPlayerStats: awayPlayerStats,
+            substitutions: substitutions,
+            playerEvents: playerEvents,
           ),
         );
       },
@@ -1665,704 +1351,138 @@ class _LineupTab extends ConsumerWidget {
   }
 }
 
-class _TeamLineup extends StatelessWidget {
-  final String teamName;
-  final String? formation;
-  final List<ApiFootballLineupPlayer> players;
-  final List<ApiFootballLineupPlayer> substitutes;
-  final bool isHome;
-
-  static const _primary = Color(0xFF2563EB);
-  static const _primaryLight = Color(0xFFDBEAFE);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _border = Color(0xFFE5E7EB);
-  static const _success = Color(0xFF10B981);
-
-  const _TeamLineup({
-    required this.teamName,
-    this.formation,
-    required this.players,
-    required this.substitutes,
-    required this.isHome,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Team Name Header
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isHome ? _primaryLight : _success.withValues(alpha: 0.1),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(11)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: isHome ? _primary : _success,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    teamName,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: isHome ? _primary : _success,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (formation != null) ...[
-                  Text(
-                    formation!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: _textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-
-                // Starting XI
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.sports_soccer,
-                          size: 12, color: _primary),
-                      const SizedBox(width: 4),
-                      Builder(builder: (context) => Text(
-                        AppLocalizations.of(context)!.startersCount(players.length),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: _primary,
-                          fontSize: 11,
-                        ),
-                      )),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                if (players.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Builder(builder: (context) => Text(
-                      AppLocalizations.of(context)!.noStarterInfo,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _textSecondary,
-                      ),
-                    )),
-                  )
-                else
-                  ...players.map((p) => _PlayerRow(player: p)),
-
-                // Substitutes
-                if (substitutes.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.swap_horiz,
-                            size: 12, color: Colors.grey.shade600),
-                        const SizedBox(width: 4),
-                        Builder(builder: (context) => Text(
-                          AppLocalizations.of(context)!.substitutesCount(substitutes.length),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade600,
-                            fontSize: 11,
-                          ),
-                        )),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...substitutes
-                      .map((p) => _PlayerRow(player: p, isSubstitute: true)),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlayerRow extends StatelessWidget {
-  final ApiFootballLineupPlayer player;
-  final bool isSubstitute;
-
-  static const _primary = Color(0xFF2563EB);
-  static const _textPrimary = Color(0xFF111827);
-  static const _textSecondary = Color(0xFF6B7280);
-
-  const _PlayerRow({required this.player, this.isSubstitute = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: player.id > 0
-          ? () => context.push('/player/${player.id}')
-          : null,
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-        child: Row(
-          children: [
-            // Squad Number
-            Container(
-              width: 24,
-              height: 24,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSubstitute
-                    ? Colors.grey.shade100
-                    : _primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                player.number?.toString() ?? '-',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isSubstitute ? _textSecondary : _primary,
-                  fontSize: 11,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Player Name
-            Expanded(
-              child: Text(
-                player.name,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isSubstitute ? _textSecondary : _textPrimary,
-                  fontWeight: isSubstitute ? FontWeight.normal : FontWeight.w500,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            // Position Badge
-            if (player.pos != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _getPositionColor(player.pos!).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  _getPositionShort(player.pos!),
-                  style: TextStyle(
-                    color: _getPositionColor(player.pos!),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 10,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _getPositionShort(String position) {
-    switch (position.toLowerCase()) {
-      case 'goalkeeper':
-        return 'GK';
-      case 'defender':
-        return 'DF';
-      case 'midfielder':
-        return 'MF';
-      case 'forward':
-        return 'FW';
-      default:
-        return position
-            .substring(0, position.length > 3 ? 3 : position.length)
-            .toUpperCase();
-    }
-  }
-
-  Color _getPositionColor(String position) {
-    switch (position.toLowerCase()) {
-      case 'goalkeeper':
-        return Colors.orange;
-      case 'defender':
-        return const Color(0xFF2563EB);
-      case 'midfielder':
-        return const Color(0xFF10B981);
-      case 'forward':
-        return const Color(0xFFEF4444);
-      default:
-        return _textSecondary;
-    }
-  }
-}
-
-// ============ H2H Tab ============
-class _H2HTab extends ConsumerWidget {
+// ============ Comparison Tab ============
+class _ComparisonTab extends ConsumerWidget {
   final AttendanceRecord record;
 
-  static const _success = Color(0xFF10B981);
-  static const _error = Color(0xFFEF4444);
-  static const _textPrimary = Color(0xFF111827);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _border = Color(0xFFE5E7EB);
-
-  const _H2HTab({required this.record});
+  const _ComparisonTab({required this.record});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final homeTeamId = int.tryParse(record.homeTeamId);
-    final awayTeamId = int.tryParse(record.awayTeamId);
+    final l10n = AppLocalizations.of(context)!;
+    final homeTeamId = int.tryParse(record.homeTeamId) ?? 0;
+    final awayTeamId = int.tryParse(record.awayTeamId) ?? 0;
 
-    if (homeTeamId == null || awayTeamId == null) {
+    if (homeTeamId == 0 || awayTeamId == 0) {
       return Center(
-        child: Builder(builder: (context) => Text(
-          AppLocalizations.of(context)!.noTeamInfo,
-          style: TextStyle(color: _textSecondary),
-        )),
+        child: Text(
+          l10n.noDataAvailable,
+          style: const TextStyle(color: Color(0xFF6B7280)),
+        ),
       );
     }
 
-    final h2hAsync = ref.watch(attendanceH2HProvider((homeTeamId: homeTeamId, awayTeamId: awayTeamId)));
+    // matchId가 없으면 비교 탭 표시 불가
+    if (record.matchId == null) {
+      return Center(
+        child: Text(
+          l10n.noDataAvailable,
+          style: const TextStyle(color: Color(0xFF6B7280)),
+        ),
+      );
+    }
 
-    return h2hAsync.when(
-      data: (fixtures) {
-        if (fixtures.isEmpty) {
-          final l10n = AppLocalizations.of(context)!;
+    // fixture에서 leagueId와 season 가져오기
+    final fixtureAsync = ref.watch(attendanceFixtureProvider(record.matchId!));
+
+    return fixtureAsync.when(
+      data: (fixture) {
+        if (fixture == null) {
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.history, size: 48, color: _textSecondary),
-                const SizedBox(height: 12),
-                Text(
-                  l10n.noH2HRecord,
-                  style: TextStyle(color: _textSecondary, fontSize: 14),
-                ),
-              ],
+            child: Text(
+              l10n.noDataAvailable,
+              style: const TextStyle(color: Color(0xFF6B7280)),
             ),
           );
         }
 
-        // 통계 계산
-        int homeWins = 0;
-        int awayWins = 0;
-        int draws = 0;
-        int homeGoals = 0;
-        int awayGoals = 0;
+        final leagueId = fixture.league.id;
+        final season = fixture.league.season ?? record.date.year;
 
-        for (final fixture in fixtures) {
-          final hScore = fixture.homeGoals ?? 0;
-          final aScore = fixture.awayGoals ?? 0;
-
-          if (fixture.homeTeam.id == homeTeamId) {
-            homeGoals += hScore;
-            awayGoals += aScore;
-            if (hScore > aScore) {
-              homeWins++;
-            } else if (hScore < aScore) {
-              awayWins++;
-            } else {
-              draws++;
-            }
-          } else {
-            homeGoals += aScore;
-            awayGoals += hScore;
-            if (aScore > hScore) {
-              homeWins++;
-            } else if (aScore < hScore) {
-              awayWins++;
-            } else {
-              draws++;
-            }
-          }
-        }
-
-        return Container(
-          color: Colors.white,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _buildSummaryCard(homeWins, draws, awayWins, homeGoals, awayGoals, fixtures.length),
-              const SizedBox(height: 16),
-              Text(
-                AppLocalizations.of(context)!.recentMatches,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: _textPrimary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ...fixtures.take(10).map((fixture) => _buildMatchCard(context, fixture)),
-            ],
-          ),
+        return TeamComparisonTab(
+          homeTeamId: homeTeamId,
+          awayTeamId: awayTeamId,
+          homeTeamName: record.homeTeamName,
+          awayTeamName: record.awayTeamName,
+          homeTeamLogo: record.homeTeamLogo,
+          awayTeamLogo: record.awayTeamLogo,
+          leagueId: leagueId,
+          season: season,
         );
       },
-      loading: () => const LoadingIndicator(),
-      error: (e, _) => Center(
-        child: Text('Error: $e', style: TextStyle(color: _textSecondary)),
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(int homeWins, int draws, int awayWins, int homeGoals, int awayGoals, int totalMatches) {
-    final total = homeWins + draws + awayWins;
-    final homePercent = total > 0 ? homeWins / total : 0.0;
-    final drawPercent = total > 0 ? draws / total : 0.0;
-    final awayPercent = total > 0 ? awayWins / total : 0.0;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    if (record.homeTeamLogo != null)
-                      CachedNetworkImage(
-                        imageUrl: record.homeTeamLogo!,
-                        width: 48,
-                        height: 48,
-                        fit: BoxFit.contain,
-                        errorWidget: (_, __, ___) => Icon(Icons.shield, size: 48, color: _textSecondary),
-                      )
-                    else
-                      Icon(Icons.shield, size: 48, color: _textSecondary),
-                    const SizedBox(height: 8),
-                    Text(
-                      record.homeTeamName,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: _textPrimary,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Column(
-                  children: [
-                    Builder(
-                      builder: (context) => Text(
-                        AppLocalizations.of(context)!.nMatches(totalMatches),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _textSecondary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Builder(
-                      builder: (context) {
-                        final l10n = AppLocalizations.of(context)!;
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildWinStat('$homeWins', l10n.resultWin, _success),
-                            Container(
-                              width: 1,
-                              height: 30,
-                              margin: const EdgeInsets.symmetric(horizontal: 16),
-                              color: _border,
-                            ),
-                            _buildWinStat('$draws', l10n.resultDraw, _textSecondary),
-                            Container(
-                              width: 1,
-                              height: 30,
-                              margin: const EdgeInsets.symmetric(horizontal: 16),
-                              color: _border,
-                            ),
-                            _buildWinStat('$awayWins', l10n.resultWin, _error),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    Builder(builder: (context) => Text(
-                      AppLocalizations.of(context)!.goalsScored(homeGoals, awayGoals),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: _textSecondary,
-                      ),
-                    )),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  children: [
-                    if (record.awayTeamLogo != null)
-                      CachedNetworkImage(
-                        imageUrl: record.awayTeamLogo!,
-                        width: 48,
-                        height: 48,
-                        fit: BoxFit.contain,
-                        errorWidget: (_, __, ___) => Icon(Icons.shield, size: 48, color: _textSecondary),
-                      )
-                    else
-                      Icon(Icons.shield, size: 48, color: _textSecondary),
-                    const SizedBox(height: 8),
-                    Text(
-                      record.awayTeamName,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: _textPrimary,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: (homePercent * 100).round().clamp(1, 100),
-                  child: Container(
-                    height: 8,
-                    color: _success,
-                  ),
-                ),
-                if (drawPercent > 0)
-                  Expanded(
-                    flex: (drawPercent * 100).round().clamp(1, 100),
-                    child: Container(
-                      height: 8,
-                      color: _textSecondary.withValues(alpha: 0.3),
-                    ),
-                  ),
-                Expanded(
-                  flex: (awayPercent * 100).round().clamp(1, 100),
-                  child: Container(
-                    height: 8,
-                    color: _error,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${(homePercent * 100).toStringAsFixed(0)}%',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: _success,
-                ),
-              ),
-              Text(
-                '${(drawPercent * 100).toStringAsFixed(0)}%',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: _textSecondary,
-                ),
-              ),
-              Text(
-                '${(awayPercent * 100).toStringAsFixed(0)}%',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: _error,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWinStat(String value, String label, Color color) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: color,
-          ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => Center(
+        child: Text(
+          l10n.noDataAvailable,
+          style: const TextStyle(color: Color(0xFF6B7280)),
         ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: _textSecondary,
-          ),
-        ),
-      ],
+      ),
     );
   }
+}
 
-  Widget _buildMatchCard(BuildContext context, ApiFootballFixture fixture) {
+// ============ Standings Tab Wrapper ============
+class _StandingsTabWrapper extends ConsumerWidget {
+  final AttendanceRecord record;
+
+  const _StandingsTabWrapper({required this.record});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final dateStr = DateFormat('yyyy.MM.dd').format(fixture.dateKST);
-
-    final homeScore = fixture.homeGoals ?? 0;
-    final awayScore = fixture.awayGoals ?? 0;
     final homeTeamId = int.tryParse(record.homeTeamId) ?? 0;
+    final awayTeamId = int.tryParse(record.awayTeamId) ?? 0;
 
-    String result;
-    Color resultColor;
-    if (fixture.homeTeam.id == homeTeamId) {
-      if (homeScore > awayScore) {
-        result = l10n.resultWin;
-        resultColor = _success;
-      } else if (homeScore < awayScore) {
-        result = l10n.resultLoss;
-        resultColor = _error;
-      } else {
-        result = l10n.resultDraw;
-        resultColor = _textSecondary;
-      }
-    } else {
-      if (awayScore > homeScore) {
-        result = l10n.resultWin;
-        resultColor = _success;
-      } else if (awayScore < homeScore) {
-        result = l10n.resultLoss;
-        resultColor = _error;
-      } else {
-        result = l10n.resultDraw;
-        resultColor = _textSecondary;
-      }
+    if (homeTeamId == 0 || awayTeamId == 0) {
+      return Center(
+        child: Text(
+          l10n.noStandingsInfo,
+          style: const TextStyle(color: Color(0xFF6B7280)),
+        ),
+      );
     }
 
-    return GestureDetector(
-      onTap: () => context.push('/match/${fixture.id}'),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _border),
+    // matchId가 없으면 순위 탭 표시 불가
+    if (record.matchId == null) {
+      return Center(
+        child: Text(
+          l10n.noStandingsInfo,
+          style: const TextStyle(color: Color(0xFF6B7280)),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: resultColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  result,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: resultColor,
-                  ),
-                ),
-              ),
+      );
+    }
+
+    // fixture에서 leagueId와 season 가져오기
+    final fixtureAsync = ref.watch(attendanceFixtureProvider(record.matchId!));
+
+    return fixtureAsync.when(
+      data: (fixture) {
+        if (fixture == null) {
+          return Center(
+            child: Text(
+              l10n.noStandingsInfo,
+              style: const TextStyle(color: Color(0xFF6B7280)),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${fixture.homeTeam.name} $homeScore - $awayScore ${fixture.awayTeam.name}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: _textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '$dateStr · ${fixture.league.name}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: _textSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: _textSecondary,
-            ),
-          ],
+          );
+        }
+
+        final leagueId = fixture.league.id;
+        final season = fixture.league.season ?? record.date.year;
+
+        return StandingsTab(
+          leagueId: leagueId,
+          season: season,
+          homeTeamId: homeTeamId,
+          awayTeamId: awayTeamId,
+          leagueName: fixture.league.name,
+          leagueLogo: fixture.league.logo,
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => Center(
+        child: Text(
+          l10n.noStandingsInfo,
+          style: const TextStyle(color: Color(0xFF6B7280)),
         ),
       ),
     );
@@ -2561,6 +1681,100 @@ class _VenueStatChip extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: _textPrimary,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============ Stat Bar Widget ============
+class _StatBar extends StatelessWidget {
+  final String label;
+  final int homeValue;
+  final int awayValue;
+  final bool isPercentage;
+  final Color? color;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+
+  const _StatBar({
+    required this.label,
+    required this.homeValue,
+    required this.awayValue,
+    this.isPercentage = false,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final total = homeValue + awayValue;
+    final homeRatio = total > 0 ? homeValue / total : 0.5;
+    final awayRatio = total > 0 ? awayValue / total : 0.5;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isPercentage ? '$homeValue%' : '$homeValue',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
+                ),
+              ),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: _textSecondary,
+                ),
+              ),
+              Text(
+                isPercentage ? '$awayValue%' : '$awayValue',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                flex: (homeRatio * 100).round().clamp(1, 99),
+                child: Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: color ?? _primary,
+                    borderRadius: const BorderRadius.horizontal(
+                      left: Radius.circular(3),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 2),
+              Expanded(
+                flex: (awayRatio * 100).round().clamp(1, 99),
+                child: Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: (color ?? _primary).withValues(alpha: 0.3),
+                    borderRadius: const BorderRadius.horizontal(
+                      right: Radius.circular(3),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
