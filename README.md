@@ -66,6 +66,14 @@
 - 주요 리그(5대 리그 + K리그) 선수 검색 지원
 - 다가오는 경기 일정 알림
 
+### 알림
+- 로컬 푸시 알림 지원 (iOS/Android)
+- 경기 시작 알림 (15분/30분/1시간/2시간 전 선택)
+- 경기 킥오프 알림
+- 즐겨찾기 팀 새 일정 알림
+- 실시간 스코어 업데이트 알림
+- 알림 설정 개별 ON/OFF
+
 ### 스플래시 화면
 - 네이티브 스플래시 (앱 시작 즉시, Flutter 엔진 로딩 중)
 - Flutter 스플래시 (로고 애니메이션 + 데이터 로딩)
@@ -88,6 +96,7 @@
 - **차트**: fl_chart
 - **로컬 저장**: SharedPreferences
 - **다국어**: flutter_localizations, intl
+- **알림**: flutter_local_notifications, timezone
 
 ## 지원 리그
 
