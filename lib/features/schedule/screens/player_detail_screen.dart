@@ -193,7 +193,6 @@ class _PlayerDetailContent extends ConsumerStatefulWidget {
 
 class _PlayerDetailContentState extends ConsumerState<_PlayerDetailContent>
     with SingleTickerProviderStateMixin {
-  static const _background = Color(0xFFF9FAFB);
   static const _primary = Color(0xFF2563EB);
   static const _textSecondary = Color(0xFF6B7280);
 
@@ -213,79 +212,49 @@ class _PlayerDetailContentState extends ConsumerState<_PlayerDetailContent>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _background,
-      body: SafeArea(
-        child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              // 헤더
-              SliverToBoxAdapter(
-                child: _PlayerHeader(player: widget.player, playerId: widget.playerId),
+    return SafeArea(
+      child: Column(
+        children: [
+          // 고정 헤더
+          _PlayerHeader(player: widget.player, playerId: widget.playerId),
+          // 고정 탭바
+          Container(
+            color: Colors.white,
+            child: TabBar(
+              controller: _tabController,
+              labelColor: _primary,
+              unselectedLabelColor: _textSecondary,
+              indicatorColor: _primary,
+              indicatorWeight: 3,
+              labelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
-              // 탭바
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _TabBarDelegate(
-                  child: Container(
-                    color: Colors.white,
-                    child: TabBar(
-                      controller: _tabController,
-                      labelColor: _primary,
-                      unselectedLabelColor: _textSecondary,
-                      indicatorColor: _primary,
-                      indicatorWeight: 3,
-                      labelStyle: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      tabs: [
-                        Tab(text: AppLocalizations.of(context)!.profileTab),
-                        Tab(text: AppLocalizations.of(context)!.seasonStats),
-                        Tab(text: AppLocalizations.of(context)!.careerTab),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ];
-          },
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              // 프로필 탭
-              _ProfileTab(player: widget.player, playerId: widget.playerId),
-              // 시즌 통계 탭
-              _SeasonStatsTab(player: widget.player, playerId: widget.playerId),
-              // 커리어 탭 (이적, 트로피)
-              _CareerTab(playerId: widget.playerId),
-            ],
+              tabs: [
+                Tab(text: AppLocalizations.of(context)!.profileTab),
+                Tab(text: AppLocalizations.of(context)!.seasonStats),
+                Tab(text: AppLocalizations.of(context)!.careerTab),
+              ],
+            ),
           ),
-        ),
+          // 스크롤되는 탭 내용
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // 프로필 탭
+                _ProfileTab(player: widget.player, playerId: widget.playerId),
+                // 시즌 통계 탭
+                _SeasonStatsTab(player: widget.player, playerId: widget.playerId),
+                // 커리어 탭 (이적, 트로피)
+                _CareerTab(playerId: widget.playerId),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
-}
-
-// 탭바 고정용 Delegate
-class _TabBarDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-
-  _TabBarDelegate({required this.child});
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return child;
-  }
-
-  @override
-  double get maxExtent => 48;
-
-  @override
-  double get minExtent => 48;
-
-  @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => false;
 }
 
 // 프로필 탭
