@@ -39,7 +39,14 @@
       "Bash(fi)",
       "Bash(done)",
       "Bash(dart run:*)",
-      "Bash(flutter gen-l10n:*)"
+      "Bash(flutter gen-l10n:*)",
+      "Bash(mv:*)",
+      "Bash(for f in *.png)",
+      "Bash(do)",
+      "Bash(if file \"$f\")",
+      "Bash(do if file \"$f\")",
+      "Bash(ls:*)",
+      "Bash(xargs -I {} sh -c 'if file \"\"{}\"\" | grep -q JPEG; then echo \"\"Converting {}\"\"; sips -s format png \"\"{}\"\" --out \"\"{}.tmp\"\" && mv \"\"{}.tmp\"\" \"\"{}\"\"; fi')"
     ],
     "deny": [],
     "ask": []

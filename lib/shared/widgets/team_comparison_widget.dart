@@ -59,6 +59,8 @@ class TeamComparisonTab extends ConsumerWidget {
         leagueTopScorersProvider((leagueId: leagueId, season: season)));
     final assistsAsync = ref.watch(
         leagueTopAssistsProvider((leagueId: leagueId, season: season)));
+    final h2hAsync = ref.watch(
+        headToHeadProvider((homeTeamId: homeTeamId, awayTeamId: awayTeamId)));
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -105,6 +107,12 @@ class TeamComparisonTab extends ConsumerWidget {
           const SizedBox(height: 12),
           _buildRadarChartComparison(
               context, homeSeasonStatsAsync, awaySeasonStatsAsync),
+          const SizedBox(height: 24),
+
+          // 7. 상대전적 (맨 하단)
+          _buildSectionHeader(l10n.h2hRecord, Icons.compare_arrows),
+          const SizedBox(height: 12),
+          _buildH2HSection(context, h2hAsync),
         ],
       ),
     );
@@ -1149,6 +1157,225 @@ class TeamComparisonTab extends ConsumerWidget {
       ],
     );
   }
+
+  // 상대전적 섹션 (컴팩트 버전)
+  Widget _buildH2HSection(
+    BuildContext context,
+    AsyncValue<List<ApiFootballFixture>> h2hAsync,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: h2hAsync.when(
+        data: (fixtures) {
+          if (fixtures.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  l10n.noH2HRecord,
+                  style: const TextStyle(color: _textSecondary, fontSize: 13),
+                ),
+              ),
+            );
+          }
+
+          // 전적 계산 - 화면 상의 홈팀(homeTeamId) vs 원정팀(awayTeamId) 기준
+          // homeWins = 화면 홈팀의 승리 횟수
+          // awayWins = 화면 원정팀의 승리 횟수
+          int homeWins = 0;
+          int awayWins = 0;
+          int draws = 0;
+
+          for (final fixture in fixtures) {
+            final fixtureHomeGoals = fixture.homeGoals ?? 0;
+            final fixtureAwayGoals = fixture.awayGoals ?? 0;
+
+            if (fixtureHomeGoals == fixtureAwayGoals) {
+              draws++;
+            } else if (fixtureHomeGoals > fixtureAwayGoals) {
+              // fixture에서 홈팀이 이김
+              if (fixture.homeTeam.id == homeTeamId) {
+                homeWins++;
+              } else {
+                awayWins++;
+              }
+            } else {
+              // fixture에서 원정팀이 이김
+              if (fixture.awayTeam.id == homeTeamId) {
+                homeWins++;
+              } else {
+                awayWins++;
+              }
+            }
+          }
+
+          // 날짜 기준 내림차순 정렬 (최신순)
+          final sortedFixtures = List<ApiFootballFixture>.from(fixtures)
+            ..sort((a, b) => b.date.compareTo(a.date));
+          final recentFixtures = sortedFixtures.take(5).toList();
+
+          return Column(
+            children: [
+              // 전적 요약 (컴팩트)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildH2HWinStat('$homeWins', l10n.winLabel, _success),
+                  const SizedBox(width: 24),
+                  _buildH2HWinStat('$draws', l10n.drawShortLabel, _textSecondary),
+                  const SizedBox(width: 24),
+                  _buildH2HWinStat('$awayWins', l10n.winLabel, _error),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 10),
+
+              // 최근 경기 목록 (컴팩트)
+              ...recentFixtures.map((fixture) => _buildH2HMatchCard(context, fixture)),
+            ],
+          );
+        },
+        loading: () => const Center(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+        error: (_, __) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              l10n.dataLoadFailed,
+              style: const TextStyle(color: _textSecondary, fontSize: 13),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildH2HWinStat(String value, String label, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: _textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildH2HMatchCard(BuildContext context, ApiFootballFixture fixture) {
+    final fixtureHomeGoals = fixture.homeGoals ?? 0;
+    final fixtureAwayGoals = fixture.awayGoals ?? 0;
+
+    // 화면 홈팀(homeTeamId) 기준으로 승/무/패 판별
+    String result;
+    Color resultColor;
+    if (fixtureHomeGoals == fixtureAwayGoals) {
+      result = 'D';
+      resultColor = Colors.grey;
+    } else {
+      // 화면 홈팀이 이 fixture에서 이겼는지 확인
+      final screenHomeWon = (fixture.homeTeam.id == homeTeamId && fixtureHomeGoals > fixtureAwayGoals) ||
+          (fixture.awayTeam.id == homeTeamId && fixtureAwayGoals > fixtureHomeGoals);
+      if (screenHomeWon) {
+        result = 'W';
+        resultColor = _success;
+      } else {
+        result = 'L';
+        resultColor = _error;
+      }
+    }
+
+    final date = fixture.dateKST;
+    final dateStr = '${date.year.toString().substring(2)}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: GestureDetector(
+        onTap: () => context.push('/match/${fixture.id}'),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            children: [
+              // 결과 배지
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: resultColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Center(
+                  child: Text(
+                    result,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // 날짜
+              Text(
+                dateStr,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: _textSecondary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              // 스코어
+              Expanded(
+                child: Text(
+                  '${fixture.homeTeam.name} $fixtureHomeGoals - $fixtureAwayGoals ${fixture.awayTeam.name}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: _textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // 화살표 아이콘
+              const Icon(
+                Icons.chevron_right,
+                size: 16,
+                color: _textSecondary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // Providers for team comparison
@@ -1188,4 +1415,12 @@ final leagueTopAssistsProvider = FutureProvider.family<
     ({int leagueId, int season})>((ref, params) async {
   final service = ApiFootballService();
   return service.getTopAssists(params.leagueId, params.season);
+});
+
+// Head to Head Provider
+final headToHeadProvider = FutureProvider.family<
+    List<ApiFootballFixture>,
+    ({int homeTeamId, int awayTeamId})>((ref, params) async {
+  final service = ApiFootballService();
+  return service.getHeadToHead(params.homeTeamId, params.awayTeamId);
 });
