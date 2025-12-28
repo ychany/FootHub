@@ -1407,7 +1407,7 @@ class _FixturesTabState extends ConsumerState<_FixturesTab> {
 
     final weekdays = [l10n.mon, l10n.tue, l10n.wed, l10n.thu, l10n.fri, l10n.sat, l10n.sun];
     final weekday = weekdays[date.weekday - 1];
-    final dateStr = l10n.dateWithWeekday(date.month.toString(), date.day.toString(), weekday);
+    final dateStr = l10n.dateWithWeekday(date.day.toString(), date.month.toString(), weekday);
 
     if (targetDate == today) {
       return l10n.todayWithDate(dateStr);
