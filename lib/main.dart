@@ -56,8 +56,7 @@ class MatchLogApp extends ConsumerWidget {
       title: 'MatchLog',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
       routerConfig: router,
       // Localization 설정
       locale: locale,
