@@ -288,16 +288,21 @@ class FootballPitchView extends StatelessWidget {
                 final markerCenterX = constraints.maxWidth * xPercent;
                 final markerCenterY = constraints.maxHeight * yPercent;
 
+                // 마커 컨테이너 너비 (이름 박스 maxWidth: 56 기준으로 중앙 정렬)
+                const markerContainerWidth = 56.0;
                 return Stack(
                   children: [
                     Positioned(
-                      left: markerCenterX - 28, // 마커 너비/2 + 여유
+                      left: markerCenterX - (markerContainerWidth / 2),
                       top: markerCenterY - 25, // 마커 높이 고려
-                      child: PlayerMarker(
-                        player: player,
-                        stats: stats,
-                        isHome: isHome,
-                        events: playerEvents[player.id] ?? [],
+                      child: SizedBox(
+                        width: markerContainerWidth,
+                        child: PlayerMarker(
+                          player: player,
+                          stats: stats,
+                          isHome: isHome,
+                          events: playerEvents[player.id] ?? [],
+                        ),
                       ),
                     ),
                   ],
@@ -700,6 +705,7 @@ class PlayerMarker extends StatelessWidget {
       onTap: () => _showPlayerDetail(context),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // 선수 얼굴/등번호
           Stack(
