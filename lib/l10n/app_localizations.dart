@@ -1058,6 +1058,12 @@ abstract class AppLocalizations {
   /// **'기타 리그'**
   String get otherLeagues;
 
+  /// User's local league based on device locale
+  ///
+  /// In ko, this message translates to:
+  /// **'내 지역 리그'**
+  String get myLocalLeague;
+
   /// Cannot load leagues
   ///
   /// In ko, this message translates to:

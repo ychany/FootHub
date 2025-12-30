@@ -511,6 +511,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get otherLeagues => 'Others';
 
   @override
+  String get myLocalLeague => 'My Local League';
+
+  @override
   String get cannotLoadLeagues => 'Failed to load';
 
   @override

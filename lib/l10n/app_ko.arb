@@ -701,6 +701,10 @@
   "@otherLeagues": {
     "description": "Other leagues"
   },
+  "myLocalLeague": "내 지역 리그",
+  "@myLocalLeague": {
+    "description": "User's local league based on device locale"
+  },
   "cannotLoadLeagues": "리그 목록을 불러올 수 없습니다",
   "@cannotLoadLeagues": {
     "description": "Cannot load leagues"

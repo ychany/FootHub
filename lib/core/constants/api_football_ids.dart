@@ -69,10 +69,8 @@ class LeagueIds {
     return now.year;
   }
 
-  /// 지원 리그 목록 (순위표 있는 리그)
+  /// 지원 리그 목록 (순위표 있는 리그) - 5대 리그 + 유럽 대회
   static const List<LeagueInfo> supportedLeagues = [
-    LeagueInfo(id: kLeague1, name: 'K리그1', nameEn: 'K League 1', country: 'South Korea'),
-    LeagueInfo(id: kLeague2, name: 'K리그2', nameEn: 'K League 2', country: 'South Korea'),
     LeagueInfo(id: premierLeague, name: '프리미어리그', nameEn: 'Premier League', country: 'England'),
     LeagueInfo(id: laLiga, name: '라리가', nameEn: 'La Liga', country: 'Spain'),
     LeagueInfo(id: bundesliga, name: '분데스리가', nameEn: 'Bundesliga', country: 'Germany'),
@@ -81,6 +79,78 @@ class LeagueIds {
     LeagueInfo(id: championsLeague, name: 'UEFA 챔피언스리그', nameEn: 'Champions League', country: 'Europe'),
     LeagueInfo(id: europaLeague, name: 'UEFA 유로파리그', nameEn: 'Europa League', country: 'Europe'),
   ];
+
+  /// 자국 리그 목록 (국가 코드 기반)
+  static List<LeagueInfo> getLocalLeagues(String countryCode) {
+    switch (countryCode) {
+      case 'KR':
+        return const [
+          LeagueInfo(id: kLeague1, name: 'K리그1', nameEn: 'K League 1', country: 'South Korea'),
+          LeagueInfo(id: kLeague2, name: 'K리그2', nameEn: 'K League 2', country: 'South Korea'),
+        ];
+      case 'JP':
+        return const [
+          LeagueInfo(id: 98, name: 'J1 리그', nameEn: 'J1 League', country: 'Japan'),
+          LeagueInfo(id: 99, name: 'J2 리그', nameEn: 'J2 League', country: 'Japan'),
+        ];
+      case 'CN':
+        return const [
+          LeagueInfo(id: 169, name: '중국 슈퍼리그', nameEn: 'Chinese Super League', country: 'China'),
+        ];
+      case 'US':
+        return const [
+          LeagueInfo(id: 253, name: 'MLS', nameEn: 'MLS', country: 'USA'),
+        ];
+      case 'BR':
+        return const [
+          LeagueInfo(id: 71, name: '브라질레이랑', nameEn: 'Brasileirão Série A', country: 'Brazil'),
+          LeagueInfo(id: 72, name: '브라질레이랑 B', nameEn: 'Brasileirão Série B', country: 'Brazil'),
+        ];
+      case 'AR':
+        return const [
+          LeagueInfo(id: 128, name: '리가 프로페시오날', nameEn: 'Liga Profesional', country: 'Argentina'),
+        ];
+      case 'MX':
+        return const [
+          LeagueInfo(id: 262, name: '리가 MX', nameEn: 'Liga MX', country: 'Mexico'),
+        ];
+      case 'AU':
+        return const [
+          LeagueInfo(id: 188, name: 'A-리그', nameEn: 'A-League', country: 'Australia'),
+        ];
+      case 'SA':
+        return const [
+          LeagueInfo(id: 307, name: '사우디 프로리그', nameEn: 'Saudi Pro League', country: 'Saudi Arabia'),
+        ];
+      case 'PT':
+        return const [
+          LeagueInfo(id: 94, name: '프리메이라 리가', nameEn: 'Primeira Liga', country: 'Portugal'),
+        ];
+      case 'NL':
+        return const [
+          LeagueInfo(id: 88, name: '에레디비시', nameEn: 'Eredivisie', country: 'Netherlands'),
+        ];
+      case 'TR':
+        return const [
+          LeagueInfo(id: 203, name: '쉬페르 리그', nameEn: 'Süper Lig', country: 'Turkey'),
+        ];
+      // 5대 리그 국가는 이미 상단에 있으므로 빈 목록 반환
+      case 'GB':
+      case 'ES':
+      case 'IT':
+      case 'DE':
+      case 'FR':
+        return const [];
+      default:
+        return const [];
+    }
+  }
+
+  /// 자국 리그 포함한 전체 리그 목록 (자국 리그는 맨 뒤에)
+  static List<LeagueInfo> getAllLeagues(String countryCode) {
+    final localLeagues = getLocalLeagues(countryCode);
+    return [...supportedLeagues, ...localLeagues];
+  }
 
   /// ID로 리그 정보 가져오기
   static LeagueInfo? getLeagueInfo(int id) {

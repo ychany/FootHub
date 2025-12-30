@@ -509,6 +509,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get otherLeagues => '기타 리그';
 
   @override
+  String get myLocalLeague => '내 지역 리그';
+
+  @override
   String get cannotLoadLeagues => '리그 목록을 불러올 수 없습니다';
 
   @override

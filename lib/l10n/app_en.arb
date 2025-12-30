@@ -188,6 +188,7 @@
   "euroClubComps": "Europe",
   "nationalComps": "National",
   "otherLeagues": "Others",
+  "myLocalLeague": "My Local League",
   "cannotLoadLeagues": "Failed to load",
   "byCountry": "Countries",
   "rank": "Rank",

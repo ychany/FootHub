@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +15,12 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../providers/standings_provider.dart';
 import '../../../l10n/app_localizations.dart';
+
+/// 사용자 국가 코드 가져오기
+String _getUserCountryCode() {
+  final locale = ui.PlatformDispatcher.instance.locale;
+  return locale.countryCode ?? 'KR';
+}
 
 class StandingsScreen extends ConsumerWidget {
   const StandingsScreen({super.key});
@@ -50,44 +58,13 @@ class StandingsScreen extends ConsumerWidget {
               // 헤더
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                child: Row(
-                  children: [
-                    Text(
-                      l10n.leagueStandings,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: _textPrimary,
-                      ),
-                    ),
-                    const Spacer(),
-                    // 국가별 리그 버튼
-                    GestureDetector(
-                      onTap: () => context.push('/leagues-by-country'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: _primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.public, size: 16, color: _primary),
-                            const SizedBox(width: 4),
-                            Text(
-                              l10n.byCountry,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: _primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  l10n.leagueStandings,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: _textPrimary,
+                  ),
                 ),
               ),
               // 본문
@@ -106,7 +83,7 @@ class StandingsScreen extends ConsumerWidget {
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: LeagueIds.supportedLeagues.map((league) {
+                          children: LeagueIds.getAllLeagues(_getUserCountryCode()).map((league) {
                             final isSelected = selectedLeague == league.id;
                             return GestureDetector(
                               onTap: () {
