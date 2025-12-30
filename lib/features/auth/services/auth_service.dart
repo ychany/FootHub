@@ -249,18 +249,79 @@ class AuthService {
     await user.reload();
   }
 
-  // Delete account
+  // Delete account - 모든 사용자 데이터 삭제 후 계정 탈퇴
   Future<void> deleteAccount() async {
     final user = currentUser;
     if (user == null) return;
 
-    // Delete user document
-    await _firestore
-        .collection(AppConstants.usersCollection)
-        .doc(user.uid)
-        .delete();
+    final uid = user.uid;
+    final batch = _firestore.batch();
 
-    // Delete Firebase Auth user
+    // 1. 직관 기록 (attendance_records) 삭제
+    final attendanceRecords = await _firestore
+        .collection(AppConstants.attendanceCollection)
+        .where('userId', isEqualTo: uid)
+        .get();
+    for (final doc in attendanceRecords.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 2. 커뮤니티 게시글 (posts) 삭제
+    final posts = await _firestore
+        .collection('posts')
+        .where('authorId', isEqualTo: uid)
+        .get();
+    for (final doc in posts.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 3. 커뮤니티 댓글 (comments) 삭제
+    final comments = await _firestore
+        .collection('comments')
+        .where('authorId', isEqualTo: uid)
+        .get();
+    for (final doc in comments.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 4. 좋아요 (likes) 삭제
+    final likes = await _firestore
+        .collection('likes')
+        .where('userId', isEqualTo: uid)
+        .get();
+    for (final doc in likes.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 5. 경기 댓글 (match_comments) 삭제
+    final matchComments = await _firestore
+        .collection('match_comments')
+        .where('userId', isEqualTo: uid)
+        .get();
+    for (final doc in matchComments.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 6. 알림 설정 서브컬렉션 삭제
+    final notificationSettings = await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .collection('settings')
+        .get();
+    for (final doc in notificationSettings.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 7. 사용자 문서 삭제
+    batch.delete(_firestore.collection(AppConstants.usersCollection).doc(uid));
+
+    // Batch commit
+    await batch.commit();
+
+    // Google Sign-In 세션 해제
+    await _googleSignIn.signOut();
+
+    // Firebase Auth 계정 삭제 (마지막에 실행)
     await user.delete();
   }
 }

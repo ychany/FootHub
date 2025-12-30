@@ -1016,8 +1016,8 @@
   "email": "Email",
   "changePassword": "Change Password",
   "changePasswordDesc": "Change regularly for security",
-  "deleteAccount": "Delete Account",
-  "deleteAccountDesc": "All data will be deleted",
+  "deleteAccount": "Withdraw Account",
+  "deleteAccountDesc": "All data will be deleted upon withdrawal",
   "profilePhoto": "Change Profile Photo",
   "selectFromGallery": "Select from Gallery",
   "selectFromGalleryDesc": "Choose from saved photos",
@@ -1048,12 +1048,12 @@
   "passwordTooShort": "Password must be at least 8 characters",
   "passwordChangePreparing": "Password change coming soon",
   "change": "Change",
-  "confirmDeleteAccount": "Are you sure you want to delete your account?",
+  "confirmDeleteAccount": "Are you sure you want to withdraw?",
   "deleteWarningRecords": "All match records will be deleted",
   "deleteWarningFavorites": "Favorites will be deleted",
   "deleteWarningPhoto": "Profile photo will be deleted",
   "deleteWarningIrreversible": "This action cannot be undone",
-  "deleteAccountPreparing": "Account deletion coming soon",
+  "deleteAccountPreparing": "Account withdrawal coming soon",
 
   "timezoneSettingsTitle": "Timezone Settings",
   "searchTimezone": "Search timezone...",
@@ -1820,5 +1820,13 @@
   "errorServer": "A temporary error occurred. Please try again later",
   "errorFirebasePermission": "You don't have permission to access this",
   "errorFirebaseNotFound": "The requested data was not found",
-  "errorFirebaseUnavailable": "Service is temporarily unavailable"
+  "errorFirebaseUnavailable": "Service is temporarily unavailable",
+
+  "accountDeleted": "Account withdrawal completed",
+  "accountDeleteFailed": "Account withdrawal failed: {error}",
+  "@accountDeleteFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  }
 }

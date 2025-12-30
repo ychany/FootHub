@@ -161,46 +161,26 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   ),
                 ),
               ),
-              // TODO: 비밀번호 변경, 계정 삭제 기능 - 추후 활성화 예정
-              // const SizedBox(height: 16),
-              //
-              // // 계정 설정 카드
-              // Card(
-              //   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              //   child: Column(
-              //     children: [
-              //       ListTile(
-              //         leading: Container(
-              //           padding: const EdgeInsets.all(8),
-              //           decoration: BoxDecoration(
-              //             color: Colors.orange.withValues(alpha: 0.1),
-              //             borderRadius: BorderRadius.circular(8),
-              //           ),
-              //           child: const Icon(Icons.lock_outline, color: Colors.orange, size: 20),
-              //         ),
-              //         title: Text(l10n.changePassword),
-              //         subtitle: Text(l10n.changePasswordDesc, style: AppTextStyles.caption.copyWith(color: Colors.grey.shade600)),
-              //         trailing: const Icon(Icons.chevron_right),
-              //         onTap: () => _showPasswordChangeDialog(),
-              //       ),
-              //       const Divider(height: 1, indent: 72),
-              //       ListTile(
-              //         leading: Container(
-              //           padding: const EdgeInsets.all(8),
-              //           decoration: BoxDecoration(
-              //             color: Colors.red.withValues(alpha: 0.1),
-              //             borderRadius: BorderRadius.circular(8),
-              //           ),
-              //           child: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-              //         ),
-              //         title: Text(l10n.deleteAccount, style: const TextStyle(color: Colors.red)),
-              //         subtitle: Text(l10n.deleteAccountDesc, style: AppTextStyles.caption.copyWith(color: Colors.grey.shade600)),
-              //         trailing: const Icon(Icons.chevron_right, color: Colors.red),
-              //         onTap: () => _showDeleteAccountDialog(),
-              //       ),
-              //     ],
-              //   ),
-              // ),
+              const SizedBox(height: 16),
+
+              // 계정 삭제 카드
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                  ),
+                  title: Text(l10n.deleteAccount, style: const TextStyle(color: Colors.red)),
+                  subtitle: Text(l10n.deleteAccountDesc, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.red),
+                  onTap: () => _showDeleteAccountDialog(),
+                ),
+              ),
               const SizedBox(height: 100),
             ],
           ),
@@ -445,194 +425,116 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     }
   }
 
-  // TODO: 비밀번호 변경 기능 - 추후 활성화 예정
-  // void _showPasswordChangeDialog() {
-  //   final l10n = AppLocalizations.of(context)!;
-  //   final currentPasswordController = TextEditingController();
-  //   final newPasswordController = TextEditingController();
-  //   final confirmPasswordController = TextEditingController();
-  //   bool obscureCurrent = true;
-  //   bool obscureNew = true;
-  //   bool obscureConfirm = true;
-  //
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) => StatefulBuilder(
-  //       builder: (context, setDialogState) => AlertDialog(
-  //         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-  //         title: Row(
-  //           children: [
-  //             Container(
-  //               padding: const EdgeInsets.all(8),
-  //               decoration: BoxDecoration(
-  //                 color: Colors.orange.withValues(alpha: 0.1),
-  //                 borderRadius: BorderRadius.circular(8),
-  //               ),
-  //               child: const Icon(Icons.lock_outline, color: Colors.orange),
-  //             ),
-  //             const SizedBox(width: 12),
-  //             Text(l10n.changePassword),
-  //           ],
-  //         ),
-  //         content: SingleChildScrollView(
-  //           child: Column(
-  //             mainAxisSize: MainAxisSize.min,
-  //             children: [
-  //               TextField(
-  //                 controller: currentPasswordController,
-  //                 obscureText: obscureCurrent,
-  //                 decoration: InputDecoration(
-  //                   labelText: l10n.currentPassword,
-  //                   prefixIcon: const Icon(Icons.lock),
-  //                   suffixIcon: IconButton(
-  //                     icon: Icon(obscureCurrent ? Icons.visibility_off : Icons.visibility),
-  //                     onPressed: () => setDialogState(() => obscureCurrent = !obscureCurrent),
-  //                   ),
-  //                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-  //                 ),
-  //               ),
-  //               const SizedBox(height: 16),
-  //               TextField(
-  //                 controller: newPasswordController,
-  //                 obscureText: obscureNew,
-  //                 decoration: InputDecoration(
-  //                   labelText: l10n.newPassword,
-  //                   prefixIcon: const Icon(Icons.lock_outline),
-  //                   suffixIcon: IconButton(
-  //                     icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility),
-  //                     onPressed: () => setDialogState(() => obscureNew = !obscureNew),
-  //                   ),
-  //                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-  //                   helperText: l10n.passwordMinLength,
-  //                 ),
-  //               ),
-  //               const SizedBox(height: 16),
-  //               TextField(
-  //                 controller: confirmPasswordController,
-  //                 obscureText: obscureConfirm,
-  //                 decoration: InputDecoration(
-  //                   labelText: l10n.confirmNewPassword,
-  //                   prefixIcon: const Icon(Icons.lock_outline),
-  //                   suffixIcon: IconButton(
-  //                     icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility),
-  //                     onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
-  //                   ),
-  //                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //         actions: [
-  //           TextButton(
-  //             onPressed: () => Navigator.pop(context),
-  //             child: Text(l10n.cancel),
-  //           ),
-  //           FilledButton(
-  //             onPressed: () {
-  //               if (newPasswordController.text != confirmPasswordController.text) {
-  //                 ScaffoldMessenger.of(context).showSnackBar(
-  //                   SnackBar(content: Text(l10n.passwordMismatch)),
-  //                 );
-  //                 return;
-  //               }
-  //               if (newPasswordController.text.length < 8) {
-  //                 ScaffoldMessenger.of(context).showSnackBar(
-  //                   SnackBar(content: Text(l10n.passwordTooShort)),
-  //                 );
-  //                 return;
-  //               }
-  //               Navigator.pop(context);
-  //               ScaffoldMessenger.of(context).showSnackBar(
-  //                 SnackBar(content: Text(l10n.passwordChangePreparing)),
-  //               );
-  //             },
-  //             child: Text(l10n.change),
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
+  void _showDeleteAccountDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.warning_amber, color: Colors.red),
+            ),
+            const SizedBox(width: 12),
+            Flexible(child: Text(l10n.deleteAccount)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.confirmDeleteAccount,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildWarningItem(l10n.deleteWarningRecords),
+                  _buildWarningItem(l10n.deleteWarningFavorites),
+                  _buildWarningItem(l10n.deleteWarningPhoto),
+                  _buildWarningItem(l10n.deleteWarningIrreversible),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await _deleteAccount();
+            },
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+  }
 
-  // TODO: 계정 삭제 기능 - 추후 활성화 예정
-  // void _showDeleteAccountDialog() {
-  //   final l10n = AppLocalizations.of(context)!;
-  //   showDialog(
-  //     context: context,
-  //     builder: (dialogContext) => AlertDialog(
-  //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-  //       title: Row(
-  //         children: [
-  //           Container(
-  //             padding: const EdgeInsets.all(8),
-  //             decoration: BoxDecoration(
-  //               color: Colors.red.withValues(alpha: 0.1),
-  //               borderRadius: BorderRadius.circular(8),
-  //             ),
-  //             child: const Icon(Icons.warning_amber, color: Colors.red),
-  //           ),
-  //           const SizedBox(width: 12),
-  //           Text(l10n.deleteAccount),
-  //         ],
-  //       ),
-  //       content: Column(
-  //         mainAxisSize: MainAxisSize.min,
-  //         crossAxisAlignment: CrossAxisAlignment.start,
-  //         children: [
-  //           Text(
-  //             l10n.confirmDeleteAccount,
-  //             style: const TextStyle(fontWeight: FontWeight.w600),
-  //           ),
-  //           const SizedBox(height: 12),
-  //           Container(
-  //             padding: const EdgeInsets.all(12),
-  //             decoration: BoxDecoration(
-  //               color: Colors.red.withValues(alpha: 0.1),
-  //               borderRadius: BorderRadius.circular(8),
-  //             ),
-  //             child: Column(
-  //               crossAxisAlignment: CrossAxisAlignment.start,
-  //               children: [
-  //                 _buildWarningItem(l10n.deleteWarningRecords),
-  //                 _buildWarningItem(l10n.deleteWarningFavorites),
-  //                 _buildWarningItem(l10n.deleteWarningPhoto),
-  //                 _buildWarningItem(l10n.deleteWarningIrreversible),
-  //               ],
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Navigator.pop(dialogContext),
-  //           child: Text(l10n.cancel),
-  //         ),
-  //         FilledButton(
-  //           style: FilledButton.styleFrom(backgroundColor: Colors.red),
-  //           onPressed: () {
-  //             Navigator.pop(dialogContext);
-  //             ScaffoldMessenger.of(context).showSnackBar(
-  //               SnackBar(content: Text(l10n.deleteAccountPreparing)),
-  //             );
-  //           },
-  //           child: Text(l10n.delete),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
+  Widget _buildWarningItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          const Icon(Icons.remove, size: 16, color: Colors.red),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
+        ],
+      ),
+    );
+  }
 
-  // Widget _buildWarningItem(String text) {
-  //   return Padding(
-  //     padding: const EdgeInsets.symmetric(vertical: 2),
-  //     child: Row(
-  //       children: [
-  //         const Icon(Icons.remove, size: 16, color: Colors.red),
-  //         const SizedBox(width: 8),
-  //         Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
-  //       ],
-  //     ),
-  //   );
-  // }
+  Future<void> _deleteAccount() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    // 로딩 다이얼로그 표시
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      await ref.read(authNotifierProvider.notifier).deleteAccount();
+
+      if (mounted) {
+        Navigator.pop(context); // 로딩 다이얼로그 닫기
+        context.go('/login'); // 로그인 화면으로 이동
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.accountDeleted)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // 로딩 다이얼로그 닫기
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.accountDeleteFailed(ErrorHelper.getLocalizedErrorMessage(context, e))),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 }

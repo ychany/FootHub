@@ -4631,13 +4631,13 @@ abstract class AppLocalizations {
   /// No description provided for @deleteAccount.
   ///
   /// In ko, this message translates to:
-  /// **'계정 삭제'**
+  /// **'회원 탈퇴'**
   String get deleteAccount;
 
   /// No description provided for @deleteAccountDesc.
   ///
   /// In ko, this message translates to:
-  /// **'모든 데이터가 삭제됩니다'**
+  /// **'탈퇴 시 모든 데이터가 삭제됩니다'**
   String get deleteAccountDesc;
 
   /// No description provided for @profilePhoto.
@@ -4763,7 +4763,7 @@ abstract class AppLocalizations {
   /// No description provided for @confirmDeleteAccount.
   ///
   /// In ko, this message translates to:
-  /// **'정말 계정을 삭제하시겠습니까?'**
+  /// **'정말 탈퇴하시겠습니까?'**
   String get confirmDeleteAccount;
 
   /// No description provided for @deleteWarningRecords.
@@ -4793,7 +4793,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteAccountPreparing.
   ///
   /// In ko, this message translates to:
-  /// **'계정 삭제 기능 준비 중'**
+  /// **'회원 탈퇴 기능 준비 중'**
   String get deleteAccountPreparing;
 
   /// No description provided for @timezoneSettingsTitle.
@@ -7459,6 +7459,18 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'서비스를 일시적으로 사용할 수 없습니다'**
   String get errorFirebaseUnavailable;
+
+  /// No description provided for @accountDeleted.
+  ///
+  /// In ko, this message translates to:
+  /// **'회원 탈퇴가 완료되었습니다'**
+  String get accountDeleted;
+
+  /// No description provided for @accountDeleteFailed.
+  ///
+  /// In ko, this message translates to:
+  /// **'회원 탈퇴 실패: {error}'**
+  String accountDeleteFailed(String error);
 }
 
 class _AppLocalizationsDelegate

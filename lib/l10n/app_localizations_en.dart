@@ -2402,10 +2402,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get changePasswordDesc => 'Change regularly for security';
 
   @override
-  String get deleteAccount => 'Delete Account';
+  String get deleteAccount => 'Withdraw Account';
 
   @override
-  String get deleteAccountDesc => 'All data will be deleted';
+  String get deleteAccountDesc => 'All data will be deleted upon withdrawal';
 
   @override
   String get profilePhoto => 'Change Profile Photo';
@@ -2472,8 +2472,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get change => 'Change';
 
   @override
-  String get confirmDeleteAccount =>
-      'Are you sure you want to delete your account?';
+  String get confirmDeleteAccount => 'Are you sure you want to withdraw?';
 
   @override
   String get deleteWarningRecords => 'All match records will be deleted';
@@ -2488,7 +2487,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteWarningIrreversible => 'This action cannot be undone';
 
   @override
-  String get deleteAccountPreparing => 'Account deletion coming soon';
+  String get deleteAccountPreparing => 'Account withdrawal coming soon';
 
   @override
   String get timezoneSettingsTitle => 'Timezone Settings';
@@ -3924,4 +3923,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorFirebaseUnavailable => 'Service is temporarily unavailable';
+
+  @override
+  String get accountDeleted => 'Account withdrawal completed';
+
+  @override
+  String accountDeleteFailed(String error) {
+    return 'Account withdrawal failed: $error';
+  }
 }

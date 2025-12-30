@@ -2394,10 +2394,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get changePasswordDesc => '계정 보안을 위해 정기적으로 변경하세요';
 
   @override
-  String get deleteAccount => '계정 삭제';
+  String get deleteAccount => '회원 탈퇴';
 
   @override
-  String get deleteAccountDesc => '모든 데이터가 삭제됩니다';
+  String get deleteAccountDesc => '탈퇴 시 모든 데이터가 삭제됩니다';
 
   @override
   String get profilePhoto => '프로필 사진 변경';
@@ -2464,7 +2464,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get change => '변경';
 
   @override
-  String get confirmDeleteAccount => '정말 계정을 삭제하시겠습니까?';
+  String get confirmDeleteAccount => '정말 탈퇴하시겠습니까?';
 
   @override
   String get deleteWarningRecords => '모든 직관 기록이 삭제됩니다';
@@ -2479,7 +2479,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get deleteWarningIrreversible => '이 작업은 되돌릴 수 없습니다';
 
   @override
-  String get deleteAccountPreparing => '계정 삭제 기능 준비 중';
+  String get deleteAccountPreparing => '회원 탈퇴 기능 준비 중';
 
   @override
   String get timezoneSettingsTitle => '타임존 설정';
@@ -3898,4 +3898,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get errorFirebaseUnavailable => '서비스를 일시적으로 사용할 수 없습니다';
+
+  @override
+  String get accountDeleted => '회원 탈퇴가 완료되었습니다';
+
+  @override
+  String accountDeleteFailed(String error) {
+    return '회원 탈퇴 실패: $error';
+  }
 }
