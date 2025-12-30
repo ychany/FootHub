@@ -1,14 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../l10n/app_localizations.dart';
 
-class HelpSupportScreen extends StatelessWidget {
+class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
 
+  @override
+  State<HelpSupportScreen> createState() => _HelpSupportScreenState();
+}
+
+class _HelpSupportScreenState extends State<HelpSupportScreen> {
   static const _textPrimary = Color(0xFF111827);
   static const _background = Color(0xFFF9FAFB);
   static const _border = Color(0xFFE5E7EB);
+
+  String _version = '';
+  String _buildNumber = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPackageInfo();
+  }
+
+  Future<void> _loadPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _version = info.version;
+        _buildNumber = info.buildNumber;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +96,17 @@ class HelpSupportScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               _buildAppInfoSection(context),
+
+              const SizedBox(height: 24),
+
+              // 법적 정보 섹션
+              _buildSectionHeader(
+                icon: Icons.gavel_rounded,
+                iconColor: const Color(0xFF6B7280),
+                title: l10n.legalInfo,
+              ),
+              const SizedBox(height: 12),
+              _buildLegalSection(context),
 
               const SizedBox(height: 40),
             ],
@@ -205,12 +241,12 @@ class HelpSupportScreen extends StatelessWidget {
         children: [
           _InfoItem(
             title: l10n.appVersionLabel,
-            value: 'v1.0.0',
+            value: _version.isEmpty ? '...' : 'v$_version',
           ),
           Container(height: 1, margin: const EdgeInsets.only(left: 16), color: _border),
           _InfoItem(
             title: l10n.buildNumber,
-            value: '1',
+            value: _buildNumber.isEmpty ? '...' : _buildNumber,
           ),
           Container(height: 1, margin: const EdgeInsets.only(left: 16), color: _border),
           _InfoItem(
@@ -220,6 +256,48 @@ class HelpSupportScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildLegalSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        children: [
+          _LinkItem(
+            icon: Icons.description_outlined,
+            iconColor: const Color(0xFF6B7280),
+            title: l10n.privacyPolicy,
+            onTap: () => _launchUrl('https://ychany.github.io/FootHub/privacy-policy.html'),
+          ),
+          Container(height: 1, margin: const EdgeInsets.only(left: 56), color: _border),
+          _LinkItem(
+            icon: Icons.article_outlined,
+            iconColor: const Color(0xFF6B7280),
+            title: l10n.termsOfService,
+            onTap: () => _launchUrl('https://ychany.github.io/FootHub/terms-of-service.html'),
+          ),
+          Container(height: 1, margin: const EdgeInsets.only(left: 56), color: _border),
+          _LinkItem(
+            icon: Icons.language_rounded,
+            iconColor: const Color(0xFF6B7280),
+            title: l10n.supportWebsite,
+            onTap: () => _launchUrl('https://ychany.github.io/FootHub/'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _launchEmail(BuildContext context, {String? subject, String? body}) async {
@@ -480,6 +558,55 @@ class _InfoItem extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LinkItem extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final VoidCallback onTap;
+
+  const _LinkItem({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Color(0xFF111827),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Icon(Icons.open_in_new, color: Colors.grey.shade400, size: 18),
+          ],
+        ),
       ),
     );
   }

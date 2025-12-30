@@ -6,7 +6,7 @@
   "@appName": {
     "description": "App name"
   },
-  "appTagline": "축구 직관 기록 앱",
+  "appTagline": "FootHub",
   "@appTagline": {
     "description": "App tagline"
   },
@@ -552,6 +552,14 @@
   "@activeMember": {
     "description": "Active member badge"
   },
+  "loginPromptTitle": "로그인하고 시작하세요",
+  "@loginPromptTitle": {
+    "description": "Login prompt title"
+  },
+  "loginPromptSubtitle": "나만의 직관 기록을 저장하고 관리하세요",
+  "@loginPromptSubtitle": {
+    "description": "Login prompt subtitle"
+  },
 
   "leagueStandings": "리그 순위",
   "@leagueStandings": {
@@ -620,7 +628,7 @@
     "description": "System default"
   },
 
-  "appVersion": "FootHub v{version}",
+  "appVersion": "v{version}",
   "@appVersion": {
     "description": "App version",
     "placeholders": {
@@ -2400,9 +2408,6 @@
   "helpSupport": "도움말 및 지원",
   "faq": "자주 묻는 질문",
   "contactSupport": "고객 지원 문의",
-  "appVersion": "앱 버전",
-  "termsOfService": "서비스 약관",
-  "privacyPolicy": "개인정보 처리방침",
 
   "enterDisplayName": "표시될 이름을 입력하세요",
   "email": "이메일",
@@ -2524,6 +2529,11 @@
   "bugReportHint": "발견한 버그나 문제점을 자세히 설명해주세요...",
   "featureSuggestionHint": "원하시는 기능을 자세히 설명해주세요...",
   "submit": "제출",
+
+  "legalInfo": "법적 정보",
+  "privacyPolicy": "개인정보처리방침",
+  "termsOfService": "이용약관",
+  "supportWebsite": "지원 웹사이트",
 
   "faqAddRecord": "직관 기록은 어떻게 추가하나요?",
   "faqAddRecordAnswer": "홈 화면이나 직관 일기 탭에서 + 버튼을 눌러 새로운 직관 기록을 추가할 수 있습니다. 경기 일정에서 원하는 경기를 선택한 후 \"직관 기록\" 버튼을 눌러도 됩니다.",
@@ -2807,7 +2817,7 @@
   "noDeletePermission": "삭제 권한이 없습니다",
   "commentNotFoundError": "댓글을 찾을 수 없습니다",
 
-  "matchLog": "매치로그",
+  "matchLog": "FootHub",
   "myFootballRecord": "나만의 축구 직관 기록",
   "emailLabel": "이메일",
   "passwordLabel": "비밀번호",

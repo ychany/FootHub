@@ -107,7 +107,7 @@ abstract class AppLocalizations {
   /// App tagline
   ///
   /// In ko, this message translates to:
-  /// **'축구 직관 기록 앱'**
+  /// **'FootHub'**
   String get appTagline;
 
   /// Home tab label
@@ -848,6 +848,18 @@ abstract class AppLocalizations {
   /// **'활성 회원'**
   String get activeMember;
 
+  /// Login prompt title
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하고 시작하세요'**
+  String get loginPromptTitle;
+
+  /// Login prompt subtitle
+  ///
+  /// In ko, this message translates to:
+  /// **'나만의 직관 기록을 저장하고 관리하세요'**
+  String get loginPromptSubtitle;
+
   /// League standings
   ///
   /// In ko, this message translates to:
@@ -947,7 +959,7 @@ abstract class AppLocalizations {
   /// App version
   ///
   /// In ko, this message translates to:
-  /// **'앱 버전'**
+  /// **'v{version}'**
   String appVersion(String version);
 
   /// Live matches screen title
@@ -4592,18 +4604,6 @@ abstract class AppLocalizations {
   /// **'고객 지원 문의'**
   String get contactSupport;
 
-  /// No description provided for @termsOfService.
-  ///
-  /// In ko, this message translates to:
-  /// **'서비스 약관'**
-  String get termsOfService;
-
-  /// No description provided for @privacyPolicy.
-  ///
-  /// In ko, this message translates to:
-  /// **'개인정보 처리방침'**
-  String get privacyPolicy;
-
   /// No description provided for @enterDisplayName.
   ///
   /// In ko, this message translates to:
@@ -5179,6 +5179,30 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'제출'**
   String get submit;
+
+  /// No description provided for @legalInfo.
+  ///
+  /// In ko, this message translates to:
+  /// **'법적 정보'**
+  String get legalInfo;
+
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In ko, this message translates to:
+  /// **'개인정보처리방침'**
+  String get privacyPolicy;
+
+  /// No description provided for @termsOfService.
+  ///
+  /// In ko, this message translates to:
+  /// **'이용약관'**
+  String get termsOfService;
+
+  /// No description provided for @supportWebsite.
+  ///
+  /// In ko, this message translates to:
+  /// **'지원 웹사이트'**
+  String get supportWebsite;
 
   /// No description provided for @faqAddRecord.
   ///
@@ -6089,7 +6113,7 @@ abstract class AppLocalizations {
   /// No description provided for @matchLog.
   ///
   /// In ko, this message translates to:
-  /// **'매치로그'**
+  /// **'FootHub'**
   String get matchLog;
 
   /// No description provided for @myFootballRecord.

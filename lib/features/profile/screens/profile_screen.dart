@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
@@ -122,6 +123,84 @@ class _ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final userId = user?.uid;
+
+    // 비로그인 상태일 때 로그인 유도 카드
+    if (userId == null) {
+      return _buildLoginPromptCard(context, l10n);
+    }
+
+    // 로그인 상태일 때 프로필 카드
+    return _buildProfileCard(context, l10n);
+  }
+
+  Widget _buildLoginPromptCard(BuildContext context, AppLocalizations l10n) {
+    return GestureDetector(
+      onTap: () => context.push('/login'),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Row(
+          children: [
+            // 아이콘
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDBEAFE),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                  width: 3,
+                ),
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.person_add_rounded,
+                  color: Color(0xFF2563EB),
+                  size: 32,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            // 정보
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.loginPromptTitle,
+                    style: const TextStyle(
+                      color: Color(0xFF111827),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.loginPromptSubtitle,
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 화살표 아이콘
+            Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileCard(BuildContext context, AppLocalizations l10n) {
     final displayName = user?.displayName ?? l10n.userDefault;
     final email = user?.email ?? '';
     final photoUrl = user?.photoURL;
@@ -967,7 +1046,27 @@ class _AuthButton extends ConsumerWidget {
 // ============================================================================
 // 앱 정보
 // ============================================================================
-class _AppInfo extends StatelessWidget {
+class _AppInfo extends StatefulWidget {
+  @override
+  State<_AppInfo> createState() => _AppInfoState();
+}
+
+class _AppInfoState extends State<_AppInfo> {
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() => _version = info.version);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -976,7 +1075,7 @@ class _AppInfo extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            l10n.appVersion('1.0.0'),
+            l10n.appVersion(_version.isEmpty ? '...' : _version),
             style: TextStyle(
               color: Colors.grey.shade400,
               fontSize: 12,
@@ -984,7 +1083,7 @@ class _AppInfo extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            l10n.appTagline,
+            '© 2025 FootHub. All rights reserved.',
             style: TextStyle(
               color: Colors.grey.shade400,
               fontSize: 11,

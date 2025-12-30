@@ -3,7 +3,7 @@
   "@@last_modified": "2025-12-25",
 
   "appName": "FootHub",
-  "appTagline": "Football Match Diary App",
+  "appTagline": "FootHub",
 
   "home": "Home",
   "schedule": "Matches",
@@ -147,6 +147,8 @@
 
   "user": "User",
   "activeMember": "Active Member",
+  "loginPromptTitle": "Sign in to get started",
+  "loginPromptSubtitle": "Save and manage your match attendance records",
 
   "leagueStandings": "League Standings",
   "checkLeagueStandings": "Check league standings",
@@ -167,7 +169,7 @@
   "english": "English",
   "systemDefault": "System Default",
 
-  "appVersion": "FootHub v{version}",
+  "appVersion": "v{version}",
 
   "liveMatches": "Live Matches",
   "updatedSecondsAgo": "Updated {seconds}s ago",
@@ -1009,9 +1011,6 @@
   "helpSupport": "Help & Support",
   "faq": "FAQ",
   "contactSupport": "Contact Support",
-  "appVersion": "App Version",
-  "termsOfService": "Terms of Service",
-  "privacyPolicy": "Privacy Policy",
 
   "enterDisplayName": "Enter display name",
   "email": "Email",
@@ -1133,6 +1132,11 @@
   "bugReportHint": "Please describe the bug or issue in detail...",
   "featureSuggestionHint": "Please describe the feature you would like...",
   "submit": "Submit",
+
+  "legalInfo": "Legal Information",
+  "privacyPolicy": "Privacy Policy",
+  "termsOfService": "Terms of Service",
+  "supportWebsite": "Support Website",
 
   "faqAddRecord": "How do I add a match record?",
   "faqAddRecordAnswer": "You can add a new match record by tapping the + button on the home screen or diary tab. You can also tap \"Record Attendance\" after selecting a match from the schedule.",

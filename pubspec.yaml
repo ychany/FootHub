@@ -61,6 +61,7 @@ dependencies:
   # Utilities
   uuid: ^4.2.2
   equatable: ^2.0.5
+  package_info_plus: ^8.0.0
 
   # HTTP
   http: ^1.2.0

@@ -12,7 +12,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get appName => 'FootHub';
 
   @override
-  String get appTagline => '축구 직관 기록 앱';
+  String get appTagline => 'FootHub';
 
   @override
   String get home => '홈';
@@ -394,6 +394,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get activeMember => '활성 회원';
 
   @override
+  String get loginPromptTitle => '로그인하고 시작하세요';
+
+  @override
+  String get loginPromptSubtitle => '나만의 직관 기록을 저장하고 관리하세요';
+
+  @override
   String get leagueStandings => '리그 순위';
 
   @override
@@ -443,7 +449,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String appVersion(String version) {
-    return '앱 버전';
+    return 'v$version';
   }
 
   @override
@@ -2376,12 +2382,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get contactSupport => '고객 지원 문의';
 
   @override
-  String get termsOfService => '서비스 약관';
-
-  @override
-  String get privacyPolicy => '개인정보 처리방침';
-
-  @override
   String get enterDisplayName => '표시될 이름을 입력하세요';
 
   @override
@@ -2677,6 +2677,18 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get submit => '제출';
+
+  @override
+  String get legalInfo => '법적 정보';
+
+  @override
+  String get privacyPolicy => '개인정보처리방침';
+
+  @override
+  String get termsOfService => '이용약관';
+
+  @override
+  String get supportWebsite => '지원 웹사이트';
 
   @override
   String get faqAddRecord => '직관 기록은 어떻게 추가하나요?';
@@ -3175,7 +3187,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get commentNotFoundError => '댓글을 찾을 수 없습니다';
 
   @override
-  String get matchLog => '매치로그';
+  String get matchLog => 'FootHub';
 
   @override
   String get myFootballRecord => '나만의 축구 직관 기록';

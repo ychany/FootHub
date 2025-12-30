@@ -12,7 +12,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appName => 'FootHub';
 
   @override
-  String get appTagline => 'Football Match Diary App';
+  String get appTagline => 'FootHub';
 
   @override
   String get home => 'Home';
@@ -395,6 +395,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get activeMember => 'Active Member';
 
   @override
+  String get loginPromptTitle => 'Sign in to get started';
+
+  @override
+  String get loginPromptSubtitle =>
+      'Save and manage your match attendance records';
+
+  @override
   String get leagueStandings => 'League Standings';
 
   @override
@@ -444,7 +451,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String appVersion(String version) {
-    return 'App Version';
+    return 'v$version';
   }
 
   @override
@@ -2383,12 +2390,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactSupport => 'Contact Support';
 
   @override
-  String get termsOfService => 'Terms of Service';
-
-  @override
-  String get privacyPolicy => 'Privacy Policy';
-
-  @override
   String get enterDisplayName => 'Enter display name';
 
   @override
@@ -2695,6 +2696,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get submit => 'Submit';
+
+  @override
+  String get legalInfo => 'Legal Information';
+
+  @override
+  String get privacyPolicy => 'Privacy Policy';
+
+  @override
+  String get termsOfService => 'Terms of Service';
+
+  @override
+  String get supportWebsite => 'Support Website';
 
   @override
   String get faqAddRecord => 'How do I add a match record?';
