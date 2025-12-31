@@ -13,6 +13,7 @@ import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../providers/schedule_provider.dart';
 import '../../diary/providers/diary_provider.dart';
+import '../../league/screens/league_list_screen.dart' show userLocalLeagueIdsProvider;
 
 class ScheduleScreen extends ConsumerStatefulWidget {
   const ScheduleScreen({super.key});
@@ -293,6 +294,20 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
   Widget _buildLeagueFilter(String? selectedLeague) {
     final l10n = AppLocalizations.of(context)!;
+    final localLeagueIds = ref.watch(userLocalLeagueIdsProvider);
+
+    // 자국 리그 이름 목록 생성
+    final localLeagueNames = localLeagueIds
+        .map((id) => AppConstants.getLeagueNameById(id))
+        .whereType<String>()
+        .toList();
+
+    // 전체 리그 목록: 기본 리그 + 자국 리그
+    final allLeagues = [
+      ...AppConstants.supportedLeagues,
+      ...localLeagueNames,
+    ];
+
     return SizedBox(
       height: 40,
       child: ListView(
@@ -315,8 +330,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               ref.read(selectedLeagueProvider.notifier).state = null;
             },
           ),
-          // 개별 리그들
-          ...AppConstants.supportedLeagues.map(
+          // 개별 리그들 (기본 + 자국 리그)
+          ...allLeagues.map(
             (league) => _LeagueChip(
               label: league,
               displayLabel: AppConstants.getLocalizedLeagueName(context, league),
