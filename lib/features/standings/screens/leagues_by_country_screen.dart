@@ -161,7 +161,16 @@ class _LeaguesByCountryScreenState extends ConsumerState<LeaguesByCountryScreen>
               .toList();
         }
 
-        // 주요 국가와 나머지 국가 분리
+        // 검색 중이면 모든 국가를 알파벳순으로 표시
+        if (_searchQuery.isNotEmpty) {
+          filteredCountries.sort((a, b) => a.name.compareTo(b.name));
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: filteredCountries.map((country) => _buildCountryTile(country)).toList(),
+          );
+        }
+
+        // 검색 중이 아니면 주요 국가와 나머지 국가 분리
         final topCountryList = <ApiFootballCountry>[];
         final otherCountryList = <ApiFootballCountry>[];
 
@@ -187,7 +196,7 @@ class _LeaguesByCountryScreenState extends ConsumerState<LeaguesByCountryScreen>
           padding: const EdgeInsets.all(16),
           children: [
             // 주요 국가 섹션
-            if (topCountryList.isNotEmpty && _searchQuery.isEmpty) ...[
+            if (topCountryList.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
