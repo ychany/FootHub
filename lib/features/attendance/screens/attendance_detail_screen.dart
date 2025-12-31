@@ -1108,9 +1108,15 @@ class _StatsAndTimelineTab extends ConsumerWidget {
       );
     }
 
-    // Sort by elapsed time
+    // 시간순 정렬
     final sortedEvents = List<ApiFootballEvent>.from(events)
-      ..sort((a, b) => (a.elapsed ?? 0).compareTo(b.elapsed ?? 0));
+      ..sort((a, b) {
+        final aTime = a.elapsed ?? 0;
+        final bTime = b.elapsed ?? 0;
+        return aTime.compareTo(bTime);
+      });
+
+    final homeTeamId = int.tryParse(record.homeTeamId);
 
     return Container(
       decoration: BoxDecoration(
@@ -1118,103 +1124,21 @@ class _StatsAndTimelineTab extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: _border),
       ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: sortedEvents.length,
-        separatorBuilder: (_, __) => Divider(height: 1, color: _border),
-        itemBuilder: (context, index) {
+      child: Column(
+        children: List.generate(sortedEvents.length, (index) {
           final event = sortedEvents[index];
-          final isHomeTeam = event.teamId == int.tryParse(record.homeTeamId);
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                // Time
-                SizedBox(
-                  width: 40,
-                  child: Text(
-                    "${event.elapsed ?? 0}'",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: _textPrimary,
-                    ),
-                  ),
-                ),
-                // Event icon
-                _getEventIcon(event),
-                const SizedBox(width: 12),
-                // Event info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: isHomeTeam
-                        ? CrossAxisAlignment.start
-                        : CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        event.playerName ?? '',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
-                          color: _textPrimary,
-                        ),
-                      ),
-                      if (event.assistName != null)
-                        Text(
-                          '(${event.assistName})',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: _textSecondary,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          final isFirst = index == 0;
+          final isLast = index == sortedEvents.length - 1;
+          final isHome = event.teamId == homeTeamId;
+          return _TimelineItem(
+            event: event,
+            isFirst: isFirst,
+            isLast: isLast,
+            isHome: isHome,
           );
-        },
+        }),
       ),
     );
-  }
-
-  Widget _getEventIcon(ApiFootballEvent event) {
-    switch (event.type) {
-      case 'Goal':
-        if (event.detail == 'Own Goal') {
-          return const Icon(Icons.sports_soccer, color: Colors.red, size: 20);
-        }
-        return const Icon(Icons.sports_soccer, color: Color(0xFF10B981), size: 20);
-      case 'Card':
-        if (event.detail == 'Yellow Card') {
-          return Container(
-            width: 14,
-            height: 18,
-            decoration: BoxDecoration(
-              color: Colors.amber,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          );
-        } else if (event.detail == 'Red Card') {
-          return Container(
-            width: 14,
-            height: 18,
-            decoration: BoxDecoration(
-              color: Colors.red,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          );
-        }
-        return const Icon(Icons.style, size: 20);
-      case 'subst':
-        return const Icon(Icons.swap_horiz, color: Color(0xFF2563EB), size: 20);
-      case 'Var':
-        return const Icon(Icons.visibility, color: Colors.purple, size: 20);
-      default:
-        return const Icon(Icons.circle, size: 8, color: _textSecondary);
-    }
   }
 }
 // ============ Lineup Tab ============
@@ -1767,5 +1691,271 @@ class _StatBar extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// ============ Timeline Item Widget ============
+class _TimelineItem extends StatelessWidget {
+  final ApiFootballEvent event;
+  final bool isFirst;
+  final bool isLast;
+  final bool isHome;
+
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+
+  const _TimelineItem({
+    required this.event,
+    this.isFirst = false,
+    this.isLast = false,
+    required this.isHome,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isGoal = event.isGoal;
+    final isCard = event.isCard;
+    final isSubst = event.isSubstitution;
+
+    return Padding(
+      padding: EdgeInsets.only(top: isFirst ? 12 : 0),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            // 홈팀 영역 (왼쪽)
+            Expanded(
+              child: isHome
+                  ? _buildEventContent(context, isGoal, isCard, isSubst, true)
+                  : const SizedBox(),
+            ),
+
+            // 중앙 타임라인
+            SizedBox(
+              width: 60,
+              child: Column(
+                children: [
+                  // 상단 연결선
+                  if (!isFirst)
+                    Container(
+                      width: 2,
+                      height: 8,
+                      color: Colors.grey.shade300,
+                    ),
+                // 시간 원
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _getEventColor().withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _getEventColor(),
+                      width: 2,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        event.timeDisplay,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: _getEventColor(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 하단 연결선
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      color: Colors.grey.shade300,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // 원정팀 영역 (오른쪽)
+          Expanded(
+            child: !isHome
+                ? _buildEventContent(context, isGoal, isCard, isSubst, false)
+                : const SizedBox(),
+          ),
+        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEventContent(BuildContext context, bool isGoal, bool isCard, bool isSubst, bool isHome) {
+    return Container(
+      margin: EdgeInsets.only(
+        left: isHome ? 16 : 8,
+        right: isHome ? 8 : 16,
+        bottom: 12,
+      ),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _getEventColor().withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _getEventColor().withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: isHome ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          // 이벤트 타입 뱃지
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _getEventIcon(),
+                size: 14,
+                color: _getEventColor(),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                _getEventTypeText(context),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: _getEventColor(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          // 선수 이름
+          Text(
+            event.playerName ?? '',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: _textPrimary,
+            ),
+            textAlign: isHome ? TextAlign.right : TextAlign.left,
+          ),
+
+          // 어시스트 또는 세부 정보
+          if (isGoal && event.assistName != null && event.assistName!.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              AppLocalizations.of(context)!.assistLabel(event.assistName!),
+              style: TextStyle(
+                fontSize: 11,
+                color: _textSecondary,
+              ),
+              textAlign: isHome ? TextAlign.right : TextAlign.left,
+            ),
+          ] else if (isSubst && event.assistName != null && event.assistName!.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.arrow_upward, size: 10, color: Colors.green),
+                const SizedBox(width: 2),
+                Flexible(
+                  child: Text(
+                    event.assistName!,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.green.shade700,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ] else if (event.detail != null && event.detail!.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              event.detail!,
+              style: TextStyle(
+                fontSize: 11,
+                color: _textSecondary,
+              ),
+              textAlign: isHome ? TextAlign.right : TextAlign.left,
+            ),
+          ],
+
+          // 팀 이름
+          const SizedBox(height: 4),
+          Text(
+            event.teamName,
+            style: TextStyle(
+              fontSize: 10,
+              color: _textSecondary,
+            ),
+            textAlign: isHome ? TextAlign.right : TextAlign.left,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getEventTypeText(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (event.type.toLowerCase()) {
+      case 'goal':
+        if (event.detail?.toLowerCase().contains('penalty') == true) {
+          return l10n.penaltyGoal;
+        } else if (event.detail?.toLowerCase().contains('own') == true) {
+          return l10n.ownGoal;
+        }
+        return l10n.goalLabel;
+      case 'card':
+        if (event.detail?.toLowerCase().contains('yellow') == true) {
+          return l10n.warningCard;
+        } else if (event.detail?.toLowerCase().contains('red') == true) {
+          return l10n.sendOffCard;
+        }
+        return l10n.cardLabel;
+      case 'subst':
+        return l10n.substitutionLabel;
+      case 'var':
+        return 'VAR';
+      default:
+        return event.type;
+    }
+  }
+
+  IconData _getEventIcon() {
+    switch (event.type.toLowerCase()) {
+      case 'goal':
+        return Icons.sports_soccer;
+      case 'card':
+        return Icons.style;
+      case 'subst':
+        return Icons.swap_horiz;
+      case 'var':
+        return Icons.tv;
+      default:
+        return Icons.circle;
+    }
+  }
+
+  Color _getEventColor() {
+    switch (event.type.toLowerCase()) {
+      case 'goal':
+        return const Color(0xFF10B981);
+      case 'card':
+        if (event.detail?.toLowerCase().contains('red') == true) {
+          return const Color(0xFFEF4444);
+        }
+        return const Color(0xFFF59E0B);
+      case 'subst':
+        return const Color(0xFF3B82F6);
+      case 'var':
+        return const Color(0xFF8B5CF6);
+      default:
+        return const Color(0xFF6B7280);
+    }
   }
 }
