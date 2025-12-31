@@ -166,6 +166,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
           backgroundColor: Colors.white,
           foregroundColor: _textPrimary,
           elevation: 0,
+          scrolledUnderElevation: 0,
           title: Builder(builder: (context) {
             final l10n = AppLocalizations.of(context)!;
             return Text(
@@ -1501,6 +1502,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
           else if (homeTeamId != null || awayTeamId != null)
             OutlinedButton.icon(
               onPressed: () => _showTeamPlayersDialog(
+                fixtureId: _selectedEvent?.id,
                 homeTeamId: homeTeamId,
                 awayTeamId: awayTeamId,
                 homeTeamName: homeTeamName,
@@ -1541,6 +1543,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   }
 
   Future<void> _showTeamPlayersDialog({
+    int? fixtureId,
     int? homeTeamId,
     int? awayTeamId,
     String? homeTeamName,
@@ -1549,6 +1552,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
     showDialog(
       context: context,
       builder: (context) => _TeamPlayersDialog(
+        fixtureId: fixtureId,
         homeTeamId: homeTeamId,
         awayTeamId: awayTeamId,
         homeTeamName: homeTeamName,
@@ -2411,6 +2415,7 @@ class _TeamSelectButton extends StatelessWidget {
 }
 
 class _TeamPlayersDialog extends StatefulWidget {
+  final int? fixtureId;
   final int? homeTeamId;
   final int? awayTeamId;
   final String? homeTeamName;
@@ -2419,6 +2424,7 @@ class _TeamPlayersDialog extends StatefulWidget {
   final Function(ApiFootballSquadPlayer) onPlayerSelected;
 
   const _TeamPlayersDialog({
+    this.fixtureId,
     this.homeTeamId,
     this.awayTeamId,
     this.homeTeamName,
@@ -2461,16 +2467,81 @@ class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
     setState(() => _isLoading = true);
 
     try {
+      // 1. 먼저 라인업에서 가져오기 시도 (fixtureId가 있는 경우)
+      if (widget.fixtureId != null) {
+        final lineups = await widget.apiFootballService.getFixtureLineups(widget.fixtureId!);
+
+        if (lineups.isNotEmpty) {
+          // 라인업 선수들의 사진을 위해 스쿼드도 병렬로 가져오기
+          final squadFutures = <Future<List<ApiFootballSquadPlayer>>>[];
+          final teamIds = <int>[];
+
+          for (final lineup in lineups) {
+            squadFutures.add(widget.apiFootballService.getTeamSquad(lineup.teamId));
+            teamIds.add(lineup.teamId);
+          }
+
+          final squads = await Future.wait(squadFutures);
+
+          // 스쿼드에서 선수 ID -> 사진 URL 매핑 생성
+          final photoMap = <int, String>{};
+          for (final squad in squads) {
+            for (final player in squad) {
+              if (player.photo != null) {
+                photoMap[player.id] = player.photo!;
+              }
+            }
+          }
+
+          for (final lineup in lineups) {
+            final players = <ApiFootballSquadPlayer>[];
+
+            // 선발 + 교체 선수 모두 포함 (사진 정보 병합)
+            for (final p in lineup.startXI) {
+              players.add(ApiFootballSquadPlayer(
+                id: p.id,
+                name: p.name,
+                position: p.pos,
+                number: p.number,
+                photo: photoMap[p.id],
+              ));
+            }
+            for (final p in lineup.substitutes) {
+              players.add(ApiFootballSquadPlayer(
+                id: p.id,
+                name: p.name,
+                position: p.pos,
+                number: p.number,
+                photo: photoMap[p.id],
+              ));
+            }
+
+            if (lineup.teamId == widget.homeTeamId) {
+              _homePlayers = players;
+            } else if (lineup.teamId == widget.awayTeamId) {
+              _awayPlayers = players;
+            }
+          }
+
+          // 라인업에서 선수를 가져왔으면 종료
+          if (_homePlayers.isNotEmpty || _awayPlayers.isNotEmpty) {
+            if (mounted) setState(() => _isLoading = false);
+            return;
+          }
+        }
+      }
+
+      // 2. 라인업이 없으면 팀 스쿼드에서 가져오기
       final futures = <Future>[];
 
-      if (widget.homeTeamId != null) {
+      if (widget.homeTeamId != null && _homePlayers.isEmpty) {
         futures.add(
             widget.apiFootballService.getTeamSquad(widget.homeTeamId!).then((players) {
           _homePlayers = players;
         }));
       }
 
-      if (widget.awayTeamId != null) {
+      if (widget.awayTeamId != null && _awayPlayers.isEmpty) {
         futures.add(
             widget.apiFootballService.getTeamSquad(widget.awayTeamId!).then((players) {
           _awayPlayers = players;
@@ -2565,6 +2636,31 @@ class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
     );
   }
 
+  // 포지션 약자를 전체 이름으로 변환
+  String _getFullPositionName(String? position) {
+    if (position == null || position.isEmpty) return '';
+    switch (position.toUpperCase()) {
+      case 'G':
+        return 'Goalkeeper';
+      case 'D':
+        return 'Defender';
+      case 'M':
+        return 'Midfielder';
+      case 'F':
+        return 'Forward';
+      case 'GK':
+        return 'Goalkeeper';
+      case 'DF':
+        return 'Defender';
+      case 'MF':
+        return 'Midfielder';
+      case 'FW':
+        return 'Forward';
+      default:
+        return position;
+    }
+  }
+
   Widget _buildPlayerList(List<ApiFootballSquadPlayer> players) {
     if (players.isEmpty) {
       return Center(
@@ -2579,21 +2675,34 @@ class _TeamPlayersDialogState extends State<_TeamPlayersDialog>
       itemCount: players.length,
       itemBuilder: (context, index) {
         final player = players[index];
+        final positionText = _getFullPositionName(player.position);
+
         return ListTile(
-          leading: player.photo != null
-              ? CircleAvatar(backgroundImage: NetworkImage(player.photo!))
+          leading: player.photo != null && player.photo!.isNotEmpty
+              ? CircleAvatar(
+                  backgroundImage: NetworkImage(player.photo!),
+                  backgroundColor: _background,
+                )
               : CircleAvatar(
                   backgroundColor: _background,
-                  child: const Icon(Icons.person, color: _textSecondary),
+                  child: Text(
+                    player.number?.toString() ?? '',
+                    style: const TextStyle(
+                      color: _primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
           title: Text(
             player.name,
             style: const TextStyle(color: _textPrimary),
           ),
-          subtitle: Text(
-            player.position ?? '',
-            style: TextStyle(color: _textSecondary, fontSize: 12),
-          ),
+          subtitle: positionText.isNotEmpty
+              ? Text(
+                  positionText,
+                  style: TextStyle(color: _textSecondary, fontSize: 12),
+                )
+              : null,
           trailing: player.number != null
               ? Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -202,6 +202,7 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
             backgroundColor: Colors.white,
             foregroundColor: _textPrimary,
             elevation: 0,
+            scrolledUnderElevation: 0,
             title: Text(
               AppLocalizations.of(context)!.editMatchRecord,
               style: const TextStyle(fontWeight: FontWeight.w600),
@@ -222,6 +223,7 @@ class _AttendanceEditScreenState extends ConsumerState<AttendanceEditScreen> {
           backgroundColor: Colors.white,
           foregroundColor: _textPrimary,
           elevation: 0,
+          scrolledUnderElevation: 0,
           title: Builder(builder: (context) {
             final l10n = AppLocalizations.of(context)!;
             return Text(
