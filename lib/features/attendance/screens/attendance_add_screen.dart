@@ -15,6 +15,7 @@ import '../../../shared/services/storage_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/attendance_record.dart';
 import '../providers/attendance_provider.dart';
+import '../../league/screens/league_list_screen.dart' show userLocalLeagueIdsProvider;
 
 class AttendanceAddScreen extends ConsumerStatefulWidget {
   final String? matchId;
@@ -518,6 +519,22 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   }
 
   Widget _buildLeagueSelector() {
+    // 사용자 자국 리그 ID 가져오기
+    final localLeagueIds = ref.watch(userLocalLeagueIdsProvider);
+
+    // 자국 리그 이름 목록 생성
+    final localLeagueNames = localLeagueIds
+        .map((id) => AppConstants.getLeagueNameById(id))
+        .where((name) => name != null)
+        .cast<String>()
+        .toList();
+
+    // 기본 리그 + 자국 리그 (중복 제거)
+    final allLeagues = [
+      ...AppConstants.supportedLeagues,
+      ...localLeagueNames.where((name) => !AppConstants.supportedLeagues.contains(name)),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -536,7 +553,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
                 onTap: () => setState(() => _searchLeague = null),
               ),
               const SizedBox(width: 8),
-              ...AppConstants.supportedLeagues.map((league) => Padding(
+              ...allLeagues.map((league) => Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: _LeagueFilterChip(
                       label: AppConstants.getLocalizedLeagueName(context, league),
@@ -649,6 +666,22 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   }
 
   void _showTeamSearchSheet(String label, Function(ApiFootballTeam?) onSelect) {
+    // 사용자 자국 리그 ID 가져오기
+    final localLeagueIds = ref.read(userLocalLeagueIdsProvider);
+
+    // 자국 리그 이름 목록 생성
+    final localLeagueNames = localLeagueIds
+        .map((id) => AppConstants.getLeagueNameById(id))
+        .where((name) => name != null)
+        .cast<String>()
+        .toList();
+
+    // 기본 리그 + 자국 리그 (중복 제거)
+    final allLeagues = [
+      ...AppConstants.supportedLeagues,
+      ...localLeagueNames.where((name) => !AppConstants.supportedLeagues.contains(name)),
+    ];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -656,6 +689,7 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
       builder: (context) => _TeamSearchSheet(
         label: label,
         apiFootballService: _apiFootballService,
+        availableLeagues: allLeagues,
         onTeamSelected: (team) {
           onSelect(team);
           Navigator.pop(context);
@@ -2588,11 +2622,13 @@ class _TeamSearchSheet extends StatefulWidget {
   final String label;
   final ApiFootballService apiFootballService;
   final Function(ApiFootballTeam) onTeamSelected;
+  final List<String> availableLeagues;
 
   const _TeamSearchSheet({
     required this.label,
     required this.apiFootballService,
     required this.onTeamSelected,
+    required this.availableLeagues,
   });
 
   @override
@@ -2793,7 +2829,7 @@ class _TeamSearchSheetState extends State<_TeamSearchSheet> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: AppConstants.supportedLeagues.map((league) => Padding(
+                  children: widget.availableLeagues.map((league) => Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: _LeagueFilterChip(
                           label: AppConstants.getLocalizedLeagueName(context, league),

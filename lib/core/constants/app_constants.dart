@@ -18,15 +18,14 @@ class AppConstants {
   // Storage Paths
   static const String attendancePhotosPath = 'attendance_photos';
 
-  // Leagues - API에서 사용하는 실제 리그 이름
+  // Leagues - 기본 리그 목록 (5대 리그 + 유럽 대회 + A매치)
+  // 자국 리그는 userLocalLeagueIdsProvider를 통해 동적으로 추가됨
   static const List<String> supportedLeagues = [
     'English Premier League',
     'Spanish La Liga',
     'Italian Serie A',
     'German Bundesliga',
     'French Ligue 1',
-    'South Korean K League 1',
-    'South Korean K League 2',
     'UEFA Champions League',
     'UEFA Europa League',
     'International Friendlies',
@@ -39,8 +38,6 @@ class AppConstants {
     'Italian Serie A',
     'German Bundesliga',
     'French Ligue 1',
-    'South Korean K League 1',
-    'South Korean K League 2',
     'UEFA Champions League',
     'UEFA Europa League',
   ];
