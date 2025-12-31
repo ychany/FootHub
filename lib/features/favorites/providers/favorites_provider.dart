@@ -109,6 +109,9 @@ final playersByTeamProvider =
   return service.getPlayersByTeam(teamId);
 });
 
+// Alias for team squad (used in player search by team)
+final teamSquadProvider = playersByTeamProvider;
+
 // Favorites Notifier for actions
 class FavoritesNotifier extends StateNotifier<AsyncValue<void>> {
   final FavoritesService _service;

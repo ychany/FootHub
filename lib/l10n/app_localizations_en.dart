@@ -341,6 +341,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playerNotFound => 'No players found';
 
   @override
+  String get searchTeamFirst => 'Search for a team';
+
+  @override
+  String get filterPlayers => 'Filter by player name...';
+
+  @override
+  String get searchTeamToAddPlayer => 'Search for a team to add players';
+
+  @override
   String get national => 'National';
 
   @override

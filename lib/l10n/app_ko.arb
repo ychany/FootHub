@@ -457,6 +457,18 @@
   "@playerNotFound": {
     "description": "Player not found"
   },
+  "searchTeamFirst": "팀 이름을 검색하세요",
+  "@searchTeamFirst": {
+    "description": "Hint for team search in player add"
+  },
+  "filterPlayers": "선수 이름으로 필터...",
+  "@filterPlayers": {
+    "description": "Filter players hint"
+  },
+  "searchTeamToAddPlayer": "팀을 검색해서 선수를 추가하세요",
+  "@searchTeamToAddPlayer": {
+    "description": "Search team to add player guide"
+  },
   "national": "국가",
   "@national": {
     "description": "National/Country"

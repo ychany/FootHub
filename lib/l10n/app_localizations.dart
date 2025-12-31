@@ -746,6 +746,24 @@ abstract class AppLocalizations {
   /// **'선수를 찾을 수 없습니다'**
   String get playerNotFound;
 
+  /// Hint for team search in player add
+  ///
+  /// In ko, this message translates to:
+  /// **'팀 이름을 검색하세요'**
+  String get searchTeamFirst;
+
+  /// Filter players hint
+  ///
+  /// In ko, this message translates to:
+  /// **'선수 이름으로 필터...'**
+  String get filterPlayers;
+
+  /// Search team to add player guide
+  ///
+  /// In ko, this message translates to:
+  /// **'팀을 검색해서 선수를 추가하세요'**
+  String get searchTeamToAddPlayer;
+
   /// National/Country
   ///
   /// In ko, this message translates to:

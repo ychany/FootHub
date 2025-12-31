@@ -349,11 +349,15 @@ class FavoritesService {
         final prevSeasonTeams = await _apiService.getTeamsByLeague(leagueId, season - 1);
         print('getTeamsByLeague: Got ${prevSeasonTeams.length} teams from prev season');
         if (prevSeasonTeams.isNotEmpty) {
-          return prevSeasonTeams.map((t) => _convertApiTeam(t)).toList();
+          final teams = prevSeasonTeams.map((t) => _convertApiTeam(t)).toList();
+          teams.sort((a, b) => a.name.compareTo(b.name));
+          return teams;
         }
       }
 
-      return apiTeams.map((t) => _convertApiTeam(t)).toList();
+      final teams = apiTeams.map((t) => _convertApiTeam(t)).toList();
+      teams.sort((a, b) => a.name.compareTo(b.name));
+      return teams;
     } catch (e) {
       // Fallback to Firestore
       print('getTeamsByLeague: Error $e, using Firestore fallback');

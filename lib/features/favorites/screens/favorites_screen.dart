@@ -14,6 +14,7 @@ import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/team_logo.dart';
 import '../providers/favorites_provider.dart';
+import '../../league/screens/league_list_screen.dart' show userLocalLeagueIdsProvider;
 
 class FavoritesScreen extends ConsumerWidget {
   const FavoritesScreen({super.key});
@@ -454,24 +455,7 @@ class _AddTeamSheetState extends ConsumerState<_AddTeamSheet> {
           const SizedBox(height: 16),
 
           // League filter
-          SizedBox(
-            height: 40,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _LeagueFilterChip(
-                  label: AppLocalizations.of(context)!.all,
-                  isSelected: selectedLeague == null,
-                  onTap: () => setState(() => selectedLeague = null),
-                ),
-                ...AppConstants.supportedLeagues.map((league) => _LeagueFilterChip(
-                  label: _getLeagueDisplayName(league),
-                  isSelected: selectedLeague == league,
-                  onTap: () => setState(() => selectedLeague = league),
-                )),
-              ],
-            ),
-          ),
+          _buildLeagueFilter(),
           const SizedBox(height: 16),
 
           // Results
@@ -621,6 +605,42 @@ class _AddTeamSheetState extends ConsumerState<_AddTeamSheet> {
     );
   }
 
+  Widget _buildLeagueFilter() {
+    final l10n = AppLocalizations.of(context)!;
+    final localLeagueIds = ref.watch(userLocalLeagueIdsProvider);
+
+    // 자국 리그 이름 목록 생성
+    final localLeagueNames = localLeagueIds
+        .map((id) => AppConstants.getLeagueNameById(id))
+        .whereType<String>()
+        .toList();
+
+    // 전체 리그 목록: 기본 리그 + 자국 리그
+    final allLeagues = [
+      ...AppConstants.supportedLeagues,
+      ...localLeagueNames,
+    ];
+
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          _LeagueFilterChip(
+            label: l10n.all,
+            isSelected: selectedLeague == null,
+            onTap: () => setState(() => selectedLeague = null),
+          ),
+          ...allLeagues.map((league) => _LeagueFilterChip(
+            label: _getLeagueDisplayName(league),
+            isSelected: selectedLeague == league,
+            onTap: () => setState(() => selectedLeague = league),
+          )),
+        ],
+      ),
+    );
+  }
+
   String _getLeagueDisplayName(String league) {
     if (league == 'International Friendlies' || league == 'FIFA World Cup') {
       return AppLocalizations.of(context)!.national;
@@ -640,15 +660,21 @@ class _AddPlayerSheet extends ConsumerStatefulWidget {
 
 class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
   final searchController = TextEditingController();
+  final playerFilterController = TextEditingController();
+  Team? _selectedTeam;
+  String _playerFilter = '';
+  String? _selectedLeague;
 
   @override
   void dispose() {
     searchController.dispose();
+    playerFilterController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -665,159 +691,202 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
               ),
             ),
           ),
-          Text(AppLocalizations.of(context)!.addPlayer, style: AppTextStyles.headline3),
-          const SizedBox(height: 16),
-
-          // Search
-          TextField(
-            controller: searchController,
-            decoration: InputDecoration(
-              hintText: AppLocalizations.of(context)!.searchPlayer,
-              prefixIcon: const Icon(Icons.search),
-            ),
-            onChanged: (value) {
-              ref.read(playerSearchQueryProvider.notifier).state = value;
-            },
+          // 헤더 (팀 선택 시 뒤로가기 버튼 표시)
+          Row(
+            children: [
+              if (_selectedTeam != null)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedTeam = null;
+                      _playerFilter = '';
+                      playerFilterController.clear();
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    margin: const EdgeInsets.only(right: 8),
+                    child: const Icon(Icons.arrow_back, size: 24),
+                  ),
+                ),
+              Expanded(
+                child: Text(
+                  _selectedTeam != null
+                      ? _selectedTeam!.nameKr
+                      : l10n.addPlayer,
+                  style: AppTextStyles.headline3,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
-          // Results
+          // 팀 검색 또는 선수 필터
+          if (_selectedTeam == null) ...[
+            // 리그 필터
+            _buildLeagueFilter(),
+            const SizedBox(height: 12),
+            // 팀 검색
+            TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: l10n.searchTeamFirst,
+                prefixIcon: const Icon(Icons.search),
+              ),
+              onChanged: (value) {
+                ref.read(teamSearchQueryProvider.notifier).state = value;
+              },
+            ),
+          ] else ...[
+            TextField(
+              controller: playerFilterController,
+              decoration: InputDecoration(
+                hintText: l10n.filterPlayers,
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _playerFilter.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 20),
+                        onPressed: () {
+                          playerFilterController.clear();
+                          setState(() => _playerFilter = '');
+                        },
+                      )
+                    : null,
+              ),
+              onChanged: (value) {
+                setState(() => _playerFilter = value);
+              },
+            ),
+          ],
+          const SizedBox(height: 16),
+
+          // 결과
           Expanded(
-            child: _buildPlayerResults(),
+            child: _selectedTeam == null
+                ? _buildTeamSearchResults()
+                : _buildTeamPlayers(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPlayerResults() {
-    final searchQuery = ref.watch(playerSearchQueryProvider);
+  Widget _buildTeamSearchResults() {
+    final l10n = AppLocalizations.of(context)!;
+    final searchQuery = ref.watch(teamSearchQueryProvider);
 
-    if (searchQuery.length < 4) {
-      return const SizedBox.shrink();
+    // 검색어가 있으면 검색 결과 표시
+    if (searchQuery.isNotEmpty) {
+      final searchResults = ref.watch(teamSearchResultsProvider);
+      return searchResults.when(
+        data: (teams) => _buildTeamList(teams),
+        loading: () => const LoadingIndicator(),
+        error: (e, _) => Center(child: Text('Error: $e')),
+      );
     }
 
-    final searchResults = ref.watch(playerSearchResultsProvider);
+    // 리그가 선택되면 해당 리그 팀 표시
+    if (_selectedLeague != null) {
+      final leagueTeams = ref.watch(teamsByLeagueProvider(_selectedLeague!));
+      return leagueTeams.when(
+        data: (teams) => _buildTeamList(teams),
+        loading: () => const LoadingIndicator(),
+        error: (e, _) => Center(child: Text('Error: $e')),
+      );
+    }
+
+    // 아무것도 선택 안됨
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.sports_soccer, size: 48, color: Colors.grey.shade400),
+          const SizedBox(height: 12),
+          Text(
+            l10n.searchTeamToAddPlayer,
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTeamList(List<Team> teams) {
+    final l10n = AppLocalizations.of(context)!;
+    if (teams.isEmpty) {
+      return Center(child: Text(l10n.teamNotFound));
+    }
+    return ListView.builder(
+      controller: widget.scrollController,
+      itemCount: teams.length,
+      itemBuilder: (context, index) {
+        final team = teams[index];
+        return ListTile(
+          onTap: () {
+            setState(() {
+              _selectedTeam = team;
+              searchController.clear();
+              ref.read(teamSearchQueryProvider.notifier).state = '';
+            });
+          },
+          leading: TeamLogo(
+            logoUrl: team.logoUrl,
+            teamName: team.name,
+            size: 40,
+          ),
+          title: Text(
+            team.nameKr,
+            style: const TextStyle(color: Colors.black87),
+          ),
+          subtitle: Text(
+            AppConstants.getLocalizedLeagueName(context, team.league),
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+          trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+        );
+      },
+    );
+  }
+
+  Widget _buildTeamPlayers() {
+    final l10n = AppLocalizations.of(context)!;
+    final playersAsync = ref.watch(teamSquadProvider(_selectedTeam!.id));
     final favoritePlayerIdsAsync = ref.watch(favoritePlayerIdsProvider);
 
-    return searchResults.when(
+    return playersAsync.when(
       data: (players) {
         if (players.isEmpty) {
-          return Center(child: Text(AppLocalizations.of(context)!.playerNotFound));
+          return Center(child: Text(l10n.playerNotFound));
         }
+
+        // 로컬 필터링 (글자 수 제한 없음)
+        final filteredPlayers = _playerFilter.isEmpty
+            ? players
+            : players.where((p) {
+                final query = _playerFilter.toLowerCase();
+                return p.name.toLowerCase().contains(query) ||
+                    p.nameKr.toLowerCase().contains(query) ||
+                    p.position.toLowerCase().contains(query);
+              }).toList();
+
+        if (filteredPlayers.isEmpty) {
+          return Center(child: Text(l10n.playerNotFound));
+        }
+
         return ListView.builder(
           controller: widget.scrollController,
-          itemCount: players.length,
+          itemCount: filteredPlayers.length,
           itemBuilder: (context, index) {
-            final player = players[index];
+            final player = filteredPlayers[index];
 
             return favoritePlayerIdsAsync.when(
               data: (favoriteIds) {
                 final isFollowed = favoriteIds.contains(player.id);
-                return ListTile(
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/player/${player.id}');
-                  },
-                  leading: CircleAvatar(
-                    backgroundImage: player.photoUrl != null
-                        ? NetworkImage(player.photoUrl!)
-                        : null,
-                    child: player.photoUrl == null
-                        ? Text(
-                            player.name.isNotEmpty ? player.name.substring(0, 1) : '?',
-                            style: const TextStyle(color: Colors.white),
-                          )
-                        : null,
-                  ),
-                  title: Text(
-                    player.nameKr,
-                    style: const TextStyle(color: Colors.black87),
-                  ),
-                  subtitle: Text(
-                    '${player.teamName} | ${player.position}',
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                  trailing: IconButton(
-                    icon: Icon(
-                      isFollowed ? Icons.favorite : Icons.favorite_border,
-                      color: isFollowed ? AppColors.error : Colors.grey,
-                    ),
-                    onPressed: () async {
-                      try {
-                        await ref
-                            .read(favoritesNotifierProvider.notifier)
-                            .togglePlayerFollow(player.id);
-                      } catch (e) {
-                        if (e.toString().contains('LOGIN_REQUIRED') && context.mounted) {
-                          showLoginRequiredDialog(context);
-                        }
-                      }
-                    },
-                  ),
-                );
+                return _buildPlayerTile(player, isFollowed);
               },
-              loading: () => ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: player.photoUrl != null
-                      ? NetworkImage(player.photoUrl!)
-                      : null,
-                  child: player.photoUrl == null
-                      ? Text(
-                          player.name.isNotEmpty ? player.name.substring(0, 1) : '?',
-                          style: const TextStyle(color: Colors.white),
-                        )
-                      : null,
-                ),
-                title: Text(
-                  player.nameKr,
-                  style: const TextStyle(color: Colors.black87),
-                ),
-                subtitle: Text(
-                  '${player.teamName} | ${player.position}',
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-                trailing: const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-              error: (_, __) => ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: player.photoUrl != null
-                      ? NetworkImage(player.photoUrl!)
-                      : null,
-                  child: player.photoUrl == null
-                      ? Text(
-                          player.name.isNotEmpty ? player.name.substring(0, 1) : '?',
-                          style: const TextStyle(color: Colors.white),
-                        )
-                      : null,
-                ),
-                title: Text(
-                  player.nameKr,
-                  style: const TextStyle(color: Colors.black87),
-                ),
-                subtitle: Text(
-                  '${player.teamName} | ${player.position}',
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.favorite_border, color: Colors.grey),
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(favoritesNotifierProvider.notifier)
-                          .togglePlayerFollow(player.id);
-                    } catch (e) {
-                      if (e.toString().contains('LOGIN_REQUIRED') && context.mounted) {
-                        showLoginRequiredDialog(context);
-                      }
-                    }
-                  },
-                ),
-              ),
+              loading: () => _buildPlayerTile(player, false, isLoading: true),
+              error: (_, __) => _buildPlayerTile(player, false),
             );
           },
         );
@@ -825,6 +894,100 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
       loading: () => const LoadingIndicator(),
       error: (e, _) => Center(child: Text('Error: $e')),
     );
+  }
+
+  Widget _buildPlayerTile(Player player, bool isFollowed, {bool isLoading = false}) {
+    return ListTile(
+      onTap: () {
+        Navigator.pop(context);
+        context.push('/player/${player.id}');
+      },
+      leading: CircleAvatar(
+        backgroundImage: player.photoUrl != null
+            ? NetworkImage(player.photoUrl!)
+            : null,
+        child: player.photoUrl == null
+            ? Text(
+                player.name.isNotEmpty ? player.name.substring(0, 1) : '?',
+                style: const TextStyle(color: Colors.white),
+              )
+            : null,
+      ),
+      title: Text(
+        player.nameKr,
+        style: const TextStyle(color: Colors.black87),
+      ),
+      subtitle: Text(
+        player.position,
+        style: TextStyle(color: Colors.grey.shade600),
+      ),
+      trailing: isLoading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : IconButton(
+              icon: Icon(
+                isFollowed ? Icons.favorite : Icons.favorite_border,
+                color: isFollowed ? AppColors.error : Colors.grey,
+              ),
+              onPressed: () async {
+                try {
+                  await ref
+                      .read(favoritesNotifierProvider.notifier)
+                      .togglePlayerFollow(player.id);
+                } catch (e) {
+                  if (e.toString().contains('LOGIN_REQUIRED') && mounted) {
+                    showLoginRequiredDialog(context);
+                  }
+                }
+              },
+            ),
+    );
+  }
+
+  Widget _buildLeagueFilter() {
+    final l10n = AppLocalizations.of(context)!;
+    final localLeagueIds = ref.watch(userLocalLeagueIdsProvider);
+
+    // 자국 리그 이름 목록 생성
+    final localLeagueNames = localLeagueIds
+        .map((id) => AppConstants.getLeagueNameById(id))
+        .whereType<String>()
+        .toList();
+
+    // 전체 리그 목록: 기본 리그 + 자국 리그
+    final allLeagues = [
+      ...AppConstants.supportedLeagues,
+      ...localLeagueNames,
+    ];
+
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          _LeagueFilterChip(
+            label: l10n.all,
+            isSelected: _selectedLeague == null,
+            onTap: () => setState(() => _selectedLeague = null),
+          ),
+          ...allLeagues.map((league) => _LeagueFilterChip(
+            label: _getLeagueDisplayName(league),
+            isSelected: _selectedLeague == league,
+            onTap: () => setState(() => _selectedLeague = league),
+          )),
+        ],
+      ),
+    );
+  }
+
+  String _getLeagueDisplayName(String league) {
+    if (league == 'International Friendlies' || league == 'FIFA World Cup') {
+      return AppLocalizations.of(context)!.national;
+    }
+    return AppConstants.getLocalizedLeagueName(context, league);
   }
 }
 

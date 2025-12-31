@@ -341,6 +341,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get playerNotFound => '선수를 찾을 수 없습니다';
 
   @override
+  String get searchTeamFirst => '팀 이름을 검색하세요';
+
+  @override
+  String get filterPlayers => '선수 이름으로 필터...';
+
+  @override
+  String get searchTeamToAddPlayer => '팀을 검색해서 선수를 추가하세요';
+
+  @override
   String get national => '국가';
 
   @override
