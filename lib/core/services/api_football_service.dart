@@ -1897,7 +1897,7 @@ class ApiFootballEvent {
   bool get isCard => type == 'Card';
 
   /// 교체 여부
-  bool get isSubstitution => type == 'subst';
+  bool get isSubstitution => type.toLowerCase() == 'subst';
 
   /// 시간 표시 문자열
   String get timeDisplay {

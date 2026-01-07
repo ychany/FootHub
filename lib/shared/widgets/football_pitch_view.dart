@@ -786,15 +786,32 @@ class PlayerMarker extends StatelessWidget {
                     ),
                   ),
                 ),
-              // 이벤트 아이콘들 (좌측 상단)
-              if (events.isNotEmpty)
+              // 골/어시스트 아이콘 (좌측 상단)
+              if (_hasGoalOrAssist())
                 Positioned(
                   left: -6,
                   top: -6,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: _buildEventIcons(),
+                    children: _buildGoalAssistIcons(),
                   ),
+                ),
+              // 카드 아이콘 (우측 상단)
+              if (_hasCards())
+                Positioned(
+                  right: -4,
+                  top: -6,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: _buildCardIcons(),
+                  ),
+                ),
+              // 교체 아이콘 (좌측 하단)
+              if (_wasSubstituted())
+                Positioned(
+                  left: -6,
+                  bottom: -4,
+                  child: _buildSubstitutionIcon(),
                 ),
             ],
           ),
@@ -841,7 +858,23 @@ class PlayerMarker extends StatelessWidget {
     return const Color(0xFFEF4444);
   }
 
-  List<Widget> _buildEventIcons() {
+  // 골 또는 어시스트 여부
+  bool _hasGoalOrAssist() {
+    return events.any((e) => e.type == 'Goal' || e.type == 'Assist');
+  }
+
+  // 카드 여부
+  bool _hasCards() {
+    return events.any((e) => e.type == 'Card');
+  }
+
+  // 교체 아웃 여부
+  bool _wasSubstituted() {
+    return events.any((e) => e.isSubstitution);
+  }
+
+  // 골/어시스트 아이콘 (좌측 상단)
+  List<Widget> _buildGoalAssistIcons() {
     final icons = <Widget>[];
 
     final goals =
@@ -849,10 +882,6 @@ class PlayerMarker extends StatelessWidget {
     final ownGoals =
         events.where((e) => e.type == 'Goal' && e.detail == 'Own Goal').length;
     final assists = events.where((e) => e.type == 'Assist').length;
-    final yellowCards =
-        events.where((e) => e.type == 'Card' && e.detail == 'Yellow Card').length;
-    final redCards =
-        events.where((e) => e.type == 'Card' && e.detail == 'Red Card').length;
 
     // 골 아이콘
     for (int i = 0; i < goals; i++) {
@@ -899,6 +928,18 @@ class PlayerMarker extends StatelessWidget {
       ));
     }
 
+    return icons;
+  }
+
+  // 카드 아이콘 (우측 상단)
+  List<Widget> _buildCardIcons() {
+    final icons = <Widget>[];
+
+    final yellowCards =
+        events.where((e) => e.type == 'Card' && e.detail == 'Yellow Card').length;
+    final redCards =
+        events.where((e) => e.type == 'Card' && e.detail == 'Red Card').length;
+
     // 옐로카드 아이콘
     for (int i = 0; i < yellowCards; i++) {
       icons.add(Container(
@@ -928,6 +969,20 @@ class PlayerMarker extends StatelessWidget {
     }
 
     return icons;
+  }
+
+  // 교체 아이콘 (좌측 하단)
+  Widget _buildSubstitutionIcon() {
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.red.shade400, width: 1),
+      ),
+      child: Icon(Icons.arrow_downward, size: 11, color: Colors.red.shade600),
+    );
   }
 
   void _showPlayerDetail(BuildContext context) {
