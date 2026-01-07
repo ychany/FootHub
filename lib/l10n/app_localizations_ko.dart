@@ -2679,6 +2679,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get developer => '개발자';
 
   @override
+  String get patchNotes => '패치노트';
+
+  @override
   String get emailCopied => '이메일 앱을 열 수 없어 주소가 복사되었습니다';
 
   @override

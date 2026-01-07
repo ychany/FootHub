@@ -2695,6 +2695,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get developer => 'Developer';
 
   @override
+  String get patchNotes => 'Patch Notes';
+
+  @override
   String get emailCopied =>
       'Unable to open email app. Address copied to clipboard';
 

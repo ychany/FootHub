@@ -5180,6 +5180,12 @@ abstract class AppLocalizations {
   /// **'개발자'**
   String get developer;
 
+  /// No description provided for @patchNotes.
+  ///
+  /// In ko, this message translates to:
+  /// **'패치노트'**
+  String get patchNotes;
+
   /// No description provided for @emailCopied.
   ///
   /// In ko, this message translates to:

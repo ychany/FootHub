@@ -253,7 +253,22 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
             title: l10n.developer,
             value: 'JO YEONG CHAN',
           ),
+          Container(height: 1, margin: const EdgeInsets.only(left: 16), color: _border),
+          _LinkItem(
+            icon: Icons.new_releases_outlined,
+            iconColor: const Color(0xFF8B5CF6),
+            title: l10n.patchNotes,
+            onTap: () => _showPatchNotes(context),
+          ),
         ],
+      ),
+    );
+  }
+
+  void _showPatchNotes(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const PatchNotesScreen(),
       ),
     );
   }
@@ -675,6 +690,186 @@ class _FeedbackDialogState extends State<_FeedbackDialog> {
           child: Text(widget.submitText, style: const TextStyle(color: Color(0xFF2563EB))),
         ),
       ],
+    );
+  }
+}
+
+// ============================================================================
+// 패치노트 화면
+// ============================================================================
+class PatchNotesScreen extends StatelessWidget {
+  const PatchNotesScreen({super.key});
+
+  static const _textPrimary = Color(0xFF111827);
+  static const _background = Color(0xFFF9FAFB);
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Scaffold(
+      backgroundColor: _background,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, size: 20),
+          color: _textPrimary,
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          l10n.patchNotes,
+          style: const TextStyle(
+            color: _textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: const [
+          _PatchNoteCard(
+            version: '1.0.0',
+            buildNumber: '3',
+            isLatest: true,
+            items: [
+              '리그 일정에 라운드 표시',
+              '하프타임(HT) 표시',
+              '시즌 자동 감지 개선',
+              '자국 리그 필터 자동 추가',
+              '즐겨찾기 선수 검색 개선',
+            ],
+          ),
+          SizedBox(height: 16),
+          _PatchNoteCard(
+            version: '1.0.0',
+            buildNumber: '2',
+            items: [
+              'Apple 로그인 지원',
+              '회원탈퇴 기능 추가',
+              '커뮤니티 신고/차단 기능',
+              '국가별 리그 탐색 페이지',
+              '라이브 경기 추가시간 표시',
+              '성능 개선 및 버그 수정',
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PatchNoteCard extends StatelessWidget {
+  final String version;
+  final String buildNumber;
+  final bool isLatest;
+  final List<String> items;
+
+  const _PatchNoteCard({
+    required this.version,
+    required this.buildNumber,
+    this.isLatest = false,
+    required this.items,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isLatest ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB),
+          width: isLatest ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isLatest
+                  ? const Color(0xFF2563EB).withValues(alpha: 0.05)
+                  : const Color(0xFFF9FAFB),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isLatest
+                        ? const Color(0xFF2563EB)
+                        : const Color(0xFF6B7280),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'v$version+$buildNumber',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (isLatest) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'Latest',
+                      style: TextStyle(
+                        color: Color(0xFF10B981),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // 내용
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: items.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '•  ',
+                      style: TextStyle(
+                        color: Color(0xFF6B7280),
+                        fontSize: 14,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: const TextStyle(
+                          color: Color(0xFF374151),
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )).toList(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

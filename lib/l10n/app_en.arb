@@ -1132,6 +1132,7 @@
   "appVersionLabel": "App Version",
   "buildNumber": "Build Number",
   "developer": "Developer",
+  "patchNotes": "Patch Notes",
   "emailCopied": "Unable to open email app. Address copied to clipboard",
   "bugReportHint": "Please describe the bug or issue in detail...",
   "featureSuggestionHint": "Please describe the feature you would like...",
