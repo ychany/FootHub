@@ -46,7 +46,11 @@
       "Bash(if file \"$f\")",
       "Bash(do if file \"$f\")",
       "Bash(ls:*)",
-      "Bash(xargs -I {} sh -c 'if file \"\"{}\"\" | grep -q JPEG; then echo \"\"Converting {}\"\"; sips -s format png \"\"{}\"\" --out \"\"{}.tmp\"\" && mv \"\"{}.tmp\"\" \"\"{}\"\"; fi')"
+      "Bash(xargs -I {} sh -c 'if file \"\"{}\"\" | grep -q JPEG; then echo \"\"Converting {}\"\"; sips -s format png \"\"{}\"\" --out \"\"{}.tmp\"\" && mv \"\"{}.tmp\"\" \"\"{}\"\"; fi')",
+      "Bash(__NEW_LINE__ echo \"=== Chelsea \\(49\\) 2026 ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Man United \\(33\\) 2026 ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Liverpool \\(40\\) 2026 ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Man City \\(50\\) 2026 ===\")"
     ],
     "deny": [],
     "ask": []

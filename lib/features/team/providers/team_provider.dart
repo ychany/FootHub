@@ -61,16 +61,33 @@ final teamFullScheduleProvider = FutureProvider.family<List<ApiFootballFixture>,
   final apiTeamId = int.tryParse(teamId);
   if (apiTeamId == null) return [];
 
-  final currentYear = DateTime.now().year;
-  // 현재 연도와 이전 연도 둘 다 시도 - 데이터가 있는 시즌 사용
-  for (final season in [currentYear, currentYear - 1]) {
+  final now = DateTime.now();
+  final currentYear = now.year;
+
+  // 현재 연도, 이전 연도, 2년 전 모두 조회하여 현재 날짜 기준 과거+미래 경기가 있는 시즌 선택
+  for (final season in [currentYear, currentYear - 1, currentYear - 2]) {
     final fixtures = await service.getTeamSeasonFixtures(apiTeamId, season);
-    if (fixtures.isNotEmpty) {
+    if (fixtures.isEmpty) continue;
+
+    // 현재 날짜 기준으로 과거 경기와 미래 경기가 모두 있는지 확인
+    final hasPast = fixtures.any((f) => f.date.isBefore(now));
+    final hasFuture = fixtures.any((f) => f.date.isAfter(now));
+
+    // 과거와 미래 경기가 모두 있으면 현재 진행 중인 시즌
+    if (hasPast && hasFuture) {
       return fixtures;
     }
   }
 
-  return [];
+  // 진행 중인 시즌을 못 찾으면 가장 많은 경기가 있는 시즌 반환
+  List<ApiFootballFixture> bestFixtures = [];
+  for (final season in [currentYear, currentYear - 1, currentYear - 2]) {
+    final fixtures = await service.getTeamSeasonFixtures(apiTeamId, season);
+    if (fixtures.length > bestFixtures.length) {
+      bestFixtures = fixtures;
+    }
+  }
+  return bestFixtures;
 });
 
 /// 팀 검색 Provider
@@ -107,14 +124,16 @@ final teamInjuriesProvider = FutureProvider.family<List<ApiFootballInjury>, Stri
   if (apiTeamId == null) return [];
 
   final currentYear = DateTime.now().year;
-  // 현재 연도와 이전 연도 둘 다 시도 - 데이터가 있는 시즌 사용
-  for (final season in [currentYear, currentYear - 1]) {
+  // 현재 연도, 이전 연도, 2년 전 모두 조회하여 가장 많은 데이터가 있는 시즌 사용
+  List<ApiFootballInjury> bestInjuries = [];
+
+  for (final season in [currentYear, currentYear - 1, currentYear - 2]) {
     final injuries = await service.getTeamInjuries(apiTeamId, season);
-    if (injuries.isNotEmpty) {
-      return injuries;
+    if (injuries.length > bestInjuries.length) {
+      bestInjuries = injuries;
     }
   }
-  return [];
+  return bestInjuries;
 });
 
 /// 팀 시즌 통계 Provider (리그별)
