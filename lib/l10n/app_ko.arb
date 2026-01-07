@@ -95,6 +95,12 @@
   "@cancel": {
     "description": "Cancel button"
   },
+  "selectYear": "연도 선택",
+  "selectMonth": "월 선택",
+  "selectDay": "일 선택",
+  "yearSuffix": "년",
+  "monthSuffix": "월",
+  "daySuffix": "일",
   "save": "저장",
   "@save": {
     "description": "Save button"

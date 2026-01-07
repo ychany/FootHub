@@ -187,6 +187,23 @@ class AppConstants {
     return keywords;
   }
 
+  // 국제대회 (A매치) 여부 판별 - 리그 이름 기반
+  static bool isInternationalMatch(String leagueName) {
+    final lower = leagueName.toLowerCase();
+    return lower.contains('friendl') ||
+           lower.contains('world cup') ||
+           lower.contains('euro') ||
+           lower.contains('asian cup') ||
+           lower.contains('copa america') ||
+           lower.contains('africa cup') ||
+           lower.contains('gold cup') ||
+           lower.contains('nations league') ||
+           lower.contains('qualification') ||
+           lower.contains('qualifiers') ||
+           lower.contains('wcq') || // World Cup Qualifiers 축약
+           lower.contains('예선');
+  }
+
   // API
   static const String apiFootballBaseUrl = 'https://api-football-v1.p.rapidapi.com/v3';
 

@@ -39,10 +39,10 @@ int getCurrentSeasonForLeague(int leagueId) {
   return year - 1;
 }
 
-/// 순위표 미지원 대회 확인
+/// 순위표 미지원 대회 확인 (A매치 - 친선경기, 예선 등)
 bool isUnsupportedLeague(int leagueId) {
-  // 순위표가 없는 대회
-  return leagueId == LeagueIds.friendlies;
+  // 순위표가 없는 대회: A매치 전체 (친선, 예선, 네이션스리그 등)
+  return LeagueIds.internationalLeagueIds.contains(leagueId);
 }
 
 /// UCL/UEL 등 컵 대회 여부 확인

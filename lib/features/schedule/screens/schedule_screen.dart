@@ -617,7 +617,7 @@ class _ScheduleMatchCard extends ConsumerWidget {
                         ),
                         child: Text(
                           // A매치는 원래 리그명 그대로, 그 외는 축약 표시
-                          match.league == 'International Friendlies'
+                          AppConstants.isInternationalMatch(match.league)
                               ? match.league
                               : AppConstants.getLocalizedLeagueName(context, match.league),
                           style: const TextStyle(

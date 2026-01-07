@@ -53,12 +53,43 @@ class LeagueIds {
   static const int europaLeague = 3;
   static const int conferenceLeague = 848;
 
-  // 국제 대회
+  // 국제 대회 - 본선
   static const int worldCup = 1;
   static const int euro = 4;
   static const int asianCup = 81;
-  static const int friendlies = 10;
+  static const int copaAmerica = 9;
+  static const int africaCup = 6;
+  static const int goldCup = 22; // CONCACAF Gold Cup
+
+  // 국제 대회 - 예선
+  static const int worldCupQualEurope = 32;
   static const int worldCupQualAsia = 30;
+  static const int worldCupQualAfrica = 29;
+  static const int worldCupQualSouthAmerica = 28;
+  static const int worldCupQualNorthAmerica = 31;
+  static const int euroQualification = 960;
+  static const int asianCupQualification = 530;
+
+  // 국제 대회 - 네이션스리그
+  static const int uefaNationsLeague = 5;
+  static const int concacafNationsLeague = 378;
+
+  // 친선경기
+  static const int friendlies = 10;
+
+  // A매치 전체 (국가대표 경기) ID 목록
+  static const List<int> internationalLeagueIds = [
+    // 본선
+    worldCup, euro, asianCup, copaAmerica, africaCup, goldCup,
+    // 예선
+    worldCupQualEurope, worldCupQualAsia, worldCupQualAfrica,
+    worldCupQualSouthAmerica, worldCupQualNorthAmerica,
+    euroQualification, asianCupQualification,
+    // 네이션스리그
+    uefaNationsLeague, concacafNationsLeague,
+    // 친선
+    friendlies,
+  ];
 
   // 현재 시즌 반환
   static int getCurrentSeason() {

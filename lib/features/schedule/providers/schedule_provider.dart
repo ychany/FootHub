@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/api_football_ids.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/local_notification_service.dart';
 import '../../../shared/models/match_model.dart';
@@ -278,14 +279,15 @@ final scheduleNotifierProvider =
 // null = 전체, 'major' = 주요, 그 외 = 특정 리그
 final selectedLeagueProvider = StateProvider<String?>((ref) => 'major');
 
-// 주요 리그 ID 목록 (5대 리그 + 대륙컵 + 국제대회)
-const majorLeagueIds = [
+// 주요 리그 ID 목록 (5대 리그 + 대륙컵 + A매치 전체)
+final majorLeagueIds = [
   // 5대 리그
-  39, 140, 135, 78, 61, // EPL, 라리가, 세리에A, 분데스, 리그1
+  LeagueIds.premierLeague, LeagueIds.laLiga, LeagueIds.serieA,
+  LeagueIds.bundesliga, LeagueIds.ligue1,
   // 유럽 대회
-  2, 3, 848, // UCL, UEL, UECL
-  // 국제대회
-  1, 4, 81, 6, 9, // 월드컵, 유로, 아시안컵, 아프리카네이션스컵, 코파아메리카
+  LeagueIds.championsLeague, LeagueIds.europaLeague, LeagueIds.conferenceLeague,
+  // A매치 전체 (본선 + 예선 + 네이션스리그 + 친선)
+  ...LeagueIds.internationalLeagueIds,
 ];
 
 // Filtered Schedules Provider
@@ -303,8 +305,13 @@ final filteredSchedulesProvider = FutureProvider<List<Match>>((ref) async {
   );
 
   if (selectedLeague == 'major') {
-    // 주요: 5대 리그만 필터링
+    // 주요: 5대 리그 + 유럽대회 + A매치 전체
     matches = matches.where((m) => majorLeagueIds.contains(m.leagueId)).toList();
+  } else if (selectedLeague == 'International Friendlies') {
+    // A매치: 모든 국제대회 (본선 + 예선 + 네이션스리그 + 친선)
+    matches = matches.where((m) =>
+      LeagueIds.internationalLeagueIds.contains(m.leagueId)
+    ).toList();
   } else if (selectedLeague != null) {
     // 특정 리그 필터링
     final targetLeagueId = AppConstants.getLeagueIdByName(selectedLeague);

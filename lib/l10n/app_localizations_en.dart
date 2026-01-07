@@ -77,6 +77,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
+  String get selectYear => 'Select Year';
+
+  @override
+  String get selectMonth => 'Select Month';
+
+  @override
+  String get selectDay => 'Select Day';
+
+  @override
+  String get yearSuffix => '';
+
+  @override
+  String get monthSuffix => '';
+
+  @override
+  String get daySuffix => '';
+
+  @override
   String get save => 'Save';
 
   @override

@@ -77,6 +77,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get cancel => '취소';
 
   @override
+  String get selectYear => '연도 선택';
+
+  @override
+  String get selectMonth => '월 선택';
+
+  @override
+  String get selectDay => '일 선택';
+
+  @override
+  String get yearSuffix => '년';
+
+  @override
+  String get monthSuffix => '월';
+
+  @override
+  String get daySuffix => '일';
+
+  @override
   String get save => '저장';
 
   @override

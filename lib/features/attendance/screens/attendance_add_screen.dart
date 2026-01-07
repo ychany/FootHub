@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/services/api_football_service.dart';
+import '../../../core/constants/api_football_ids.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/error_helper.dart';
 import '../../../core/utils/auth_utils.dart';
@@ -1870,14 +1871,23 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
     );
   }
 
-  Future<void> _selectDate() async {
-    final date = await showDatePicker(
+  void _selectDate() {
+    showModalBottomSheet(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _DatePickerBottomSheet(
+        initialDate: _selectedDate,
+        lastDate: DateTime.now(),
+        onDateSelected: (date) {
+          setState(() => _selectedDate = date);
+          _searchEventsByDateAndLeague();
+        },
+      ),
     );
-    if (date != null) setState(() => _selectedDate = date);
   }
 
   Future<void> _searchEvents() async {
@@ -1908,14 +1918,22 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
     try {
       final fixtures = await _apiFootballService.getFixturesByDate(_selectedDate);
       if (_searchLeague != null) {
-        final leagueId = AppConstants.getLeagueIdByName(_searchLeague!);
-        final filtered = fixtures.where((f) {
-          if (leagueId != null) {
-            return f.league.id == leagueId;
-          }
-          return AppConstants.isLeagueMatch(f.league.name, _searchLeague!);
-        }).toList();
-        setState(() => _searchResults = filtered);
+        // A매치 필터 선택 시 모든 국제대회 표시
+        if (_searchLeague == 'International Friendlies') {
+          final filtered = fixtures.where((f) =>
+            LeagueIds.internationalLeagueIds.contains(f.league.id)
+          ).toList();
+          setState(() => _searchResults = filtered);
+        } else {
+          final leagueId = AppConstants.getLeagueIdByName(_searchLeague!);
+          final filtered = fixtures.where((f) {
+            if (leagueId != null) {
+              return f.league.id == leagueId;
+            }
+            return AppConstants.isLeagueMatch(f.league.name, _searchLeague!);
+          }).toList();
+          setState(() => _searchResults = filtered);
+        }
       } else {
         setState(() => _searchResults = fixtures);
       }
@@ -3493,5 +3511,326 @@ class _CountryFilterChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// 날짜 선택 바텀시트 (일정 화면과 동일한 스타일)
+class _DatePickerBottomSheet extends StatefulWidget {
+  final DateTime initialDate;
+  final DateTime lastDate;
+  final ValueChanged<DateTime> onDateSelected;
+
+  const _DatePickerBottomSheet({
+    required this.initialDate,
+    required this.lastDate,
+    required this.onDateSelected,
+  });
+
+  @override
+  State<_DatePickerBottomSheet> createState() => _DatePickerBottomSheetState();
+}
+
+enum _PickerMode { year, month, day }
+
+class _DatePickerBottomSheetState extends State<_DatePickerBottomSheet> {
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  late int _selectedYear;
+  late int _selectedMonth;
+  late int _selectedDay;
+  _PickerMode _mode = _PickerMode.day;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedYear = widget.initialDate.year;
+    _selectedMonth = widget.initialDate.month;
+    _selectedDay = widget.initialDate.day;
+  }
+
+  int _getDaysInMonth(int year, int month) {
+    return DateTime(year, month + 1, 0).day;
+  }
+
+  String _getMonthName(BuildContext context, int month) {
+    final l10n = AppLocalizations.of(context)!;
+    final months = [
+      l10n.monthJan, l10n.monthFeb, l10n.monthMar, l10n.monthApr,
+      l10n.monthMay, l10n.monthJun, l10n.monthJul, l10n.monthAug,
+      l10n.monthSep, l10n.monthOct, l10n.monthNov, l10n.monthDec,
+    ];
+    return months[month - 1];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 드래그 핸들
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 헤더 (현재 선택된 날짜 표시 + 모드 전환)
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _mode = _PickerMode.year;
+                  });
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.yearMonthFormat(_selectedYear, _selectedMonth),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: _textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      _mode == _PickerMode.day ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                      color: _textSecondary,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                height: 1,
+                color: _border,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              // 그리드 선택 영역
+              SizedBox(
+                height: 280,
+                child: _buildPickerContent(),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: _border),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        AppLocalizations.of(context)!.cancel,
+                        style: const TextStyle(
+                          color: _textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _onSelect,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _primary,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        AppLocalizations.of(context)!.select,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPickerContent() {
+    switch (_mode) {
+      case _PickerMode.year:
+        return _buildYearPicker();
+      case _PickerMode.month:
+        return _buildMonthPicker();
+      case _PickerMode.day:
+        return _buildDayPicker();
+    }
+  }
+
+  Widget _buildYearPicker() {
+    final currentYear = widget.lastDate.year;
+    final years = List.generate(currentYear - 2000 + 1, (i) => currentYear - i); // 현재년도 ~ 2000 (최신순)
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 2.2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: years.length,
+      itemBuilder: (context, index) {
+        final year = years[index];
+        final isSelected = year == _selectedYear;
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedYear = year;
+              _mode = _PickerMode.month;
+            });
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected ? _primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '$year',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected ? Colors.white : _textPrimary,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMonthPicker() {
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 2.2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: 12,
+      itemBuilder: (context, index) {
+        final month = index + 1;
+        final isSelected = month == _selectedMonth;
+        // 미래 월은 비활성화
+        final isDisabled = _selectedYear == widget.lastDate.year && month > widget.lastDate.month;
+        return GestureDetector(
+          onTap: isDisabled ? null : () {
+            setState(() {
+              _selectedMonth = month;
+              // 선택된 일자가 해당 월의 최대 일수보다 크면 조정
+              final maxDay = _getDaysInMonth(_selectedYear, _selectedMonth);
+              if (_selectedDay > maxDay) _selectedDay = maxDay;
+              _mode = _PickerMode.day;
+            });
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected ? _primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              _getMonthName(context, month),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isDisabled
+                    ? _textSecondary.withValues(alpha: 0.4)
+                    : (isSelected ? Colors.white : _textPrimary),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDayPicker() {
+    final daysInMonth = _getDaysInMonth(_selectedYear, _selectedMonth);
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 7,
+        childAspectRatio: 1.2,
+        crossAxisSpacing: 4,
+        mainAxisSpacing: 4,
+      ),
+      itemCount: daysInMonth,
+      itemBuilder: (context, index) {
+        final day = index + 1;
+        final isSelected = day == _selectedDay;
+        final isToday = _selectedYear == DateTime.now().year &&
+            _selectedMonth == DateTime.now().month &&
+            day == DateTime.now().day;
+        // 미래 일은 비활성화
+        final isDisabled = _selectedYear == widget.lastDate.year &&
+            _selectedMonth == widget.lastDate.month &&
+            day > widget.lastDate.day;
+        return GestureDetector(
+          onTap: isDisabled ? null : () {
+            setState(() {
+              _selectedDay = day;
+            });
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? _primary
+                  : isToday
+                      ? _primary.withValues(alpha: 0.2)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '$day',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected || isToday ? FontWeight.w600 : FontWeight.w400,
+                color: isDisabled
+                    ? _textSecondary.withValues(alpha: 0.4)
+                    : (isSelected ? Colors.white : _textPrimary),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _onSelect() {
+    final selected = DateTime(_selectedYear, _selectedMonth, _selectedDay);
+    Navigator.pop(context);
+    widget.onDateSelected(selected);
   }
 }

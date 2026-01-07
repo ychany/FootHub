@@ -642,7 +642,8 @@ class _AddTeamSheetState extends ConsumerState<_AddTeamSheet> {
   }
 
   String _getLeagueDisplayName(String league) {
-    if (league == 'International Friendlies' || league == 'FIFA World Cup') {
+    // A매치 (국제대회) 여부 판별
+    if (AppConstants.isInternationalMatch(league)) {
       return AppLocalizations.of(context)!.national;
     }
     return AppConstants.getLocalizedLeagueName(context, league);
@@ -984,7 +985,8 @@ class _AddPlayerSheetState extends ConsumerState<_AddPlayerSheet> {
   }
 
   String _getLeagueDisplayName(String league) {
-    if (league == 'International Friendlies' || league == 'FIFA World Cup') {
+    // A매치 (국제대회) 여부 판별
+    if (AppConstants.isInternationalMatch(league)) {
       return AppLocalizations.of(context)!.national;
     }
     return AppConstants.getLocalizedLeagueName(context, league);

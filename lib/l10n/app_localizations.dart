@@ -230,6 +230,42 @@ abstract class AppLocalizations {
   /// **'취소'**
   String get cancel;
 
+  /// No description provided for @selectYear.
+  ///
+  /// In ko, this message translates to:
+  /// **'연도 선택'**
+  String get selectYear;
+
+  /// No description provided for @selectMonth.
+  ///
+  /// In ko, this message translates to:
+  /// **'월 선택'**
+  String get selectMonth;
+
+  /// No description provided for @selectDay.
+  ///
+  /// In ko, this message translates to:
+  /// **'일 선택'**
+  String get selectDay;
+
+  /// No description provided for @yearSuffix.
+  ///
+  /// In ko, this message translates to:
+  /// **'년'**
+  String get yearSuffix;
+
+  /// No description provided for @monthSuffix.
+  ///
+  /// In ko, this message translates to:
+  /// **'월'**
+  String get monthSuffix;
+
+  /// No description provided for @daySuffix.
+  ///
+  /// In ko, this message translates to:
+  /// **'일'**
+  String get daySuffix;
+
   /// Save button
   ///
   /// In ko, this message translates to:
