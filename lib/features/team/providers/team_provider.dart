@@ -177,3 +177,36 @@ final teamStatisticsProvider = FutureProvider.family<List<ApiFootballTeamSeasonS
 
   return statsList;
 });
+
+/// 팀이 참가하는 리그 목록 Provider
+final teamLeaguesProvider = FutureProvider.family<List<ApiFootballTeamLeague>, String>((ref, teamId) async {
+  final service = ref.watch(_apiFootballServiceProvider);
+
+  final apiTeamId = int.tryParse(teamId);
+  if (apiTeamId == null) return [];
+
+  final now = DateTime.now();
+  final currentYear = now.year;
+
+  // 축구 시즌은 보통 8월에 시작하므로, 8월 이전이면 이전 연도가 현재 시즌
+  // 예: 2025년 1월 = 2024-25 시즌 = season 파라미터 2024
+  // 예: 2025년 9월 = 2025-26 시즌 = season 파라미터 2025
+  final seasonYear = now.month < 8 ? currentYear - 1 : currentYear;
+
+  // 현재 시즌, 이전 시즌 순서로 시도
+  for (final season in [seasonYear, seasonYear - 1]) {
+    final leagues = await service.getTeamLeagues(apiTeamId, season: season);
+    // Friendlies만 있는 경우 건너뛰기
+    final realLeagues = leagues.where((l) =>
+      l.type == 'League' || l.type == 'Cup' && !l.name.toLowerCase().contains('friendl')
+    ).toList();
+    if (realLeagues.isNotEmpty) return realLeagues;
+  }
+
+  // 실제 대회를 못 찾으면 전체 반환
+  for (final season in [seasonYear, seasonYear - 1]) {
+    final leagues = await service.getTeamLeagues(apiTeamId, season: season);
+    if (leagues.isNotEmpty) return leagues;
+  }
+  return [];
+});

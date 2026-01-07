@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../core/services/api_football_service.dart';
 import '../../../core/utils/error_helper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../standings/providers/standings_provider.dart';
 import '../providers/team_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
 import '../../../l10n/app_localizations.dart';
@@ -131,7 +132,7 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -171,6 +172,7 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
                 ),
                 tabs: [
                   Tab(text: AppLocalizations.of(context)!.info),
+                  Tab(text: AppLocalizations.of(context)!.standingsTab),
                   Tab(text: AppLocalizations.of(context)!.statistics),
                   Tab(text: AppLocalizations.of(context)!.schedule),
                   Tab(text: AppLocalizations.of(context)!.squad),
@@ -185,6 +187,7 @@ class _TeamDetailContentState extends ConsumerState<_TeamDetailContent>
                 controller: _tabController,
                 children: [
                   _InfoTab(team: team),
+                  _StandingsTab(teamId: widget.teamId),
                   _StatisticsTab(teamId: widget.teamId),
                   _ScheduleTab(teamId: widget.teamId),
                   _PlayersTab(teamId: widget.teamId),
@@ -867,6 +870,327 @@ class _VenueStatChip extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// ============ Standings Tab ============
+class _StandingsTab extends ConsumerWidget {
+  final String teamId;
+
+  static const _textSecondary = Color(0xFF6B7280);
+
+  const _StandingsTab({required this.teamId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final leaguesAsync = ref.watch(teamLeaguesProvider(teamId));
+    final apiTeamId = int.tryParse(teamId) ?? 0;
+
+    return leaguesAsync.when(
+      data: (leagues) {
+        if (leagues.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.leaderboard_outlined, size: 48, color: _textSecondary),
+                const SizedBox(height: 12),
+                Text(
+                  AppLocalizations.of(context)!.noStandingsData,
+                  style: const TextStyle(color: _textSecondary),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // 모든 대회 표시 (리그, 챔스, 컵 등)
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: leagues.length,
+          itemBuilder: (context, index) {
+            final league = leagues[index];
+            return _TeamLeagueStandingsCard(
+              league: league,
+              teamId: apiTeamId,
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: _textSecondary),
+            const SizedBox(height: 12),
+            Text(
+              AppLocalizations.of(context)!.cannotLoadRanking,
+              style: const TextStyle(color: _textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 팀 상세용 리그별 순위 카드
+class _TeamLeagueStandingsCard extends ConsumerWidget {
+  final ApiFootballTeamLeague league;
+  final int teamId;
+
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+  static const _primary = Color(0xFF2563EB);
+  static const _highlight = Color(0xFFFEF3C7);
+
+  const _TeamLeagueStandingsCard({
+    required this.league,
+    required this.teamId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final standingsKey = StandingsKey(league.id, league.season);
+    final standingsAsync = ref.watch(leagueStandingsProvider(standingsKey));
+
+    return standingsAsync.when(
+      data: (standings) {
+        // 순위 데이터 없으면 카드 자체를 숨김
+        if (standings.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 리그 헤더
+              GestureDetector(
+                onTap: () => context.push('/league/${league.id}'),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  ),
+                  child: Row(
+                    children: [
+                      if (league.logo != null)
+                        CachedNetworkImage(
+                          imageUrl: league.logo!,
+                          width: 32,
+                          height: 32,
+                          errorWidget: (_, __, ___) => const Icon(Icons.emoji_events, size: 32),
+                        ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              league.name,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: _textPrimary,
+                              ),
+                            ),
+                            Text(
+                              '${league.country ?? ''} ${league.season}/${league.season + 1}',
+                              style: const TextStyle(fontSize: 12, color: _textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right, color: _textSecondary, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+              // 테이블 헤더
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  border: Border(top: BorderSide(color: _border, width: 0.5)),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 28, child: Text('#', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _textSecondary), textAlign: TextAlign.center)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(AppLocalizations.of(context)!.team, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _textSecondary))),
+                    _buildHeaderCell(AppLocalizations.of(context)!.played),
+                    _buildHeaderCell(AppLocalizations.of(context)!.winShort),
+                    _buildHeaderCell(AppLocalizations.of(context)!.drawShort),
+                    _buildHeaderCell(AppLocalizations.of(context)!.loseShort),
+                    _buildHeaderCell(AppLocalizations.of(context)!.gd),
+                    _buildHeaderCell(AppLocalizations.of(context)!.pointsLabel),
+                  ],
+                ),
+              ),
+              // 순위 행들
+              ...standings.map((team) => _buildTeamRow(context, team)),
+            ],
+          ),
+        );
+      },
+      loading: () => Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _border),
+        ),
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      error: (_, __) => const SizedBox.shrink(), // 에러 시 카드 숨김
+    );
+  }
+
+  Widget _buildHeaderCell(String text) {
+    return SizedBox(
+      width: 32,
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _textSecondary),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildTeamRow(BuildContext context, ApiFootballStanding team) {
+    final isCurrentTeam = team.teamId == teamId;
+    final zoneColor = _getZoneColor(team.description);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isCurrentTeam ? _highlight : Colors.white,
+        border: Border(
+          top: BorderSide(color: _border, width: 0.5),
+          left: isCurrentTeam ? BorderSide(color: _primary, width: 3) : BorderSide.none,
+        ),
+      ),
+      child: InkWell(
+        onTap: () => context.push('/team/${team.teamId}'),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              // 순위
+              SizedBox(
+                width: 28,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: zoneColor?.withValues(alpha: 0.15) ?? Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '${team.rank}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: zoneColor ?? _textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // 팀 로고
+              if (team.teamLogo != null)
+                CachedNetworkImage(
+                  imageUrl: team.teamLogo!,
+                  width: 22,
+                  height: 22,
+                  errorWidget: (_, __, ___) => const Icon(Icons.shield, size: 22),
+                )
+              else
+                const Icon(Icons.shield, size: 22, color: Colors.grey),
+              const SizedBox(width: 8),
+              // 팀 이름
+              Expanded(
+                child: Text(
+                  team.teamName,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isCurrentTeam ? FontWeight.w700 : FontWeight.w500,
+                    color: _textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // 경기수
+              _buildDataCell('${team.played}'),
+              // 승
+              _buildDataCell('${team.win}', color: team.win > 0 ? const Color(0xFF10B981) : null),
+              // 무
+              _buildDataCell('${team.draw}'),
+              // 패
+              _buildDataCell('${team.lose}', color: team.lose > 0 ? const Color(0xFFEF4444) : null),
+              // 득실차
+              _buildDataCell(
+                '${team.goalsDiff >= 0 ? '+' : ''}${team.goalsDiff}',
+                color: team.goalsDiff > 0 ? const Color(0xFF10B981) : (team.goalsDiff < 0 ? const Color(0xFFEF4444) : null),
+              ),
+              // 승점
+              _buildDataCell('${team.points}', isBold: true),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDataCell(String text, {Color? color, bool isBold = false}) {
+    return SizedBox(
+      width: 32,
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+          color: color ?? _textPrimary,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Color? _getZoneColor(String? description) {
+    if (description == null || description.isEmpty) return null;
+    final desc = description.toLowerCase();
+
+    if (desc.contains('champions league') || desc.contains('ucl')) {
+      return const Color(0xFF10B981);
+    }
+    if (desc.contains('europa league') || desc.contains('uel')) {
+      return const Color(0xFF3B82F6);
+    }
+    if (desc.contains('conference league') || desc.contains('uecl')) {
+      return const Color(0xFF06B6D4);
+    }
+    if (desc.contains('promotion')) {
+      return const Color(0xFF10B981);
+    }
+    if (desc.contains('playoff') || desc.contains('play-off')) {
+      return const Color(0xFFF59E0B);
+    }
+    if (desc.contains('relegation')) {
+      return const Color(0xFFEF4444);
+    }
+    if (desc.contains('next round') || desc.contains('knockout') || desc.contains('qualification')) {
+      return const Color(0xFF10B981);
+    }
+    return null;
   }
 }
 
