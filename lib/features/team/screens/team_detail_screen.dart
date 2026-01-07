@@ -2932,9 +2932,27 @@ class _TransfersTabState extends ConsumerState<_TransfersTab> {
 
           for (int i = 0; i < sortedTransfers.length; i++) {
             final t = sortedTransfers[i];
-            if (t.date == null) continue;
+            if (t.date == null || t.date!.length < 4) continue;
 
-            final year = t.date!.substring(0, 4);
+            // 날짜 형식 파싱: YYYY-MM-DD 또는 DDMMYY 형식 처리
+            final String year;
+            if (t.date!.contains('-')) {
+              // YYYY-MM-DD 형식
+              year = t.date!.substring(0, 4);
+            } else if (t.date!.length == 6) {
+              // DDMMYY 형식 (예: 281113 = 2013년 11월 28일)
+              final yy = int.tryParse(t.date!.substring(4, 6));
+              if (yy == null) continue;
+              // 00~50은 2000년대, 51~99는 1900년대로 처리
+              year = yy <= 50 ? '20${t.date!.substring(4, 6)}' : '19${t.date!.substring(4, 6)}';
+            } else {
+              // 기타 형식은 앞 4자리로 시도
+              year = t.date!.substring(0, 4);
+            }
+
+            // 유효한 연도인지 확인 (1900~2100 범위)
+            final yearInt = int.tryParse(year);
+            if (yearInt == null || yearInt < 1900 || yearInt > 2100) continue;
             final isIn = apiTeamId != null && t.teamInId == apiTeamId;
             final isOut = apiTeamId != null && t.teamOutId == apiTeamId;
 
