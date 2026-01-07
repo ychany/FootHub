@@ -905,6 +905,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get careerTab => '커리어';
 
   @override
+  String get matchesTab => '출전경기';
+
+  @override
+  String get noMatchRecords => '직관 기록이 없습니다';
+
+  @override
   String get assist => '도움';
 
   @override
@@ -3128,9 +3134,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get deselectRecord => '선택 해제';
-
-  @override
-  String get noMatchRecords => '직관 기록이 없습니다';
 
   @override
   String get loadingStats => '통계를 불러오는 중...';

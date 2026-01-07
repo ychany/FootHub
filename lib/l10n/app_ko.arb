@@ -1257,6 +1257,14 @@
   "@careerTab": {
     "description": "Career tab"
   },
+  "matchesTab": "출전경기",
+  "@matchesTab": {
+    "description": "Matches tab"
+  },
+  "noMatchRecords": "출전 기록이 없습니다",
+  "@noMatchRecords": {
+    "description": "No match records"
+  },
   "assist": "도움",
   "@assist": {
     "description": "Assist"

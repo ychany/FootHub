@@ -66,6 +66,7 @@ class FootballPitchView extends StatelessWidget {
                         homeLineup!,
                         homePlayerStats,
                         isHome: true,
+                        teamId: homeTeam.id,
                       ),
                     // 어웨이팀 (아래쪽 절반)
                     if (awayLineup != null)
@@ -73,6 +74,7 @@ class FootballPitchView extends StatelessWidget {
                         awayLineup!,
                         awayPlayerStats,
                         isHome: false,
+                        teamId: awayTeam.id,
                       ),
                   ],
                 ),
@@ -211,6 +213,7 @@ class FootballPitchView extends StatelessWidget {
     ApiFootballLineup lineup,
     FixturePlayerStats? playerStats, {
     required bool isHome,
+    int? teamId,
   }) {
     final players = lineup.startXI;
     final formation = lineup.formation;
@@ -302,6 +305,7 @@ class FootballPitchView extends StatelessWidget {
                           stats: stats,
                           isHome: isHome,
                           events: playerEvents[player.id] ?? [],
+                          teamId: teamId,
                         ),
                       ),
                     ),
@@ -437,6 +441,7 @@ class FootballPitchView extends StatelessWidget {
                       player: p,
                       stats: stats,
                       substitutionEvent: subEvent,
+                      teamId: homeTeam.id,
                     );
                   }).toList(),
                 ),
@@ -453,6 +458,7 @@ class FootballPitchView extends StatelessWidget {
                       player: p,
                       stats: stats,
                       substitutionEvent: subEvent,
+                      teamId: awayTeam.id,
                     );
                   }).toList(),
                 ),
@@ -686,6 +692,7 @@ class PlayerMarker extends StatelessWidget {
   final PlayerMatchStats? stats;
   final bool isHome;
   final List<ApiFootballEvent> events;
+  final int? teamId;
 
   const PlayerMarker({
     super.key,
@@ -693,6 +700,7 @@ class PlayerMarker extends StatelessWidget {
     this.stats,
     required this.isHome,
     this.events = const [],
+    this.teamId,
   });
 
   @override
@@ -987,7 +995,7 @@ class PlayerMarker extends StatelessWidget {
 
   void _showPlayerDetail(BuildContext context) {
     if (player.id <= 0) return;
-    showPlayerStatsModal(context, player, stats);
+    showPlayerStatsModal(context, player, stats, teamId: teamId);
   }
 }
 
@@ -995,13 +1003,14 @@ class PlayerMarker extends StatelessWidget {
 void showPlayerStatsModal(
   BuildContext context,
   ApiFootballLineupPlayer player,
-  PlayerMatchStats? stats,
-) {
+  PlayerMatchStats? stats, {
+  int? teamId,
+}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => PlayerStatsModal(player: player, stats: stats),
+    builder: (context) => PlayerStatsModal(player: player, stats: stats, teamId: teamId),
   );
 }
 
@@ -1009,6 +1018,7 @@ void showPlayerStatsModal(
 class PlayerStatsModal extends StatelessWidget {
   final ApiFootballLineupPlayer player;
   final PlayerMatchStats? stats;
+  final int? teamId;
 
   static const _primary = Color(0xFF2563EB);
   static const _textPrimary = Color(0xFF111827);
@@ -1016,7 +1026,7 @@ class PlayerStatsModal extends StatelessWidget {
   static const _border = Color(0xFFE5E7EB);
   static const _success = Color(0xFF22C55E);
 
-  const PlayerStatsModal({super.key, required this.player, this.stats});
+  const PlayerStatsModal({super.key, required this.player, this.stats, this.teamId});
 
   @override
   Widget build(BuildContext context) {
@@ -1144,7 +1154,10 @@ class PlayerStatsModal extends StatelessWidget {
                               onTap: () {
                                 Navigator.pop(context);
                                 if (player.id > 0) {
-                                  context.push('/player/${player.id}');
+                                  final uri = teamId != null
+                                      ? '/player/${player.id}?teamId=$teamId'
+                                      : '/player/${player.id}';
+                                  context.push(uri);
                                 }
                               },
                               child: Row(
@@ -1526,7 +1539,10 @@ class PlayerStatsModal extends StatelessWidget {
             onPressed: () {
               Navigator.pop(context);
               if (player.id > 0) {
-                context.push('/player/${player.id}');
+                final uri = teamId != null
+                    ? '/player/${player.id}?teamId=$teamId'
+                    : '/player/${player.id}';
+                context.push(uri);
               }
             },
             icon: const Icon(Icons.person_outline, size: 18),
@@ -1722,6 +1738,7 @@ class SubstituteRow extends StatelessWidget {
   final ApiFootballLineupPlayer player;
   final PlayerMatchStats? stats;
   final ApiFootballEvent? substitutionEvent;
+  final int? teamId;
 
   static const _textPrimary = Color(0xFF111827);
   static const _textSecondary = Color(0xFF6B7280);
@@ -1731,6 +1748,7 @@ class SubstituteRow extends StatelessWidget {
     required this.player,
     this.stats,
     this.substitutionEvent,
+    this.teamId,
   });
 
   bool get isSubbedIn => substitutionEvent != null;
@@ -1743,7 +1761,7 @@ class SubstituteRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: GestureDetector(
         onTap: () {
-          showPlayerStatsModal(context, player, stats);
+          showPlayerStatsModal(context, player, stats, teamId: teamId);
         },
         child: Row(
           children: [

@@ -1814,6 +1814,18 @@ abstract class AppLocalizations {
   /// **'커리어'**
   String get careerTab;
 
+  /// Matches tab
+  ///
+  /// In ko, this message translates to:
+  /// **'출전경기'**
+  String get matchesTab;
+
+  /// No match records
+  ///
+  /// In ko, this message translates to:
+  /// **'직관 기록이 없습니다'**
+  String get noMatchRecords;
+
   /// Assist
   ///
   /// In ko, this message translates to:
@@ -6007,12 +6019,6 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'선택 해제'**
   String get deselectRecord;
-
-  /// No description provided for @noMatchRecords.
-  ///
-  /// In ko, this message translates to:
-  /// **'직관 기록이 없습니다'**
-  String get noMatchRecords;
 
   /// No description provided for @loadingStats.
   ///

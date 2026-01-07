@@ -318,6 +318,8 @@
 
   "profileTab": "Profile",
   "careerTab": "Career",
+  "matchesTab": "Matches",
+  "noMatchRecords": "No match records",
   "assist": "Assist",
   "matchesPlayed": "Apps",
   "playingTime": "Minutes",

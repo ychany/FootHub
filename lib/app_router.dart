@@ -66,7 +66,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/player/:playerId',
         builder: (context, state) {
           final playerId = state.pathParameters['playerId']!;
-          return PlayerDetailScreen(playerId: playerId);
+          final teamId = state.uri.queryParameters['teamId'];
+          return PlayerDetailScreen(playerId: playerId, teamId: teamId != null ? int.tryParse(teamId) : null);
         },
       ),
 

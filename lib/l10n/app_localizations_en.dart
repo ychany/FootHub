@@ -907,6 +907,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get careerTab => 'Career';
 
   @override
+  String get matchesTab => 'Matches';
+
+  @override
+  String get noMatchRecords => 'No match records';
+
+  @override
   String get assist => 'Assist';
 
   @override
@@ -3146,9 +3152,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deselectRecord => 'Deselect';
-
-  @override
-  String get noMatchRecords => 'No match records';
 
   @override
   String get loadingStats => 'Loading stats...';

@@ -2469,6 +2469,7 @@ class _PlayersTab extends ConsumerWidget {
                             player: player,
                             isInjured: isInjured,
                             injury: injury,
+                            teamId: int.tryParse(teamId),
                           ),
                         ],
                       );
@@ -2554,9 +2555,12 @@ class _PlayersTab extends ConsumerWidget {
   }
 
   Widget _buildInjuryPlayerRow(ApiFootballInjury injury) {
+    final uri = teamId.isNotEmpty
+        ? '/player/${injury.playerId}?teamId=$teamId'
+        : '/player/${injury.playerId}';
     return Builder(
       builder: (context) => InkWell(
-        onTap: () => context.push('/player/${injury.playerId}'),
+        onTap: () => context.push(uri),
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -2684,6 +2688,7 @@ class _PlayerCard extends StatelessWidget {
   final ApiFootballSquadPlayer player;
   final bool isInjured;
   final ApiFootballInjury? injury;
+  final int? teamId;
 
   static const _primary = Color(0xFF2563EB);
   static const _error = Color(0xFFEF4444);
@@ -2695,12 +2700,16 @@ class _PlayerCard extends StatelessWidget {
     required this.player,
     this.isInjured = false,
     this.injury,
+    this.teamId,
   });
 
   @override
   Widget build(BuildContext context) {
+    final uri = teamId != null
+        ? '/player/${player.id}?teamId=$teamId'
+        : '/player/${player.id}';
     return InkWell(
-      onTap: () => context.push('/player/${player.id}'),
+      onTap: () => context.push(uri),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -3234,7 +3243,7 @@ class _TransfersTabState extends ConsumerState<_TransfersTab> {
                         ],
                       ),
                     ),
-                    ...inTransfers.map((t) => _TransferCard(transfer: t)),
+                    ...inTransfers.map((t) => _TransferCard(transfer: t, teamId: widget.teamId)),
                   ],
 
                   // 임대 복귀
@@ -3263,7 +3272,7 @@ class _TransfersTabState extends ConsumerState<_TransfersTab> {
                         ],
                       ),
                     ),
-                    ...returnTransfers.map((t) => _TransferCard(transfer: t)),
+                    ...returnTransfers.map((t) => _TransferCard(transfer: t, teamId: widget.teamId)),
                   ],
 
                   // 방출
@@ -3292,7 +3301,7 @@ class _TransfersTabState extends ConsumerState<_TransfersTab> {
                         ],
                       ),
                     ),
-                    ...outTransfers.map((t) => _TransferCard(transfer: t)),
+                    ...outTransfers.map((t) => _TransferCard(transfer: t, teamId: widget.teamId)),
                   ],
 
                   const SizedBox(height: 8),
@@ -3348,13 +3357,14 @@ class _TransferInfo {
 
 class _TransferCard extends StatelessWidget {
   final _TransferInfo transfer;
+  final String? teamId;
 
   static const _success = Color(0xFF10B981);
   static const _error = Color(0xFFEF4444);
   static const _textPrimary = Color(0xFF111827);
   static const _textSecondary = Color(0xFF6B7280);
 
-  const _TransferCard({required this.transfer});
+  const _TransferCard({required this.transfer, this.teamId});
 
   @override
   Widget build(BuildContext context) {
@@ -3374,8 +3384,11 @@ class _TransferCard extends StatelessWidget {
     final otherTeamName = transfer.isIn ? transfer.fromTeamName : transfer.toTeamName;
     final otherTeamLogo = transfer.isIn ? transfer.fromTeamLogo : transfer.toTeamLogo;
 
+    final uri = teamId != null && teamId!.isNotEmpty
+        ? '/player/${transfer.playerId}?teamId=$teamId'
+        : '/player/${transfer.playerId}';
     return InkWell(
-      onTap: () => context.push('/player/${transfer.playerId}'),
+      onTap: () => context.push(uri),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         padding: const EdgeInsets.all(12),
