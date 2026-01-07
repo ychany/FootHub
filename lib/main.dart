@@ -11,6 +11,7 @@ import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/providers/locale_provider.dart';
 import 'core/services/local_notification_service.dart';
+import 'features/schedule/providers/schedule_provider.dart';
 import 'app_router.dart';
 
 void main() async {
@@ -51,6 +52,9 @@ class MatchLogApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final locale = ref.watch(localeProvider);
+
+    // 즐겨찾기 팀 경기 자동 알림 스케줄링 (백그라운드)
+    ref.listen(autoScheduleFavoriteNotificationsProvider, (_, __) {});
 
     return MaterialApp.router(
       title: 'MatchLog',

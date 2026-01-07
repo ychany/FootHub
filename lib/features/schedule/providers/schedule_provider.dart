@@ -333,3 +333,75 @@ final filteredSchedulesProvider = FutureProvider<List<Match>>((ref) async {
 
   return matches;
 });
+
+/// 즐겨찾기 팀 경기 자동 알림 스케줄러
+class FavoriteMatchNotificationScheduler {
+  final LocalNotificationService _notificationService = LocalNotificationService();
+
+  /// 즐겨찾기 팀의 다가오는 경기에 대한 알림 스케줄링
+  Future<void> scheduleNotificationsForFavoriteMatches({
+    required List<Match> matches,
+    required int reminderMinutes,
+  }) async {
+    for (final match in matches) {
+      // 이미 지난 경기는 건너뛰기
+      if (match.kickoff.isBefore(DateTime.now())) continue;
+
+      // 리마인더 알림 스케줄링
+      final reminderId = LocalNotificationService.generateNotificationId(
+        match.id,
+        NotificationType.reminder,
+      );
+      await _notificationService.scheduleMatchReminder(
+        notificationId: reminderId,
+        matchId: match.id,
+        homeTeam: match.homeTeamName,
+        awayTeam: match.awayTeamName,
+        league: match.league,
+        kickoffTime: match.kickoff,
+        minutesBefore: reminderMinutes,
+      );
+    }
+  }
+
+  /// 모든 알림 취소
+  Future<void> cancelAllNotifications() async {
+    await _notificationService.cancelAllNotifications();
+  }
+}
+
+final favoriteMatchNotificationSchedulerProvider = Provider<FavoriteMatchNotificationScheduler>((ref) {
+  return FavoriteMatchNotificationScheduler();
+});
+
+/// 앱 시작 시 또는 즐겨찾기 변경 시 자동으로 알림 스케줄링
+final autoScheduleFavoriteNotificationsProvider = FutureProvider<void>((ref) async {
+  final scheduler = ref.watch(favoriteMatchNotificationSchedulerProvider);
+  final settingsAsync = ref.watch(notificationSettingsProvider);
+  final favoriteTeamIds = ref.watch(favoriteTeamIdsProvider).value ?? [];
+
+  // 설정 로드 대기
+  final settings = settingsAsync.valueOrNull;
+  if (settings == null) return;
+
+  // 푸시 알림 또는 경기 시작 알림이 꺼져있으면 스킵
+  if (!settings.pushNotifications || !settings.matchReminder) {
+    return;
+  }
+
+  // 즐겨찾기 팀이 없으면 스킵
+  if (favoriteTeamIds.isEmpty) return;
+
+  // 즐겨찾기 팀의 다가오는 경기 조회
+  final service = ref.watch(scheduleServiceProvider);
+  final upcomingMatches = await service.getUpcomingMatchesForTeams(
+    favoriteTeamIds,
+    limit: 20,
+  );
+
+  // 알림 스케줄링
+  await scheduler.scheduleNotificationsForFavoriteMatches(
+    matches: upcomingMatches,
+    reminderMinutes: settings.matchReminderMinutes,
+  );
+});

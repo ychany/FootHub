@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
@@ -66,12 +65,10 @@ class LocalNotificationService {
     }
 
     _isInitialized = true;
-    debugPrint('LocalNotificationService initialized');
   }
 
   /// Handle notification tap
   void _onNotificationTapped(NotificationResponse response) {
-    debugPrint('Notification tapped: ${response.payload}');
     // Navigation can be handled here if needed
   }
 
@@ -120,7 +117,6 @@ class LocalNotificationService {
 
     // Don't schedule if the time has already passed
     if (scheduledTime.isBefore(DateTime.now())) {
-      debugPrint('Skipping notification - scheduled time has passed');
       return;
     }
 
@@ -162,8 +158,6 @@ class LocalNotificationService {
           UILocalNotificationDateInterpretation.absoluteTime,
       payload: matchId,
     );
-
-    debugPrint('Scheduled notification for match $matchId at $scheduledTime');
   }
 
   /// Schedule kickoff notification (at match start)
@@ -177,7 +171,6 @@ class LocalNotificationService {
   }) async {
     // Don't schedule if the time has already passed
     if (kickoffTime.isBefore(DateTime.now())) {
-      debugPrint('Skipping kickoff notification - time has passed');
       return;
     }
 
@@ -214,8 +207,6 @@ class LocalNotificationService {
           UILocalNotificationDateInterpretation.absoluteTime,
       payload: matchId,
     );
-
-    debugPrint('Scheduled kickoff notification for match $matchId at $kickoffTime');
   }
 
   /// Show immediate notification (for live updates)
@@ -257,7 +248,6 @@ class LocalNotificationService {
   /// Cancel a specific notification
   Future<void> cancelNotification(int notificationId) async {
     await _notifications.cancel(notificationId);
-    debugPrint('Cancelled notification: $notificationId');
   }
 
   /// Cancel all notifications for a match (using matchId hash)
@@ -268,13 +258,11 @@ class LocalNotificationService {
     await _notifications.cancel(baseId + 1); // Kickoff
     await _notifications.cancel(baseId + 2); // Lineup
     await _notifications.cancel(baseId + 3); // Result
-    debugPrint('Cancelled all notifications for match: $matchId');
   }
 
   /// Cancel all pending notifications
   Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
-    debugPrint('Cancelled all notifications');
   }
 
   /// Get list of pending notifications
