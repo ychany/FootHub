@@ -230,18 +230,24 @@ class ApiFootballService {
 
   /// 선수 ID로 조회
   Future<ApiFootballPlayer?> getPlayerById(int playerId, {int? season}) async {
-    String endpoint = 'players?id=$playerId';
+    // 시즌이 지정되면 해당 시즌만 조회
     if (season != null) {
-      endpoint += '&season=$season';
-    } else {
-      endpoint += '&season=${DateTime.now().year}';
+      final data = await _get('players?id=$playerId&season=$season');
+      if (data == null || data['response'] == null || (data['response'] as List).isEmpty) {
+        return null;
+      }
+      return ApiFootballPlayer.fromJson((data['response'] as List).first);
     }
 
-    final data = await _get(endpoint);
-    if (data == null || data['response'] == null || (data['response'] as List).isEmpty) {
-      return null;
+    // 시즌 미지정 시 현재 연도부터 이전 연도까지 시도
+    final currentYear = DateTime.now().year;
+    for (final year in [currentYear, currentYear - 1, currentYear - 2]) {
+      final data = await _get('players?id=$playerId&season=$year');
+      if (data != null && data['response'] != null && (data['response'] as List).isNotEmpty) {
+        return ApiFootballPlayer.fromJson((data['response'] as List).first);
+      }
     }
-    return ApiFootballPlayer.fromJson((data['response'] as List).first);
+    return null;
   }
 
   /// 팀별 선수 목록 (스쿼드)
