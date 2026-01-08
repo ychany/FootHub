@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/services/api_football_service.dart';
 import '../../../core/constants/api_football_ids.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/banner_ad_widget.dart';
 
 /// 리그 정보 Provider
 final leagueInfoProvider = FutureProvider.family<ApiFootballLeague?, int>((ref, leagueId) async {
@@ -213,6 +214,7 @@ class _LeagueDetailScreenState extends ConsumerState<LeagueDetailScreen> with Si
 
     return Scaffold(
       backgroundColor: _background,
+      bottomNavigationBar: const BottomBannerAdWidget(),
       body: leagueAsync.when(
         data: (league) => _buildContent(league, leagueIdInt),
         loading: () => const Center(child: CircularProgressIndicator()),

@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/banner_ad_widget.dart';
 import '../../../core/utils/error_helper.dart';
 import '../models/diary_entry.dart';
 import '../providers/diary_provider.dart';
@@ -33,6 +34,7 @@ class DiaryListScreen extends ConsumerWidget {
       ),
       child: Scaffold(
         backgroundColor: _background,
+        bottomNavigationBar: const BottomBannerAdWidget(),
         body: SafeArea(
           child: Column(
             children: [

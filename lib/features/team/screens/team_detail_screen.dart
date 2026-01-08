@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../core/services/api_football_service.dart';
 import '../../../core/utils/error_helper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/banner_ad_widget.dart';
 import '../../standings/providers/standings_provider.dart';
 import '../providers/team_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
@@ -30,6 +31,7 @@ class TeamDetailScreen extends ConsumerWidget {
       ),
       child: Scaffold(
         backgroundColor: _background,
+        bottomNavigationBar: const BottomBannerAdWidget(),
         body: teamAsync.when(
           data: (team) {
             if (team == null) {

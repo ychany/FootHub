@@ -11,6 +11,7 @@ import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/providers/locale_provider.dart';
 import 'core/services/local_notification_service.dart';
+import 'core/services/ad_service.dart';
 import 'features/schedule/providers/schedule_provider.dart';
 import 'app_router.dart';
 
@@ -37,6 +38,9 @@ void main() async {
 
   // 로컬 알림 서비스 초기화
   await LocalNotificationService().initialize();
+
+  // AdMob 초기화
+  await AdService().initialize();
 
   runApp(
     const ProviderScope(

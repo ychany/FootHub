@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/services/api_football_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/banner_ad_widget.dart';
 
 // 모든 국가 목록 Provider
 final allCountriesProvider = FutureProvider<List<ApiFootballCountry>>((ref) async {
@@ -61,6 +62,7 @@ class _LeaguesByCountryScreenState extends ConsumerState<LeaguesByCountryScreen>
       ),
       child: Scaffold(
         backgroundColor: _background,
+        bottomNavigationBar: const BottomBannerAdWidget(),
         body: SafeArea(
           child: Column(
             children: [

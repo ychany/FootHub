@@ -7,6 +7,7 @@ import '../../../core/services/api_football_service.dart';
 import '../../../core/utils/error_helper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/empty_state.dart';
+import '../../../shared/widgets/banner_ad_widget.dart';
 import '../providers/standings_provider.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -86,6 +87,7 @@ class _LeagueStandingsScreenState extends ConsumerState<LeagueStandingsScreen> {
       ),
       child: Scaffold(
         backgroundColor: _background,
+        bottomNavigationBar: const BottomBannerAdWidget(),
         body: SafeArea(
           child: Column(
             children: [

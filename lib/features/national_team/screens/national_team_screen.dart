@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/services/api_football_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/banner_ad_widget.dart';
 import '../providers/national_team_provider.dart';
 import '../providers/selected_national_team_provider.dart';
 
@@ -51,6 +52,7 @@ class _NationalTeamScreenState extends ConsumerState<NationalTeamScreen>
 
     return Scaffold(
       backgroundColor: _background,
+      bottomNavigationBar: const BottomBannerAdWidget(),
       body: SafeArea(
         child: Column(
           children: [
@@ -260,6 +262,7 @@ class _NationalTeamScreenState extends ConsumerState<NationalTeamScreen>
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: _background,
+      bottomNavigationBar: const BottomBannerAdWidget(),
       appBar: AppBar(
         backgroundColor: _gradientStart,
         leading: IconButton(

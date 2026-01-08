@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/banner_ad_widget.dart';
 
 class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
@@ -44,6 +45,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
       ),
       child: Scaffold(
         backgroundColor: _background,
+        bottomNavigationBar: const BottomBannerAdWidget(),
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,

@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/services/api_football_service.dart';
 import '../../../core/utils/error_helper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/banner_ad_widget.dart';
 import '../../favorites/providers/favorites_provider.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -181,6 +182,7 @@ class PlayerDetailScreen extends ConsumerWidget {
       ),
       child: Scaffold(
         backgroundColor: _background,
+        bottomNavigationBar: const BottomBannerAdWidget(),
         body: playerAsync.when(
           data: (player) {
             if (player == null) {

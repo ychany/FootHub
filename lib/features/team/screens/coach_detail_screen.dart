@@ -7,6 +7,7 @@ import '../../../core/services/api_football_service.dart';
 import '../../../core/utils/error_helper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/banner_ad_widget.dart';
 
 // Coach detail provider
 final coachDetailProvider = FutureProvider.family<ApiFootballCoach?, int>((ref, coachId) async {
@@ -64,6 +65,7 @@ class CoachDetailScreen extends ConsumerWidget {
       ),
       child: Scaffold(
         backgroundColor: _background,
+        bottomNavigationBar: const BottomBannerAdWidget(),
         body: coachAsync.when(
           data: (coach) {
             if (coach == null) {

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/services/api_football_service.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/banner_ad_widget.dart';
 import '../../attendance/models/attendance_record.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -96,6 +97,14 @@ class HomeScreen extends ConsumerWidget {
                 // 나의 직관 통계
                 SliverToBoxAdapter(
                   child: _StatsSection(),
+                ),
+
+                // 배너 광고 (스크롤 중간)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+                    child: BannerAdWidget(),
+                  ),
                 ),
 
                 // 라이브 스코어

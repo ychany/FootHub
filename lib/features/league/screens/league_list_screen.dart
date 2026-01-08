@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/services/api_football_service.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/banner_ad_widget.dart';
 
 /// 국가 코드 → 해당 국가 리그 ID 목록 매핑 (1부, 2부)
 const Map<String, List<int>> _countryToLeagueIds = {
@@ -151,6 +152,7 @@ class _LeagueListScreenState extends ConsumerState<LeagueListScreen> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: _background,
+      bottomNavigationBar: const BannerAdWidget(),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,

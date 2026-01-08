@@ -8,6 +8,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../attendance/providers/attendance_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/banner_ad_widget.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -28,6 +29,7 @@ class ProfileScreen extends ConsumerWidget {
       ),
       child: Scaffold(
         backgroundColor: _background,
+        bottomNavigationBar: const BottomBannerAdWidget(),
         body: SafeArea(
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),

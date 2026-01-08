@@ -11,6 +11,7 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/football_pitch_view.dart';
 import '../../../shared/widgets/team_comparison_widget.dart';
 import '../../../shared/widgets/standings_table.dart';
+import '../../../shared/widgets/banner_ad_widget.dart';
 import '../../../l10n/app_localizations.dart';
 import '../providers/schedule_provider.dart';
 import '../models/match_comment.dart';
@@ -339,6 +340,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
 
     return Scaffold(
       backgroundColor: _background,
+      bottomNavigationBar: const BottomBannerAdWidget(),
       floatingActionButton: _tabController.index == 5
           ? null
           : SizedBox(
