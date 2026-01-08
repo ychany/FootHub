@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FootHub - 계정 삭제 안내 | Delete Account</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f9fafb;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #dc2626;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        h2 {
+            color: #111827;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 20px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+        }
+        h3 {
+            color: #374151;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        p, li {
+            color: #4b5563;
+            margin-bottom: 10px;
+        }
+        ul, ol {
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+        ol li {
+            margin-bottom: 15px;
+        }
+        .highlight {
+            background-color: #fef2f2;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #dc2626;
+            margin: 15px 0;
+        }
+        .info-box {
+            background-color: #eff6ff;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #2563eb;
+            margin: 15px 0;
+        }
+        .steps {
+            background-color: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .steps ol {
+            margin-bottom: 0;
+        }
+        .contact {
+            background-color: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        .lang-switch {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .lang-switch a {
+            color: #2563eb;
+            text-decoration: none;
+            padding: 8px 16px;
+            border: 1px solid #2563eb;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        .lang-switch a:hover {
+            background-color: #2563eb;
+            color: white;
+        }
+        .date {
+            color: #9ca3af;
+            font-size: 12px;
+            margin-top: 30px;
+            text-align: center;
+        }
+        .app-name {
+            font-weight: bold;
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="lang-switch">
+            <a href="#english" onclick="showEnglish()">English</a>
+        </div>
+
+        <!-- 한국어 버전 -->
+        <div id="korean">
+            <h1>계정 삭제 안내</h1>
+            <p class="subtitle">Account Deletion Guide for <span class="app-name">FootHub</span></p>
+
+            <div class="highlight">
+                <strong>주의:</strong> 계정을 삭제하면 모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.
+            </div>
+
+            <h2>계정 삭제 방법</h2>
+            <p><span class="app-name">FootHub</span> 앱 내에서 직접 계정을 삭제할 수 있습니다.</p>
+
+            <div class="steps">
+                <ol>
+                    <li><strong>앱 실행</strong> - FootHub 앱을 실행합니다.</li>
+                    <li><strong>프로필 탭 이동</strong> - 하단 네비게이션에서 "프로필" 탭을 선택합니다.</li>
+                    <li><strong>설정 진입</strong> - 우측 상단의 설정(톱니바퀴) 아이콘을 탭합니다.</li>
+                    <li><strong>계정 탈퇴</strong> - "계정 탈퇴" 메뉴를 선택합니다.</li>
+                    <li><strong>확인</strong> - 안내 메시지를 확인하고 "탈퇴하기" 버튼을 탭합니다.</li>
+                </ol>
+            </div>
+
+            <h2>삭제되는 데이터</h2>
+            <p>계정 삭제 시 다음 데이터가 영구적으로 삭제됩니다:</p>
+            <ul>
+                <li><strong>계정 정보:</strong> 이메일 주소, 프로필 사진, 닉네임</li>
+                <li><strong>직관 기록:</strong> 모든 경기 직관 기록 및 사진</li>
+                <li><strong>커뮤니티 활동:</strong> 작성한 게시글 및 댓글</li>
+                <li><strong>즐겨찾기:</strong> 즐겨찾기한 팀 및 선수 목록</li>
+                <li><strong>알림 설정:</strong> 모든 알림 설정</li>
+                <li><strong>차단 목록:</strong> 차단한 사용자 목록</li>
+            </ul>
+
+            <h2>데이터 삭제 시점</h2>
+            <div class="info-box">
+                <p>계정 삭제 요청 즉시 모든 데이터가 삭제됩니다. 별도의 보관 기간 없이 즉시 처리됩니다.</p>
+            </div>
+
+            <h2>삭제 후 재가입</h2>
+            <p>계정 삭제 후에도 동일한 이메일 또는 소셜 계정(Google/Apple)으로 다시 가입할 수 있습니다. 단, 이전 데이터는 복구되지 않으며 새로운 계정으로 시작됩니다.</p>
+
+            <div class="contact">
+                <h3>문의처</h3>
+                <p>계정 삭제에 어려움이 있거나 추가 문의사항이 있으시면 아래로 연락해 주세요:</p>
+                <ul>
+                    <li><strong>이메일:</strong> dudcks463@gmail.com</li>
+                    <li><strong>개발자:</strong> JO YEONG CHAN</li>
+                </ul>
+            </div>
+
+            <p class="date">최종 수정일: 2025년 1월 8일</p>
+        </div>
+
+        <!-- English Version -->
+        <div id="english" style="display: none;">
+            <div class="lang-switch">
+                <a href="#korean" onclick="showKorean()">한국어</a>
+            </div>
+
+            <h1>Account Deletion Guide</h1>
+            <p class="subtitle">How to delete your <span class="app-name">FootHub</span> account</p>
+
+            <div class="highlight">
+                <strong>Warning:</strong> Deleting your account will permanently remove all your data and cannot be undone.
+            </div>
+
+            <h2>How to Delete Your Account</h2>
+            <p>You can delete your account directly within the <span class="app-name">FootHub</span> app.</p>
+
+            <div class="steps">
+                <ol>
+                    <li><strong>Open the app</strong> - Launch the FootHub app.</li>
+                    <li><strong>Go to Profile</strong> - Select the "Profile" tab from the bottom navigation.</li>
+                    <li><strong>Open Settings</strong> - Tap the settings (gear) icon in the top right corner.</li>
+                    <li><strong>Delete Account</strong> - Select "Delete Account" menu.</li>
+                    <li><strong>Confirm</strong> - Read the confirmation message and tap "Delete" button.</li>
+                </ol>
+            </div>
+
+            <h2>Data That Will Be Deleted</h2>
+            <p>The following data will be permanently deleted when you delete your account:</p>
+            <ul>
+                <li><strong>Account information:</strong> Email address, profile photo, nickname</li>
+                <li><strong>Match records:</strong> All match attendance records and photos</li>
+                <li><strong>Community activity:</strong> All posts and comments you created</li>
+                <li><strong>Favorites:</strong> Your favorite teams and players list</li>
+                <li><strong>Notification settings:</strong> All notification preferences</li>
+                <li><strong>Block list:</strong> List of blocked users</li>
+            </ul>
+
+            <h2>When Data Is Deleted</h2>
+            <div class="info-box">
+                <p>All data is deleted immediately upon account deletion request. There is no retention period.</p>
+            </div>
+
+            <h2>Re-registration After Deletion</h2>
+            <p>After deleting your account, you can sign up again using the same email or social account (Google/Apple). However, previous data cannot be recovered and you will start with a new account.</p>
+
+            <div class="contact">
+                <h3>Contact Us</h3>
+                <p>If you have difficulty deleting your account or have any questions:</p>
+                <ul>
+                    <li><strong>Email:</strong> dudcks463@gmail.com</li>
+                    <li><strong>Developer:</strong> JO YEONG CHAN</li>
+                </ul>
+            </div>
+
+            <p class="date">Last Updated: January 8, 2025</p>
+        </div>
+    </div>
+
+    <script>
+        function showEnglish() {
+            document.getElementById('korean').style.display = 'none';
+            document.getElementById('english').style.display = 'block';
+        }
+        function showKorean() {
+            document.getElementById('korean').style.display = 'block';
+            document.getElementById('english').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
