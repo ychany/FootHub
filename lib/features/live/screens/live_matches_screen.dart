@@ -39,6 +39,7 @@ List<ApiFootballFixture> _sortByLeaguePriority(List<ApiFootballFixture> fixtures
 }
 
 /// 라이브 경기 Provider (30초마다 자동 갱신) - 리그 우선순위 정렬
+/// 캐시 유지, 화면 재진입 시 invalidate로 새 데이터 로드
 final liveMatchesProvider = StreamProvider<List<ApiFootballFixture>>((ref) async* {
   final service = ApiFootballService();
   // 타임존 변경 시 자동 갱신
@@ -87,6 +88,11 @@ class _LiveMatchesScreenState extends ConsumerState<LiveMatchesScreen> {
   @override
   void initState() {
     super.initState();
+    // 화면 진입 시 라이브 데이터 자동 갱신
+    Future.microtask(() {
+      ref.invalidate(liveMatchesProvider);
+      ref.invalidate(liveMatchesRefreshProvider);
+    });
     // UI에서 마지막 업데이트 시간 갱신용 타이머
     _updateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});

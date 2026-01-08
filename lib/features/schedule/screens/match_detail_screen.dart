@@ -21,6 +21,7 @@ import '../../community/services/community_service.dart';
 import '../../community/providers/community_provider.dart';
 
 // Provider for match detail (API-Football)
+// 캐시 유지, 화면 재진입 시 invalidate로 새 데이터 로드
 final matchDetailProvider =
     FutureProvider.family<ApiFootballFixture?, String>((ref, fixtureId) async {
   final service = ApiFootballService();
@@ -167,18 +168,36 @@ final teamSeasonStatsProvider =
   return service.getTeamStatistics(params.teamId, params.leagueId, params.season);
 });
 
-class MatchDetailScreen extends ConsumerWidget {
+class MatchDetailScreen extends ConsumerStatefulWidget {
   final String eventId;
-
-  static const _error = Color(0xFFEF4444);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _background = Color(0xFFF9FAFB);
 
   const MatchDetailScreen({super.key, required this.eventId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final matchAsync = ref.watch(matchDetailProvider(eventId));
+  ConsumerState<MatchDetailScreen> createState() => _MatchDetailScreenState();
+}
+
+class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
+  static const _error = Color(0xFFEF4444);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _background = Color(0xFFF9FAFB);
+
+  @override
+  void initState() {
+    super.initState();
+    // 화면 진입 시 라이브 경기 데이터 자동 갱신 (기존 캐시 먼저 표시 후 새 데이터 로드)
+    Future.microtask(() {
+      ref.invalidate(matchDetailProvider(widget.eventId));
+      ref.invalidate(matchTimelineProvider(widget.eventId));
+      ref.invalidate(matchStatsProvider(widget.eventId));
+      ref.invalidate(matchLineupProvider(widget.eventId));
+      ref.invalidate(matchPlayerStatsProvider(widget.eventId));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final matchAsync = ref.watch(matchDetailProvider(widget.eventId));
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(

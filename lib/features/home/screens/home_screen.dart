@@ -15,6 +15,7 @@ import '../../national_team/providers/national_team_provider.dart';
 import '../../national_team/providers/selected_national_team_provider.dart';
 
 /// 축구 라이브스코어 Provider (API-Football) - 리그 우선순위 정렬
+/// 캐시 유지, 화면 재진입 시 invalidate로 새 데이터 로드 (기존 데이터 먼저 표시)
 final soccerLivescoresProvider =
     FutureProvider<List<ApiFootballFixture>>((ref) async {
   final service = ApiFootballService();
@@ -493,9 +494,21 @@ class _StatItem extends StatelessWidget {
 // ============================================================================
 // 라이브 스코어 섹션
 // ============================================================================
-class _LiveScoresSection extends ConsumerWidget {
+class _LiveScoresSection extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_LiveScoresSection> createState() => _LiveScoresSectionState();
+}
+
+class _LiveScoresSectionState extends ConsumerState<_LiveScoresSection> {
+  @override
+  void initState() {
+    super.initState();
+    // 화면 진입 시 라이브 데이터 자동 갱신 (기존 캐시 데이터 먼저 표시 후 새 데이터 로드)
+    Future.microtask(() => ref.invalidate(soccerLivescoresProvider));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final livescoresAsync = ref.watch(soccerLivescoresProvider);
 
     return livescoresAsync.when(

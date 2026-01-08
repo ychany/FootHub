@@ -37,6 +37,13 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   DateTime _focusedDay = DateTime.now();
 
   @override
+  void initState() {
+    super.initState();
+    // 화면 진입 시 일정 데이터 자동 갱신 (기존 캐시 먼저 표시 후 새 데이터 로드)
+    Future.microtask(() => ref.invalidate(filteredSchedulesProvider));
+  }
+
+  @override
   Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedDateProvider);
     final selectedLeague = ref.watch(selectedLeagueProvider);
