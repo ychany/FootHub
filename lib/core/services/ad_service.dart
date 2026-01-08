@@ -8,15 +8,14 @@ class AdService {
 
   bool _isInitialized = false;
 
-  // 테스트 광고 ID (개발 중에만 사용)
-  // 실제 배포 시에는 AdMob 콘솔에서 발급받은 광고 단위 ID로 교체
+  // 실제 광고 단위 ID
   static String get bannerAdUnitId {
     if (Platform.isAndroid) {
-      // Android 테스트 배너 광고 ID
+      // Android 테스트 배너 광고 ID (나중에 실제 ID로 교체)
       return 'ca-app-pub-3940256099942544/6300978111';
     } else if (Platform.isIOS) {
-      // iOS 테스트 배너 광고 ID
-      return 'ca-app-pub-3940256099942544/2934735716';
+      // iOS 실제 배너 광고 ID
+      return 'ca-app-pub-6858161739429109/9865082345';
     }
     throw UnsupportedError('Unsupported platform');
   }
