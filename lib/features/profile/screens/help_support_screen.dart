@@ -732,9 +732,25 @@ class PatchNotesScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: const [
           _PatchNoteCard(
+            version: '1.1.0',
+            buildNumber: '1',
+            isLatest: true,
+            items: [
+              '즐겨찾기 팀 알림 기능',
+              'A매치에 필터 추가, 달력 수정',
+              '팀정보 순위페이지 추가',
+              '팀정보 이적탭 날짜 파싱 수정',
+              '선수정보 출전경기 탭 추가',
+              '라인업 페이지 교체 아웃 추가',
+              '부상/결장 선수 디테일 페이지 오류 수정',
+              '팀정보 - 일정탭 날짜 기준 수정',
+              '라이브 데이터 자동 갱신 개선',
+            ],
+          ),
+          SizedBox(height: 16),
+          _PatchNoteCard(
             version: '1.0.0',
             buildNumber: '3',
-            isLatest: true,
             items: [
               '리그 일정에 라운드 표시',
               '하프타임(HT) 표시',
