@@ -1,6 +1,18 @@
-# FootHub
+# FootHub ⚽
 
-축구 직관 기록 및 일정 관리 앱
+**나만의 축구 직관 다이어리** - 경기장에서의 특별한 순간을 기록하세요!
+
+<p align="center">
+  <a href="https://apps.apple.com/kr/app/foothub/id6757123385">
+    <img src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83" alt="Download on the App Store" height="60">
+  </a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-iOS-lightgrey?logo=apple" alt="iOS">
+  <img src="https://img.shields.io/badge/Flutter-3.x-blue?logo=flutter" alt="Flutter">
+  <img src="https://img.shields.io/badge/License-Proprietary-red" alt="License">
+</p>
 
 ## 주요 기능
 
