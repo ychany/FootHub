@@ -532,6 +532,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get euroClubComps => 'Europe';
 
   @override
+  String get domesticCups => 'Cups';
+
+  @override
   String get nationalComps => 'National';
 
   @override

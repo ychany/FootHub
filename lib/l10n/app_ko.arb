@@ -711,6 +711,10 @@
   "@euroClubComps": {
     "description": "European club competitions"
   },
+  "domesticCups": "국내 컵 대회",
+  "@domesticCups": {
+    "description": "Domestic cup competitions"
+  },
   "nationalComps": "국가대항전",
   "@nationalComps": {
     "description": "National team competitions"

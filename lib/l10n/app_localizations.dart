@@ -1100,6 +1100,12 @@ abstract class AppLocalizations {
   /// **'유럽 대회'**
   String get euroClubComps;
 
+  /// Domestic cup competitions
+  ///
+  /// In ko, this message translates to:
+  /// **'국내 컵 대회'**
+  String get domesticCups;
+
   /// National team competitions
   ///
   /// In ko, this message translates to:

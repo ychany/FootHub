@@ -530,6 +530,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get euroClubComps => '유럽 대회';
 
   @override
+  String get domesticCups => '국내 컵 대회';
+
+  @override
   String get nationalComps => '국가대항전';
 
   @override

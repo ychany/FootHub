@@ -90,6 +90,13 @@ final popularLeaguesProvider = FutureProvider<List<ApiFootballLeague>>((ref) asy
     135,  // Serie A
     78,   // Bundesliga
     61,   // Ligue 1
+    // 5대 리그 국내 컵 대회
+    45,   // FA Cup
+    48,   // EFL Cup (Carabao Cup)
+    143,  // Copa del Rey
+    81,   // DFB Pokal
+    137,  // Coppa Italia
+    66,   // Coupe de France
     // 유럽 클럽 대회
     2,    // UEFA Champions League
     3,    // UEFA Europa League
@@ -208,6 +215,7 @@ class _LeagueListScreenState extends ConsumerState<LeagueListScreen> {
       data: (leagues) {
         // 카테고리별 그룹화
         final fiveLeagues = leagues.where((l) => _topFiveLeagueIds.contains(l.id)).toList();
+        final domesticCups = leagues.where((l) => [45, 48, 143, 81, 137, 66].contains(l.id)).toList();
         final euroComps = leagues.where((l) => [2, 3, 848].contains(l.id)).toList();
         final nationalComps = leagues.where((l) => [1, 4, 6, 9, 17].contains(l.id)).toList();
         // 사용자 자국 리그 (최대 2개)
@@ -219,6 +227,11 @@ class _LeagueListScreenState extends ConsumerState<LeagueListScreen> {
             if (fiveLeagues.isNotEmpty) ...[
               _buildSectionHeader(l10n.top5Leagues),
               ...fiveLeagues.map((l) => _LeagueCard(league: l)),
+              const SizedBox(height: 16),
+            ],
+            if (domesticCups.isNotEmpty) ...[
+              _buildSectionHeader(l10n.domesticCups),
+              ...domesticCups.map((l) => _LeagueCard(league: l)),
               const SizedBox(height: 16),
             ],
             if (euroComps.isNotEmpty) ...[

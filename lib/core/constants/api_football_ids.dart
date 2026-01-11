@@ -108,13 +108,22 @@ class LeagueIds {
     return now.year;
   }
 
-  /// 지원 리그 목록 (순위표 있는 리그) - 5대 리그 + 유럽 대회
+  /// 지원 리그 목록 (순위표 있는 리그) - 5대 리그 + 국내컵 + 유럽 대회
   static const List<LeagueInfo> supportedLeagues = [
+    // 5대 리그
     LeagueInfo(id: premierLeague, name: '프리미어리그', nameEn: 'Premier League', country: 'England'),
     LeagueInfo(id: laLiga, name: '라리가', nameEn: 'La Liga', country: 'Spain'),
     LeagueInfo(id: bundesliga, name: '분데스리가', nameEn: 'Bundesliga', country: 'Germany'),
     LeagueInfo(id: serieA, name: '세리에 A', nameEn: 'Serie A', country: 'Italy'),
     LeagueInfo(id: ligue1, name: '리그 1', nameEn: 'Ligue 1', country: 'France'),
+    // 5대 리그 국내 컵 대회
+    LeagueInfo(id: faCup, name: 'FA컵', nameEn: 'FA Cup', country: 'England'),
+    LeagueInfo(id: eflCup, name: 'EFL컵', nameEn: 'EFL Cup', country: 'England'),
+    LeagueInfo(id: copaDelRey, name: '코파 델 레이', nameEn: 'Copa del Rey', country: 'Spain'),
+    LeagueInfo(id: dfbPokal, name: 'DFB 포칼', nameEn: 'DFB Pokal', country: 'Germany'),
+    LeagueInfo(id: coppaItalia, name: '코파 이탈리아', nameEn: 'Coppa Italia', country: 'Italy'),
+    LeagueInfo(id: coupeDeFrance, name: '쿠프 드 프랑스', nameEn: 'Coupe de France', country: 'France'),
+    // 유럽 대회
     LeagueInfo(id: championsLeague, name: 'UEFA 챔피언스리그', nameEn: 'Champions League', country: 'Europe'),
     LeagueInfo(id: europaLeague, name: 'UEFA 유로파리그', nameEn: 'Europa League', country: 'Europe'),
   ];
