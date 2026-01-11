@@ -42,6 +42,9 @@ class AppConstants {
     'UEFA Europa League',
   ];
 
+  // 5대 국가 컵대회 (필터용)
+  static const String domesticCups = 'Domestic Cups';
+
   // 리그 이름을 한국어로 표시
   static const Map<String, String> leagueDisplayNames = {
     'English Premier League': 'EPL',
@@ -54,6 +57,7 @@ class AppConstants {
     'UEFA Champions League': 'UCL',
     'UEFA Europa League': 'UEL',
     'International Friendlies': 'A매치',
+    'Domestic Cups': '컵대회(5대 국가)',
   };
 
   // API-Football 리그 이름 → 앱 내부 리그 이름 매핑

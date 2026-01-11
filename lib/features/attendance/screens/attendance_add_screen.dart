@@ -555,6 +555,13 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
                 onTap: () => setState(() => _searchLeague = null),
               ),
               const SizedBox(width: 8),
+              // 컵대회 (5대 국가) 필터
+              _LeagueFilterChip(
+                label: AppConstants.getLocalizedLeagueName(context, AppConstants.domesticCups),
+                isSelected: _searchLeague == AppConstants.domesticCups,
+                onTap: () => setState(() => _searchLeague = AppConstants.domesticCups),
+              ),
+              const SizedBox(width: 8),
               ...allLeagues.map((league) => Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: _LeagueFilterChip(
@@ -1884,7 +1891,6 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
         lastDate: DateTime.now(),
         onDateSelected: (date) {
           setState(() => _selectedDate = date);
-          _searchEventsByDateAndLeague();
         },
       ),
     );
@@ -1924,7 +1930,15 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
             LeagueIds.internationalLeagueIds.contains(f.league.id)
           ).toList();
           setState(() => _searchResults = filtered);
-        } else {
+        }
+        // 컵대회 (5대 국가) 필터
+        else if (_searchLeague == AppConstants.domesticCups) {
+          final filtered = fixtures.where((f) =>
+            LeagueIds.cupCompetitionIds.contains(f.league.id)
+          ).toList();
+          setState(() => _searchResults = filtered);
+        }
+        else {
           final leagueId = AppConstants.getLeagueIdByName(_searchLeague!);
           final filtered = fixtures.where((f) {
             if (leagueId != null) {
