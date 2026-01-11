@@ -3334,10 +3334,74 @@ class _SeasonDropdown extends StatelessWidget {
 // ============================================================================
 // 토너먼트 탭 (컵대회용)
 // ============================================================================
+// 토너먼트 탭 서브탭 상태
+final _tournamentSubTabProvider = StateProvider<int>((ref) => 0);
+
 class _TournamentTab extends ConsumerWidget {
   final int leagueId;
 
+  static const _border = Color(0xFFE5E7EB);
+
   const _TournamentTab({required this.leagueId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedSubTab = ref.watch(_tournamentSubTabProvider);
+
+    return Column(
+      children: [
+        // 서브탭 선택 (브라켓 | 득점 | 도움)
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _border),
+          ),
+          child: Builder(
+            builder: (context) {
+              final l10n = AppLocalizations.of(context)!;
+              return Row(
+                children: [
+                  _SubTabButton(
+                    label: l10n.tournament,
+                    isSelected: selectedSubTab == 0,
+                    onTap: () => ref.read(_tournamentSubTabProvider.notifier).state = 0,
+                  ),
+                  _SubTabButton(
+                    label: l10n.goals,
+                    isSelected: selectedSubTab == 1,
+                    onTap: () => ref.read(_tournamentSubTabProvider.notifier).state = 1,
+                  ),
+                  _SubTabButton(
+                    label: l10n.assists,
+                    isSelected: selectedSubTab == 2,
+                    onTap: () => ref.read(_tournamentSubTabProvider.notifier).state = 2,
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        // 서브탭 컨텐츠
+        Expanded(
+          child: selectedSubTab == 0
+              ? _TournamentBracketContent(leagueId: leagueId)
+              : selectedSubTab == 1
+                  ? _TopScorersContent(leagueId: leagueId)
+                  : _TopAssistsContent(leagueId: leagueId),
+        ),
+      ],
+    );
+  }
+}
+
+// 토너먼트 브라켓 컨텐츠
+class _TournamentBracketContent extends ConsumerWidget {
+  final int leagueId;
+
+  const _TournamentBracketContent({required this.leagueId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
