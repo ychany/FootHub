@@ -732,9 +732,25 @@ class PatchNotesScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: const [
           _PatchNoteCard(
+            version: '1.1.1',
+            buildNumber: '2',
+            isLatest: true,
+            items: [
+              '컵대회 필터 추가 (일정/직관기록)',
+              '리그탭 국내컵대회 추가',
+              '국내컵대회 토너먼트 페이지',
+              '컵대회 토너먼트/통계 페이지 개선',
+              '컵대회 득점/도움 통계 추가',
+              '통계 탭 색상 수정',
+              '동적 로드 추가',
+              '북중미 월드컵 진출국 하드코딩',
+              '승부차기 및 연장전 점수 표시',
+            ],
+          ),
+          SizedBox(height: 16),
+          _PatchNoteCard(
             version: '1.1.0',
             buildNumber: '1',
-            isLatest: true,
             items: [
               '즐겨찾기 팀 알림 기능',
               'A매치에 필터 추가, 달력 수정',
