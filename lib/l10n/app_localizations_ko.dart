@@ -24,6 +24,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get standings => '순위';
 
   @override
+  String get tournament => '토너먼트';
+
+  @override
+  String get cannotLoadData => '데이터를 불러올 수 없습니다';
+
+  @override
   String get leagues => '리그';
 
   @override

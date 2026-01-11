@@ -21,6 +21,14 @@
   "@standings": {
     "description": "Standings tab label"
   },
+  "tournament": "토너먼트",
+  "@tournament": {
+    "description": "Tournament tab label for cup competitions"
+  },
+  "cannotLoadData": "데이터를 불러올 수 없습니다",
+  "@cannotLoadData": {
+    "description": "Generic error message for loading data"
+  },
   "leagues": "리그",
   "@leagues": {
     "description": "Leagues tab label"

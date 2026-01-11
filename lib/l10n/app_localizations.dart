@@ -128,6 +128,18 @@ abstract class AppLocalizations {
   /// **'순위'**
   String get standings;
 
+  /// Tournament tab label for cup competitions
+  ///
+  /// In ko, this message translates to:
+  /// **'토너먼트'**
+  String get tournament;
+
+  /// Generic error message for loading data
+  ///
+  /// In ko, this message translates to:
+  /// **'데이터를 불러올 수 없습니다'**
+  String get cannotLoadData;
+
   /// Leagues tab label
   ///
   /// In ko, this message translates to:

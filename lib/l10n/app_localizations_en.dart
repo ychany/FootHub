@@ -24,6 +24,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get standings => 'Ranks';
 
   @override
+  String get tournament => 'Bracket';
+
+  @override
+  String get cannotLoadData => 'Failed to load data';
+
+  @override
   String get leagues => 'Leagues';
 
   @override

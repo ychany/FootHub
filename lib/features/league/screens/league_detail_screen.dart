@@ -7,6 +7,7 @@ import '../../../core/services/api_football_service.dart';
 import '../../../core/constants/api_football_ids.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/banner_ad_widget.dart';
+import '../../../shared/widgets/tournament_bracket_widget.dart';
 
 /// 리그 정보 Provider
 final leagueInfoProvider = FutureProvider.family<ApiFootballLeague?, int>((ref, leagueId) async {
@@ -309,11 +310,17 @@ class _LeagueDetailScreenState extends ConsumerState<LeagueDetailScreen> with Si
                   indicatorColor: _primary,
                   indicatorWeight: 3,
                   labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                  tabs: [
-                    Tab(text: AppLocalizations.of(context)!.schedule),
-                    Tab(text: AppLocalizations.of(context)!.standings),
-                    Tab(text: AppLocalizations.of(context)!.stats),
-                  ],
+                  tabs: league?.type == 'Cup'
+                      ? [
+                          Tab(text: AppLocalizations.of(context)!.schedule),
+                          Tab(text: AppLocalizations.of(context)!.tournament),
+                          Tab(text: AppLocalizations.of(context)!.stats),
+                        ]
+                      : [
+                          Tab(text: AppLocalizations.of(context)!.schedule),
+                          Tab(text: AppLocalizations.of(context)!.standings),
+                          Tab(text: AppLocalizations.of(context)!.stats),
+                        ],
                 ),
               ],
             ),
@@ -323,11 +330,17 @@ class _LeagueDetailScreenState extends ConsumerState<LeagueDetailScreen> with Si
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: [
-              _FixturesTab(leagueId: leagueId),
-              _StandingsTab(leagueId: leagueId),
-              _StatsTab(leagueId: leagueId),
-            ],
+            children: league?.type == 'Cup'
+                ? [
+                    _FixturesTab(leagueId: leagueId),
+                    _TournamentTab(leagueId: leagueId),
+                    _StatsTab(leagueId: leagueId),
+                  ]
+                : [
+                    _FixturesTab(leagueId: leagueId),
+                    _StandingsTab(leagueId: leagueId),
+                    _StatsTab(leagueId: leagueId),
+                  ],
           ),
         ),
       ],
@@ -3305,6 +3318,52 @@ class _SeasonDropdown extends StatelessWidget {
               ),
             ),
             SizedBox(height: MediaQuery.of(context).padding.bottom),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// 토너먼트 탭 (컵대회용)
+// ============================================================================
+class _TournamentTab extends ConsumerWidget {
+  final int leagueId;
+
+  const _TournamentTab({required this.leagueId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final fixturesAsync = ref.watch(leagueFixturesDetailProvider(leagueId));
+
+    return fixturesAsync.when(
+      data: (fixtures) {
+        debugPrint('🏆 [TournamentTab] leagueId: $leagueId, fixtures count: ${fixtures.length}');
+        for (final f in fixtures.take(10)) {
+          debugPrint('  📌 id=${f.id}, round="${f.league.round}", ${f.homeTeam.name} vs ${f.awayTeam.name}, status=${f.status.short}, date=${f.date}');
+        }
+        if (fixtures.length > 10) {
+          debugPrint('  ... and ${fixtures.length - 10} more fixtures');
+        }
+        return TournamentBracketWidget(fixtures: fixtures);
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Color(0xFF6B7280)),
+            const SizedBox(height: 16),
+            Text(
+              AppLocalizations.of(context)!.cannotLoadData,
+              style: const TextStyle(color: Color(0xFF6B7280), fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => ref.invalidate(leagueFixturesDetailProvider(leagueId)),
+              child: Text(AppLocalizations.of(context)!.retry),
+            ),
           ],
         ),
       ),

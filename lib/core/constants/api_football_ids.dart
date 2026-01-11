@@ -61,6 +61,16 @@ class LeagueIds {
   static const int coupeDeFrance = 66;
   static const int coppaItalia = 137;
 
+  // 컵 대회 ID 목록 (토너먼트 형식)
+  static const List<int> cupCompetitionIds = [
+    faCup, eflCup, dfbPokal, copaDelRey, coupeDeFrance, coppaItalia,
+  ];
+
+  /// 컵 대회 여부 확인
+  static bool isCupCompetition(int leagueId) {
+    return cupCompetitionIds.contains(leagueId);
+  }
+
   // 국제 대회 - 본선
   static const int worldCup = 1;
   static const int euro = 4;

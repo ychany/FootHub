@@ -8,6 +8,8 @@
   "home": "Home",
   "schedule": "Matches",
   "standings": "Ranks",
+  "tournament": "Bracket",
+  "cannotLoadData": "Failed to load data",
   "leagues": "Leagues",
   "community": "Social",
   "favorites": "Favs",
