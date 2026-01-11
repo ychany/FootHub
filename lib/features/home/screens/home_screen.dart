@@ -1945,14 +1945,43 @@ class _CountryPickerSheet extends ConsumerStatefulWidget {
 class _CountryPickerSheetState extends ConsumerState<_CountryPickerSheet> {
   String _searchQuery = '';
 
+  // 대륙 이름 변환
+  String _getConfederationName(String code) {
+    switch (code) {
+      case 'AFC': return '아시아';
+      case 'UEFA': return '유럽';
+      case 'CONMEBOL': return '남미';
+      case 'CAF': return '아프리카';
+      case 'CONCACAF': return '북중미카리브';
+      case 'OFC': return '오세아니아';
+      default: return code;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final teamsAsync = ref.watch(worldCupTeamsProvider);
+    final isKorean = Localizations.localeOf(context).languageCode == 'ko';
+    final teams = ref.watch(worldCupTeamsProvider);
     final selectedTeam = ref.watch(selectedNationalTeamProvider);
 
+    // 검색 필터링
+    final filtered = _searchQuery.isEmpty
+        ? teams
+        : teams.where((t) {
+            final query = _searchQuery.toLowerCase();
+            return t.nameKo.toLowerCase().contains(query) ||
+                   t.nameEn.toLowerCase().contains(query);
+          }).toList();
+
+    // 대륙별 그룹화
+    final Map<String, List<WorldCup2026Team>> grouped = {};
+    for (final team in filtered) {
+      grouped.putIfAbsent(team.confederation, () => []).add(team);
+    }
+
     return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
+      height: MediaQuery.of(context).size.height * 0.75,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -1983,7 +2012,7 @@ class _CountryPickerSheetState extends ConsumerState<_CountryPickerSheet> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  l10n.worldCupParticipants,
+                  '2026 FIFA 월드컵 본선 진출국 (${teams.length}개국)',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.grey.shade600,
@@ -2009,99 +2038,147 @@ class _CountryPickerSheetState extends ConsumerState<_CountryPickerSheet> {
               ],
             ),
           ),
-          // 팀 목록
+          // 팀 목록 (대륙별 그룹화)
           Expanded(
-            child: teamsAsync.when(
-              data: (teams) {
-                final filtered = _searchQuery.isEmpty
-                    ? teams
-                    : teams.where((t) =>
-                        t.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: grouped.length,
+              itemBuilder: (context, sectionIndex) {
+                final confederation = grouped.keys.elementAt(sectionIndex);
+                final sectionTeams = grouped[confederation]!;
 
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) {
-                    final team = filtered[index];
-                    final isSelected = team.id == selectedTeam?.teamId;
-
-                    return ListTile(
-                      onTap: () {
-                        ref.read(selectedNationalTeamProvider.notifier).selectTeam(
-                          SelectedNationalTeam(
-                            teamId: team.id,
-                            teamName: team.name,
-                            teamLogo: team.logo,
-                            countryCode: team.code,
-                            countryFlag: team.logo,
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 대륙 헤더
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16, bottom: 8),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              _getConfederationName(confederation),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2563EB),
+                              ),
+                            ),
                           ),
-                        );
-                        // 선택 후 관련 providers 새로고침
-                        ref.invalidate(selectedTeamNextMatchesProvider);
-                        ref.invalidate(selectedTeamPastMatchesProvider);
-                        ref.invalidate(selectedTeamFormProvider);
-                        Navigator.pop(context);
-                      },
-                      leading: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
+                          const SizedBox(width: 8),
+                          Text(
+                            '${sectionTeams.length}팀',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // 팀 목록
+                    ...sectionTeams.map((team) {
+                      final isSelected = team.teamId == selectedTeam?.teamId;
+                      final displayName = isKorean ? team.nameKo : team.nameEn;
+
+                      return ListTile(
+                        onTap: () {
+                          ref.read(selectedNationalTeamProvider.notifier).selectTeam(
+                            SelectedNationalTeam(
+                              teamId: team.teamId,
+                              teamName: displayName,
+                              teamLogo: team.flagUrl,
+                              countryCode: team.countryCode,
+                              countryFlag: team.flagUrl,
+                            ),
+                          );
+                          // 선택 후 관련 providers 새로고침
+                          ref.invalidate(selectedTeamNextMatchesProvider);
+                          ref.invalidate(selectedTeamPastMatchesProvider);
+                          ref.invalidate(selectedTeamFormProvider);
+                          Navigator.pop(context);
+                        },
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.grey.shade100,
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFF2563EB)
+                                  : Colors.grey.shade200,
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: ClipOval(
+                            child: Image.network(
+                              team.flagUrl,
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Center(
+                                child: Text(
+                                  team.nameKo.substring(0, 1),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: isSelected
+                                        ? const Color(0xFF2563EB)
+                                        : Colors.grey.shade600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          displayName,
+                          style: TextStyle(
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                             color: isSelected
                                 ? const Color(0xFF2563EB)
-                                : Colors.grey.shade200,
-                            width: isSelected ? 2 : 1,
+                                : const Color(0xFF111827),
                           ),
                         ),
-                        child: ClipOval(
-                          child: team.logo != null
-                              ? Image.network(
-                                  team.logo!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Icon(
-                                    Icons.flag,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                )
-                              : Icon(Icons.flag, color: Colors.grey.shade400),
+                        subtitle: Row(
+                          children: [
+                            Text(
+                              'FIFA ${team.fifaRanking}위',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                            if (team.bestResult != null) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                '최고 ${team.bestResult}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                      ),
-                      title: Text(
-                        team.name,
-                        style: TextStyle(
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected
-                              ? const Color(0xFF2563EB)
-                              : const Color(0xFF111827),
-                        ),
-                      ),
-                      trailing: isSelected
-                          ? const Icon(
-                              Icons.check_circle,
-                              color: Color(0xFF2563EB),
-                            )
-                          : null,
-                    );
-                  },
+                        trailing: isSelected
+                            ? const Icon(
+                                Icons.check_circle,
+                                color: Color(0xFF2563EB),
+                              )
+                            : null,
+                      );
+                    }),
+                  ],
                 );
               },
-              loading: () => const Center(
-                child: CircularProgressIndicator(),
-              ),
-              error: (error, _) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.cannotLoadTeamList,
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ),
         ],
