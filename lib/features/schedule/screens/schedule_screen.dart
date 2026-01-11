@@ -796,13 +796,31 @@ class _ScheduleMatchCard extends ConsumerWidget {
                             color: match.isLive ? _error.withValues(alpha: 0.1) : _primaryLight,
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Text(
-                            match.scoreDisplay,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: match.isLive ? _error : _primary,
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                match.scoreDisplay,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: match.isLive ? _error : _primary,
+                                ),
+                              ),
+                              // 승부차기 점수 표시
+                              if (match.penaltyScoreDisplay != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 1),
+                                  child: Text(
+                                    match.penaltyScoreDisplay!,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: match.isLive ? _error : _primary,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         )
                       : const Text(

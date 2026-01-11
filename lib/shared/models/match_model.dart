@@ -31,6 +31,8 @@ class Match extends Equatable {
   final int? elapsed; // 라이브 경기 경과 시간 (분)
   final int? extra; // 라이브 경기 추가 시간 (분)
   final String? statusShort; // API 상태 코드 (1H, HT, 2H, FT 등)
+  final int? penaltyHome; // 승부차기 홈팀 점수
+  final int? penaltyAway; // 승부차기 원정팀 점수
 
   const Match({
     required this.id,
@@ -54,15 +56,26 @@ class Match extends Equatable {
     this.elapsed,
     this.extra,
     this.statusShort,
+    this.penaltyHome,
+    this.penaltyAway,
   });
 
   bool get isFinished => status == MatchStatus.finished;
   bool get isLive => status == MatchStatus.live;
   bool get isHalftime => statusShort == 'HT';
+  bool get isPenaltyShootout => statusShort == 'PEN';
 
   String get scoreDisplay {
     if (homeScore == null || awayScore == null) return 'vs';
     return '$homeScore - $awayScore';
+  }
+
+  /// 승부차기 점수 표시 문자열
+  String? get penaltyScoreDisplay {
+    if (isPenaltyShootout && penaltyHome != null && penaltyAway != null) {
+      return '($penaltyHome - $penaltyAway)';
+    }
+    return null;
   }
 
   factory Match.fromFirestore(DocumentSnapshot doc) {
@@ -103,6 +116,8 @@ class Match extends Equatable {
       elapsed: data['elapsed'] as int?,
       extra: data['extra'] as int?,
       statusShort: data['statusShort'] as String?,
+      penaltyHome: data['penaltyHome'] as int?,
+      penaltyAway: data['penaltyAway'] as int?,
     );
   }
 
@@ -128,6 +143,8 @@ class Match extends Equatable {
       'elapsed': elapsed,
       'extra': extra,
       'statusShort': statusShort,
+      'penaltyHome': penaltyHome,
+      'penaltyAway': penaltyAway,
     };
   }
 
@@ -153,6 +170,8 @@ class Match extends Equatable {
     int? elapsed,
     int? extra,
     String? statusShort,
+    int? penaltyHome,
+    int? penaltyAway,
   }) {
     return Match(
       id: id ?? this.id,
@@ -176,6 +195,8 @@ class Match extends Equatable {
       elapsed: elapsed ?? this.elapsed,
       extra: extra ?? this.extra,
       statusShort: statusShort ?? this.statusShort,
+      penaltyHome: penaltyHome ?? this.penaltyHome,
+      penaltyAway: penaltyAway ?? this.penaltyAway,
     );
   }
 
@@ -192,6 +213,8 @@ class Match extends Equatable {
         elapsed,
         extra,
         statusShort,
+        penaltyHome,
+        penaltyAway,
       ];
 
   // Example dummy data

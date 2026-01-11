@@ -1257,6 +1257,31 @@ class ApiFootballFixture {
     }
     return 'vs';
   }
+
+  /// 승부차기 여부
+  bool get isPenaltyShootout => status.short == 'PEN';
+
+  /// 승부차기 점수 표시 문자열 (승부차기인 경우에만)
+  String? get penaltyScoreDisplay {
+    if (isPenaltyShootout && score.penaltyHome != null && score.penaltyAway != null) {
+      return '(${score.penaltyHome} - ${score.penaltyAway})';
+    }
+    return null;
+  }
+
+  /// 연장전 여부 (AET = After Extra Time)
+  bool get isAfterExtraTime => status.short == 'AET' || status.short == 'PEN';
+
+  /// 연장전 점수 표시 문자열
+  String? get extraTimeScoreDisplay {
+    if (isAfterExtraTime && score.extratimeHome != null && score.extratimeAway != null) {
+      // 연장전 점수가 정규 시간 점수와 다른 경우에만 표시
+      if (score.extratimeHome != score.fulltimeHome || score.extratimeAway != score.fulltimeAway) {
+        return 'AET';
+      }
+    }
+    return null;
+  }
 }
 
 /// 경기 상태 모델

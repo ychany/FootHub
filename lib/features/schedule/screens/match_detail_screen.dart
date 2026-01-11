@@ -436,8 +436,17 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
     final allEvents = eventsAsync.valueOrNull ?? [];
     final goalEvents = allEvents.where((e) => e.type == 'Goal').toList();
     final redCardEvents = allEvents.where((e) => e.type == 'Card' && e.detail == 'Red Card').toList();
-    final homeGoals = goalEvents.where((e) => e.teamId == match.homeTeam.id).toList();
-    final awayGoals = goalEvents.where((e) => e.teamId == match.awayTeam.id).toList();
+    final homeGoalEvents = goalEvents.where((e) => e.teamId == match.homeTeam.id).toList();
+    final awayGoalEvents = goalEvents.where((e) => e.teamId == match.awayTeam.id).toList();
+
+    // API-Football에서 자책골은 득점한 팀(수혜 팀)의 이벤트로 기록됨.
+    // 따라서 자책골 보정 없이 그냥 팀별 이벤트 수를 세면 됨.
+    final actualHomeGoals = homeGoalEvents.length;
+    final actualAwayGoals = awayGoalEvents.length;
+
+    // 기존 변수명 호환
+    final homeGoals = homeGoalEvents;
+    final awayGoals = awayGoalEvents;
     final homeRedCards = redCardEvents.where((e) => e.teamId == match.homeTeam.id).toList();
     final awayRedCards = redCardEvents.where((e) => e.teamId == match.awayTeam.id).toList();
 
@@ -650,13 +659,34 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                                 : _primaryLight,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Text(
-                            match.scoreDisplay,
-                            style: TextStyle(
-                              color: match.isLive ? const Color(0xFFEF4444) : _primary,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // 스코어 표시 (연장전/승부차기는 이벤트 기반, 그 외는 API 값)
+                              Text(
+                                (match.status.short == 'AET' || match.status.short == 'PEN') && goalEvents.isNotEmpty
+                                    ? '$actualHomeGoals - $actualAwayGoals'
+                                    : match.scoreDisplay,
+                                style: TextStyle(
+                                  color: match.isLive ? const Color(0xFFEF4444) : _primary,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              // 승부차기인 경우 PK 스코어 표시
+                              if (match.isPenaltyShootout && match.score.penaltyHome != null && match.score.penaltyAway != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    '(${match.score.penaltyHome} - ${match.score.penaltyAway})',
+                                    style: TextStyle(
+                                      color: _textSecondary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         )
                       : Container(
