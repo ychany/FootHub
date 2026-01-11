@@ -28,6 +28,7 @@ class AppConstants {
     'French Ligue 1',
     'UEFA Champions League',
     'UEFA Europa League',
+    'Domestic Cups',
     'International Friendlies',
   ];
 
@@ -57,7 +58,7 @@ class AppConstants {
     'UEFA Champions League': 'UCL',
     'UEFA Europa League': 'UEL',
     'International Friendlies': 'A매치',
-    'Domestic Cups': '컵대회(5대 국가)',
+    'Domestic Cups': '컵대회',
   };
 
   // API-Football 리그 이름 → 앱 내부 리그 이름 매핑
@@ -140,6 +141,8 @@ class AppConstants {
         return l10n.leagueUCL;
       case 'UEFA Europa League':
         return l10n.leagueUEL;
+      case 'Domestic Cups':
+        return l10n.leagueDomesticCups;
       case 'International Friendlies':
         return l10n.leagueInternational;
       default:

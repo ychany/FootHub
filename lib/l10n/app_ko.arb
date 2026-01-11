@@ -3016,6 +3016,7 @@
   "leagueKLeague2": "K리그2",
   "leagueUCL": "UCL",
   "leagueUEL": "UEL",
+  "leagueDomesticCups": "컵대회",
   "leagueInternational": "A매치",
   "leagueTeamList": "{league} 팀 목록",
   "@leagueTeamList": {

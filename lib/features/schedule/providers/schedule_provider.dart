@@ -315,6 +315,11 @@ final filteredSchedulesProvider = FutureProvider<List<Match>>((ref) async {
     matches = matches.where((m) =>
       LeagueIds.internationalLeagueIds.contains(m.leagueId)
     ).toList();
+  } else if (selectedLeague == AppConstants.domesticCups) {
+    // 컵대회: 5대 국가 국내 컵대회
+    matches = matches.where((m) =>
+      LeagueIds.cupCompetitionIds.contains(m.leagueId)
+    ).toList();
   } else if (selectedLeague != null) {
     // 특정 리그 필터링
     final targetLeagueId = AppConstants.getLeagueIdByName(selectedLeague);

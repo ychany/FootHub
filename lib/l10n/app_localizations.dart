@@ -7016,6 +7016,12 @@ abstract class AppLocalizations {
   /// **'UEL'**
   String get leagueUEL;
 
+  /// No description provided for @leagueDomesticCups.
+  ///
+  /// In ko, this message translates to:
+  /// **'컵대회'**
+  String get leagueDomesticCups;
+
   /// No description provided for @leagueInternational.
   ///
   /// In ko, this message translates to:

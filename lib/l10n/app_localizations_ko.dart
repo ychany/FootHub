@@ -3662,6 +3662,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get leagueUEL => 'UEL';
 
   @override
+  String get leagueDomesticCups => '컵대회';
+
+  @override
   String get leagueInternational => 'A매치';
 
   @override

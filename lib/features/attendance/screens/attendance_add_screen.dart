@@ -555,13 +555,6 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
                 onTap: () => setState(() => _searchLeague = null),
               ),
               const SizedBox(width: 8),
-              // 컵대회 (5대 국가) 필터
-              _LeagueFilterChip(
-                label: AppConstants.getLocalizedLeagueName(context, AppConstants.domesticCups),
-                isSelected: _searchLeague == AppConstants.domesticCups,
-                onTap: () => setState(() => _searchLeague = AppConstants.domesticCups),
-              ),
-              const SizedBox(width: 8),
               ...allLeagues.map((league) => Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: _LeagueFilterChip(

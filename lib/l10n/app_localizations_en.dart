@@ -3685,6 +3685,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get leagueUEL => 'UEL';
 
   @override
+  String get leagueDomesticCups => 'Cups';
+
+  @override
   String get leagueInternational => 'International';
 
   @override
