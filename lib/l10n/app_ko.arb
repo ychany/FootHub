@@ -3206,5 +3206,19 @@
   "unblock": "차단 해제",
   "unblockUser": "차단 해제",
   "unblockUserConfirm": "이 사용자의 차단을 해제하시겠습니까?",
-  "userUnblocked": "차단이 해제되었습니다"
+  "userUnblocked": "차단이 해제되었습니다",
+  "tournamentOverview": "대회 개요",
+  "totalMatches": "총 경기",
+  "totalGoals": "총 골",
+  "avgGoals": "평균 골",
+  "homeWins": "홈 승",
+  "awayWins": "원정 승",
+  "cleanSheets": "클린시트",
+  "extraTime": "연장전",
+  "penaltyShootout": "승부차기",
+  "highScoringMatches": "다득점 경기",
+  "regularTime": "정규 시간",
+  "biggestWins": "대승 경기",
+  "roundStats": "라운드별 통계",
+  "round": "라운드"
 }

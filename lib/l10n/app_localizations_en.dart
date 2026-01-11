@@ -122,7 +122,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retry => 'Retry';
 
   @override
-  String get totalMatches => 'Total';
+  String get totalMatches => 'Matches';
 
   @override
   String get matchCount => '';
@@ -634,7 +634,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get leagueOverview => 'League Overview';
 
   @override
-  String get totalGoals => 'Total Goals';
+  String get totalGoals => 'Goals';
 
   @override
   String get goalsPerGame => 'Goals/Game';
@@ -4066,4 +4066,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get userUnblocked => 'User has been unblocked';
+
+  @override
+  String get tournamentOverview => 'Tournament Overview';
+
+  @override
+  String get avgGoals => 'Avg Goals';
+
+  @override
+  String get cleanSheets => 'Clean Sheets';
+
+  @override
+  String get penaltyShootout => 'Penalties';
+
+  @override
+  String get highScoringMatches => 'High-Scoring Matches';
+
+  @override
+  String get regularTime => 'Regular Time';
+
+  @override
+  String get biggestWins => 'Biggest Wins';
+
+  @override
+  String get roundStats => 'Round Stats';
+
+  @override
+  String get round => 'Round';
 }

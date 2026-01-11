@@ -1319,13 +1319,13 @@ abstract class AppLocalizations {
   /// Home wins
   ///
   /// In ko, this message translates to:
-  /// **'홈 승리'**
+  /// **'홈 승'**
   String get homeWins;
 
   /// Away wins
   ///
   /// In ko, this message translates to:
-  /// **'원정 승리'**
+  /// **'원정 승'**
   String get awayWins;
 
   /// Home win
@@ -7735,6 +7735,60 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'차단이 해제되었습니다'**
   String get userUnblocked;
+
+  /// No description provided for @tournamentOverview.
+  ///
+  /// In ko, this message translates to:
+  /// **'대회 개요'**
+  String get tournamentOverview;
+
+  /// No description provided for @avgGoals.
+  ///
+  /// In ko, this message translates to:
+  /// **'평균 골'**
+  String get avgGoals;
+
+  /// No description provided for @cleanSheets.
+  ///
+  /// In ko, this message translates to:
+  /// **'클린시트'**
+  String get cleanSheets;
+
+  /// No description provided for @penaltyShootout.
+  ///
+  /// In ko, this message translates to:
+  /// **'승부차기'**
+  String get penaltyShootout;
+
+  /// No description provided for @highScoringMatches.
+  ///
+  /// In ko, this message translates to:
+  /// **'다득점 경기'**
+  String get highScoringMatches;
+
+  /// No description provided for @regularTime.
+  ///
+  /// In ko, this message translates to:
+  /// **'정규 시간'**
+  String get regularTime;
+
+  /// No description provided for @biggestWins.
+  ///
+  /// In ko, this message translates to:
+  /// **'대승 경기'**
+  String get biggestWins;
+
+  /// No description provided for @roundStats.
+  ///
+  /// In ko, this message translates to:
+  /// **'라운드별 통계'**
+  String get roundStats;
+
+  /// No description provided for @round.
+  ///
+  /// In ko, this message translates to:
+  /// **'라운드'**
+  String get round;
 }
 
 class _AppLocalizationsDelegate

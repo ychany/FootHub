@@ -1879,5 +1879,19 @@
   "unblock": "Unblock",
   "unblockUser": "Unblock User",
   "unblockUserConfirm": "Unblock this user?",
-  "userUnblocked": "User has been unblocked"
+  "userUnblocked": "User has been unblocked",
+  "tournamentOverview": "Tournament Overview",
+  "totalMatches": "Matches",
+  "totalGoals": "Goals",
+  "avgGoals": "Avg Goals",
+  "homeWins": "Home Wins",
+  "awayWins": "Away Wins",
+  "cleanSheets": "Clean Sheets",
+  "extraTime": "Extra Time",
+  "penaltyShootout": "Penalties",
+  "highScoringMatches": "High-Scoring Matches",
+  "regularTime": "Regular Time",
+  "biggestWins": "Biggest Wins",
+  "roundStats": "Round Stats",
+  "round": "Round"
 }

@@ -638,10 +638,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get goalsPerGame => '경기당 골';
 
   @override
-  String get homeWins => '홈 승리';
+  String get homeWins => '홈 승';
 
   @override
-  String get awayWins => '원정 승리';
+  String get awayWins => '원정 승';
 
   @override
   String get homeWin => '홈 승';
@@ -4040,4 +4040,31 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get userUnblocked => '차단이 해제되었습니다';
+
+  @override
+  String get tournamentOverview => '대회 개요';
+
+  @override
+  String get avgGoals => '평균 골';
+
+  @override
+  String get cleanSheets => '클린시트';
+
+  @override
+  String get penaltyShootout => '승부차기';
+
+  @override
+  String get highScoringMatches => '다득점 경기';
+
+  @override
+  String get regularTime => '정규 시간';
+
+  @override
+  String get biggestWins => '대승 경기';
+
+  @override
+  String get roundStats => '라운드별 통계';
+
+  @override
+  String get round => '라운드';
 }

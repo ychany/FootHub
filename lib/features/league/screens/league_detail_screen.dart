@@ -119,9 +119,17 @@ final leagueChampionProvider = FutureProvider.family<LeagueChampionInfo, int>((r
 
   if (isCup) {
     // 컵 대회: 결승전에서 우승팀 찾기
+    // "Final" 정확히 매칭 (1/128-finals 같은 것 제외)
     final finalMatch = fixtures.where((f) {
       final round = f.league.round?.toLowerCase() ?? '';
-      return round.contains('final') && !round.contains('semi') && !round.contains('quarter');
+      // "final"로 끝나거나, "final"만 있는 경우 (semi-final, quarter-final 제외)
+      final isFinal = (round == 'final' ||
+          round.endsWith(' final') ||
+          round == 'the final') &&
+          !round.contains('semi') &&
+          !round.contains('quarter') &&
+          !RegExp(r'1/\d+-final').hasMatch(round);
+      return isFinal;
     }).toList();
 
     if (finalMatch.isNotEmpty) {
@@ -334,7 +342,7 @@ class _LeagueDetailScreenState extends ConsumerState<LeagueDetailScreen> with Si
                 ? [
                     _FixturesTab(leagueId: leagueId),
                     _TournamentTab(leagueId: leagueId),
-                    _StatsTab(leagueId: leagueId),
+                    _CupStatsTab(leagueId: leagueId),
                   ]
                 : [
                     _FixturesTab(leagueId: leagueId),
@@ -3237,11 +3245,9 @@ class _SeasonDropdown extends StatelessWidget {
   }
 
   String _formatSeason(int season) {
-    // 컵 대회(월드컵, 아시안컵 등)는 단일 연도로 표시
-    // 리그(EPL, 라리가 등)는 시즌 형식(2024-25)으로 표시
-    if (leagueType == 'Cup') {
-      return '$season';
-    }
+    // 국제 대회(월드컵, 아시안컵, 유로 등)는 단일 연도로 표시
+    // 클럽 대회(리그 + 국내컵 + 유럽대회)는 시즌 형식(2024-25)으로 표시
+    // 국내 컵(FA컵, DFB포칼 등)도 리그와 같은 시즌 주기를 사용
     return '$season-${(season + 1) % 100}';
   }
 
@@ -3339,13 +3345,6 @@ class _TournamentTab extends ConsumerWidget {
 
     return fixturesAsync.when(
       data: (fixtures) {
-        debugPrint('🏆 [TournamentTab] leagueId: $leagueId, fixtures count: ${fixtures.length}');
-        for (final f in fixtures.take(10)) {
-          debugPrint('  📌 id=${f.id}, round="${f.league.round}", ${f.homeTeam.name} vs ${f.awayTeam.name}, status=${f.status.short}, date=${f.date}');
-        }
-        if (fixtures.length > 10) {
-          debugPrint('  ... and ${fixtures.length - 10} more fixtures');
-        }
         return TournamentBracketWidget(fixtures: fixtures);
       },
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -3366,6 +3365,851 @@ class _TournamentTab extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// 컵 대회 통계 탭 (득점왕, 어시스트왕, 카드 통계)
+// ============================================================================
+class _CupStatsTab extends ConsumerWidget {
+  final int leagueId;
+
+  static const _textSecondary = Color(0xFF6B7280);
+
+  const _CupStatsTab({required this.leagueId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final championAsync = ref.watch(leagueChampionProvider(leagueId));
+    final fixturesAsync = ref.watch(leagueFixturesDetailProvider(leagueId));
+    final scorersAsync = ref.watch(leagueTopScorersProvider(leagueId));
+    final assistsAsync = ref.watch(leagueTopAssistsProvider(leagueId));
+    final topYellowAsync = ref.watch(leagueTopYellowCardsProvider(leagueId));
+    final topRedAsync = ref.watch(leagueTopRedCardsProvider(leagueId));
+
+    final l10n = AppLocalizations.of(context)!;
+
+    return fixturesAsync.when(
+      data: (fixtures) {
+        final completedFixtures = fixtures.where((f) =>
+          f.status.short == 'FT' || f.status.short == 'AET' || f.status.short == 'PEN'
+        ).toList();
+
+        if (completedFixtures.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.bar_chart, size: 48, color: _textSecondary),
+                const SizedBox(height: 16),
+                Text(l10n.noLeagueStats, style: TextStyle(color: _textSecondary)),
+              ],
+            ),
+          );
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // 우승팀 카드
+              championAsync.when(
+                data: (championInfo) => championInfo.hasChampion
+                    ? Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _ChampionCard(championInfo: championInfo),
+                      )
+                    : const SizedBox.shrink(),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+              // 대회 개요 통계 (리그 스타일)
+              _CupOverviewCard(fixtures: fixtures),
+              const SizedBox(height: 12),
+              // 최다 득점 경기
+              _HighScoringMatchesCard(fixtures: fixtures),
+              const SizedBox(height: 12),
+              // 이변 경기 (업셋)
+              _CupUpsetsCard(fixtures: fixtures),
+              const SizedBox(height: 12),
+              // 득점왕
+              _CupTopScorersCard(scorersAsync: scorersAsync),
+              const SizedBox(height: 12),
+              // 어시스트왕
+              _CupTopAssistsCard(assistsAsync: assistsAsync),
+              const SizedBox(height: 12),
+              // 카드 통계
+              _TopCardsCard(
+                topYellowAsync: topYellowAsync,
+                topRedAsync: topRedAsync,
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => Center(
+        child: Text(l10n.cannotLoadStats, style: TextStyle(color: _textSecondary)),
+      ),
+    );
+  }
+}
+
+// 컵 대회 개요 통계 카드 (리그 스타일)
+class _CupOverviewCard extends StatelessWidget {
+  final List<ApiFootballFixture> fixtures;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _success = Color(0xFF10B981);
+  static const _warning = Color(0xFFF59E0B);
+  static const _textPrimary = Color(0xFF111827);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _CupOverviewCard({required this.fixtures});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    // 완료된 경기만 필터링
+    final completedFixtures = fixtures.where((f) =>
+      f.status.short == 'FT' || f.status.short == 'AET' || f.status.short == 'PEN'
+    ).toList();
+
+    if (completedFixtures.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // 통계 계산
+    final totalMatches = completedFixtures.length;
+    final totalGoals = completedFixtures.fold<int>(0, (sum, f) =>
+      sum + (f.homeGoals ?? 0) + (f.awayGoals ?? 0)
+    );
+    final avgGoals = totalMatches > 0 ? (totalGoals / totalMatches) : 0.0;
+
+    // 홈팀 승리 / 원정팀 승리
+    final homeWins = completedFixtures.where((f) => f.homeTeam.winner == true).length;
+    final awayWins = completedFixtures.where((f) => f.awayTeam.winner == true).length;
+
+    // 연장전/승부차기 경기 수
+    final extraTimeMatches = completedFixtures.where((f) => f.status.short == 'AET').length;
+    final penaltyMatches = completedFixtures.where((f) => f.status.short == 'PEN').length;
+    final decidedInRegular = totalMatches - extraTimeMatches - penaltyMatches;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.analytics, color: _primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                l10n.tournamentOverview,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _textPrimary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _OverviewStatBox(icon: Icons.sports_soccer, label: l10n.totalGoals, value: '$totalGoals', color: _success),
+              const SizedBox(width: 12),
+              _OverviewStatBox(icon: Icons.speed, label: l10n.avgGoals, value: avgGoals.toStringAsFixed(2), color: _primary),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _OverviewStatBox(icon: Icons.home, label: l10n.homeWins, value: '$homeWins', color: _success),
+              const SizedBox(width: 12),
+              _OverviewStatBox(icon: Icons.flight, label: l10n.awayWins, value: '$awayWins', color: _warning),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // 경기 결과 분포 바
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(l10n.homeWin, style: TextStyle(fontSize: 12, color: _success, fontWeight: FontWeight.w600)),
+                    Text(l10n.awayWin, style: TextStyle(fontSize: 12, color: _warning, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: homeWins > 0 ? homeWins : 1,
+                        child: Container(height: 8, color: _success),
+                      ),
+                      Expanded(
+                        flex: awayWins > 0 ? awayWins : 1,
+                        child: Container(height: 8, color: _warning),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(l10n.xMatches(homeWins), style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                    Text(l10n.xMatches(awayWins), style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // 경기 결과 방식 (정규/연장/승부차기)
+          if (extraTimeMatches > 0 || penaltyMatches > 0) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildDecisionType(l10n.regularTime, decidedInRegular, _success),
+                      if (extraTimeMatches > 0)
+                        _buildDecisionType(l10n.extraTime, extraTimeMatches, _warning),
+                      if (penaltyMatches > 0)
+                        _buildDecisionType(l10n.penaltyShootout, penaltyMatches, const Color(0xFFEF4444)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDecisionType(String label, int count, Color color) {
+    return Column(
+      children: [
+        Text(
+          '$count',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.8)),
+        ),
+      ],
+    );
+  }
+}
+
+// 이변 경기 카드 (업셋)
+class _CupUpsetsCard extends StatelessWidget {
+  final List<ApiFootballFixture> fixtures;
+
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+  static const _warning = Color(0xFFF59E0B);
+
+  const _CupUpsetsCard({required this.fixtures});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    // 완료된 경기만 필터링
+    final completedFixtures = fixtures.where((f) =>
+      f.status.short == 'FT' || f.status.short == 'AET' || f.status.short == 'PEN'
+    ).toList();
+
+    // 큰 점수차 경기 (3골 이상 차이)
+    final bigWins = completedFixtures.where((f) {
+      final diff = ((f.homeGoals ?? 0) - (f.awayGoals ?? 0)).abs();
+      return diff >= 3;
+    }).toList();
+
+    // 점수차 순으로 정렬
+    bigWins.sort((a, b) {
+      final diffA = ((a.homeGoals ?? 0) - (a.awayGoals ?? 0)).abs();
+      final diffB = ((b.homeGoals ?? 0) - (b.awayGoals ?? 0)).abs();
+      return diffB.compareTo(diffA);
+    });
+
+    if (bigWins.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.bolt, color: _warning, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                l10n.biggestWins,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _textPrimary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...bigWins.take(5).map((fixture) => _buildMatchRow(context, fixture)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMatchRow(BuildContext context, ApiFootballFixture fixture) {
+    final diff = ((fixture.homeGoals ?? 0) - (fixture.awayGoals ?? 0)).abs();
+    final roundName = fixture.league.round ?? '';
+
+    return InkWell(
+      onTap: () => context.push('/match/${fixture.id}'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: _warning.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  '+$diff',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _warning),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${fixture.homeTeam.name} ${fixture.homeGoals} - ${fixture.awayGoals} ${fixture.awayTeam.name}',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _textPrimary),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(roundName, style: TextStyle(fontSize: 11, color: _textSecondary)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 18, color: _textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 최다 득점 경기 카드
+class _HighScoringMatchesCard extends StatelessWidget {
+  final List<ApiFootballFixture> fixtures;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _HighScoringMatchesCard({required this.fixtures});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    // 완료된 경기만 필터링하고 골 수로 정렬
+    final completedFixtures = fixtures.where((f) =>
+      f.status.short == 'FT' || f.status.short == 'AET' || f.status.short == 'PEN'
+    ).toList();
+
+    if (completedFixtures.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // 총 골 수로 정렬
+    completedFixtures.sort((a, b) {
+      final goalsA = (a.homeGoals ?? 0) + (a.awayGoals ?? 0);
+      final goalsB = (b.homeGoals ?? 0) + (b.awayGoals ?? 0);
+      return goalsB.compareTo(goalsA);
+    });
+
+    // 상위 5경기
+    final topMatches = completedFixtures.take(5).toList();
+
+    // 최소 3골 이상인 경기만 표시
+    final highScoringMatches = topMatches.where((f) =>
+      (f.homeGoals ?? 0) + (f.awayGoals ?? 0) >= 3
+    ).toList();
+
+    if (highScoringMatches.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.local_fire_department, color: Color(0xFFEF4444), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                l10n.highScoringMatches,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: _textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...highScoringMatches.map((fixture) => _buildMatchRow(context, fixture)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMatchRow(BuildContext context, ApiFootballFixture fixture) {
+    final totalGoals = (fixture.homeGoals ?? 0) + (fixture.awayGoals ?? 0);
+    final roundName = fixture.league.round ?? '';
+
+    return InkWell(
+      onTap: () => context.push('/match/${fixture.id}'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            // 골 수 배지
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: _getGoalColor(totalGoals).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  '$totalGoals',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: _getGoalColor(totalGoals),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // 경기 정보
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${fixture.homeTeam.name} ${fixture.homeGoals} - ${fixture.awayGoals} ${fixture.awayTeam.name}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    roundName,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: _textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 18, color: _textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getGoalColor(int goals) {
+    if (goals >= 7) return const Color(0xFFDC2626);
+    if (goals >= 5) return const Color(0xFFF59E0B);
+    return _primary;
+  }
+}
+
+// 컵 대회 득점왕 카드
+class _CupTopScorersCard extends StatelessWidget {
+  final AsyncValue<List<ApiFootballTopScorer>> scorersAsync;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _CupTopScorersCard({required this.scorersAsync});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.sports_soccer, color: _primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                l10n.topScorersRanking,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: _textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          scorersAsync.when(
+            data: (scorers) {
+              if (scorers.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(l10n.noData, style: TextStyle(color: _textSecondary)),
+                  ),
+                );
+              }
+              return Column(
+                children: scorers.take(5).map((scorer) => _buildPlayerRow(
+                  context,
+                  rank: scorers.indexOf(scorer) + 1,
+                  player: scorer,
+                  statValue: scorer.goals ?? 0,
+                )).toList(),
+              );
+            },
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            error: (_, __) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(l10n.cannotLoadData, style: TextStyle(color: _textSecondary)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlayerRow(
+    BuildContext context, {
+    required int rank,
+    required ApiFootballTopScorer player,
+    required int statValue,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 24,
+            child: Text(
+              '$rank',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: rank <= 3 ? _primary : _textSecondary,
+              ),
+            ),
+          ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: CachedNetworkImage(
+              imageUrl: player.playerPhoto ?? '',
+              width: 36,
+              height: 36,
+              fit: BoxFit.cover,
+              errorWidget: (_, __, ___) => Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(Icons.person, size: 20, color: Color(0xFF9CA3AF)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  player.playerName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: _textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  player.teamName,
+                  style: TextStyle(fontSize: 12, color: _textSecondary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: _primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '$statValue',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: _primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// 컵 대회 어시스트왕 카드
+class _CupTopAssistsCard extends StatelessWidget {
+  final AsyncValue<List<ApiFootballTopScorer>> assistsAsync;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _CupTopAssistsCard({required this.assistsAsync});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.handshake, color: _primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                l10n.topAssistsRanking,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: _textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          assistsAsync.when(
+            data: (assists) {
+              if (assists.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(l10n.noData, style: TextStyle(color: _textSecondary)),
+                  ),
+                );
+              }
+              return Column(
+                children: assists.take(5).map((player) => _buildPlayerRow(
+                  context,
+                  rank: assists.indexOf(player) + 1,
+                  player: player,
+                  statValue: player.assists ?? 0,
+                )).toList(),
+              );
+            },
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            error: (_, __) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(l10n.cannotLoadData, style: TextStyle(color: _textSecondary)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlayerRow(
+    BuildContext context, {
+    required int rank,
+    required ApiFootballTopScorer player,
+    required int statValue,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 24,
+            child: Text(
+              '$rank',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: rank <= 3 ? _primary : _textSecondary,
+              ),
+            ),
+          ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: CachedNetworkImage(
+              imageUrl: player.playerPhoto ?? '',
+              width: 36,
+              height: 36,
+              fit: BoxFit.cover,
+              errorWidget: (_, __, ___) => Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(Icons.person, size: 20, color: Color(0xFF9CA3AF)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  player.playerName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: _textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  player.teamName,
+                  style: TextStyle(fontSize: 12, color: _textSecondary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: _primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '$statValue',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: _primary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -20,6 +20,29 @@ class TournamentRound {
   });
 }
 
+/// 팀 진출/탈락 정보
+class TeamAdvancement {
+  final int teamId;
+  final String teamName;
+  final String? teamLogo;
+  final bool advanced; // true = 진출, false = 탈락
+  final int? goalsFor;
+  final int? goalsAgainst;
+  final bool isPenaltyWin;
+  final String? opponentName;
+
+  TeamAdvancement({
+    required this.teamId,
+    required this.teamName,
+    this.teamLogo,
+    required this.advanced,
+    this.goalsFor,
+    this.goalsAgainst,
+    this.isPenaltyWin = false,
+    this.opponentName,
+  });
+}
+
 /// 토너먼트 브라켓 위젯
 class TournamentBracketWidget extends StatelessWidget {
   final List<ApiFootballFixture> fixtures;
@@ -66,25 +89,18 @@ class TournamentBracketWidget extends StatelessWidget {
       itemCount: rounds.length,
       itemBuilder: (context, index) {
         final round = rounds[index];
-        return _buildRoundSection(context, round);
+        return _buildAdvancementSection(context, round);
       },
     );
   }
 
-  /// 라운드별로 경기 그룹화
+  /// 라운드별로 경기 그룹화 (예선 라운드 제외, 64강 이상만)
   List<TournamentRound> _groupByRound(List<ApiFootballFixture> fixtures) {
     final Map<String, List<ApiFootballFixture>> grouped = {};
-
-    debugPrint('🔍 [TournamentBracket] _groupByRound called with ${fixtures.length} fixtures');
 
     for (final fixture in fixtures) {
       final roundName = fixture.league.round ?? 'Unknown';
       grouped.putIfAbsent(roundName, () => []).add(fixture);
-    }
-
-    debugPrint('🔍 [TournamentBracket] Grouped rounds: ${grouped.keys.toList()}');
-    for (final entry in grouped.entries) {
-      debugPrint('  📍 "${entry.key}" -> ${entry.value.length} fixtures, order=${_getRoundOrder(entry.key)}');
     }
 
     // 라운드명을 순서대로 정렬
@@ -101,10 +117,13 @@ class TournamentBracketWidget extends StatelessWidget {
       );
     }).toList();
 
-    // 결승에 가까운 순서대로 정렬 (결승이 맨 위)
-    rounds.sort((a, b) => b.order.compareTo(a.order));
+    // 예선 라운드 필터링 (order >= 50인 라운드만 = 64강 이상)
+    final mainRounds = rounds.where((r) => r.order >= 50).toList();
 
-    return rounds;
+    // 결승에 가까운 순서대로 정렬 (결승이 맨 위)
+    mainRounds.sort((a, b) => b.order.compareTo(a.order));
+
+    return mainRounds;
   }
 
   /// 라운드 순서 반환 (결승이 가장 높은 숫자)
@@ -212,22 +231,85 @@ class TournamentBracketWidget extends StatelessWidget {
     return round;
   }
 
-  Widget _buildRoundSection(BuildContext context, TournamentRound round) {
+  /// 진출/탈락 정보를 추출
+  List<TeamAdvancement> _extractAdvancements(TournamentRound round) {
+    final List<TeamAdvancement> advancements = [];
+
+    for (final fixture in round.fixtures) {
+      final isFinished = fixture.status.short == 'FT' ||
+                         fixture.status.short == 'AET' ||
+                         fixture.status.short == 'PEN';
+
+      if (isFinished) {
+        final homeWinner = fixture.homeTeam.winner == true;
+        final awayWinner = fixture.awayTeam.winner == true;
+        final isPenalty = fixture.status.short == 'PEN';
+
+        // 홈팀
+        advancements.add(TeamAdvancement(
+          teamId: fixture.homeTeam.id,
+          teamName: fixture.homeTeam.name,
+          teamLogo: fixture.homeTeam.logo,
+          advanced: homeWinner,
+          goalsFor: fixture.homeGoals,
+          goalsAgainst: fixture.awayGoals,
+          isPenaltyWin: isPenalty && homeWinner,
+          opponentName: fixture.awayTeam.name,
+        ));
+
+        // 원정팀
+        advancements.add(TeamAdvancement(
+          teamId: fixture.awayTeam.id,
+          teamName: fixture.awayTeam.name,
+          teamLogo: fixture.awayTeam.logo,
+          advanced: awayWinner,
+          goalsFor: fixture.awayGoals,
+          goalsAgainst: fixture.homeGoals,
+          isPenaltyWin: isPenalty && awayWinner,
+          opponentName: fixture.homeTeam.name,
+        ));
+      }
+    }
+
+    // 진출팀을 먼저, 탈락팀을 나중에 정렬
+    advancements.sort((a, b) {
+      if (a.advanced && !b.advanced) return -1;
+      if (!a.advanced && b.advanced) return 1;
+      return a.teamName.compareTo(b.teamName);
+    });
+
+    return advancements;
+  }
+
+  /// 라운드별 진출/탈락 섹션
+  Widget _buildAdvancementSection(BuildContext context, TournamentRound round) {
     final isKorean = locale == 'ko' || Localizations.localeOf(context).languageCode == 'ko';
     final displayName = isKorean ? round.nameKo : round.name;
     final isFinal = round.order == 100;
+
+    final advancements = _extractAdvancements(round);
+    final advancedTeams = advancements.where((a) => a.advanced).toList();
+    final eliminatedTeams = advancements.where((a) => !a.advanced).toList();
+
+    // 아직 진행되지 않은 경기 수
+    final pendingFixtures = round.fixtures.where((f) =>
+      f.status.short != 'FT' &&
+      f.status.short != 'AET' &&
+      f.status.short != 'PEN'
+    ).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 라운드 헤더
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: isFinal ? const Color(0xFFFEF3C7) : Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isFinal ? const Color(0xFFFBBF24) : _border,
+              width: isFinal ? 2 : 1,
             ),
           ),
           child: Row(
@@ -235,216 +317,334 @@ class TournamentBracketWidget extends StatelessWidget {
               if (isFinal)
                 const Padding(
                   padding: EdgeInsets.only(right: 8),
-                  child: Icon(Icons.emoji_events, color: Color(0xFFF59E0B), size: 20),
+                  child: Icon(Icons.emoji_events, color: Color(0xFFF59E0B), size: 22),
                 ),
               Text(
                 displayName,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: isFinal ? const Color(0xFFB45309) : _textPrimary,
                 ),
               ),
               const Spacer(),
-              Text(
-                '${round.fixtures.length}경기',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: _textSecondary,
-                ),
+              // 진출/탈락/대기 카운트
+              Row(
+                children: [
+                  if (advancedTeams.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _winnerBg,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '✓ ${advancedTeams.length}',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _winnerText),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  if (eliminatedTeams.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEE2E2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '✗ ${eliminatedTeams.length}',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFDC2626)),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  if (pendingFixtures.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '⏳ ${pendingFixtures.length * 2}',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _textSecondary),
+                      ),
+                    ),
+                ],
               ),
             ],
           ),
         ),
         const SizedBox(height: 8),
-        // 경기 목록
-        ...round.fixtures.map((fixture) => _buildMatchCard(context, fixture, isFinal)),
+
+        // 진출팀 목록
+        if (advancedTeams.isNotEmpty) ...[
+          _buildTeamList(context, advancedTeams, isAdvanced: true, isFinal: isFinal),
+          const SizedBox(height: 8),
+        ],
+
+        // 탈락팀 목록
+        if (eliminatedTeams.isNotEmpty) ...[
+          _buildTeamList(context, eliminatedTeams, isAdvanced: false, isFinal: false),
+          const SizedBox(height: 8),
+        ],
+
+        // 대기 중인 경기
+        if (pendingFixtures.isNotEmpty) ...[
+          _buildPendingFixtures(context, pendingFixtures),
+        ],
+
         const SizedBox(height: 16),
       ],
     );
   }
 
-  Widget _buildMatchCard(BuildContext context, ApiFootballFixture fixture, bool isFinal) {
-    final isFinished = fixture.status.short == 'FT' ||
-                       fixture.status.short == 'AET' ||
-                       fixture.status.short == 'PEN';
-    final homeWinner = fixture.homeTeam.winner == true;
-    final awayWinner = fixture.awayTeam.winner == true;
-    final dateFormat = DateFormat('MM/dd HH:mm');
-
-    return GestureDetector(
-      onTap: () => context.push('/match/${fixture.id}'),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isFinal && isFinished ? const Color(0xFFFBBF24) : _border,
-            width: isFinal && isFinished ? 2 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
+  /// 팀 목록 빌드 (진출/탈락)
+  Widget _buildTeamList(BuildContext context, List<TeamAdvancement> teams, {required bool isAdvanced, required bool isFinal}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isAdvanced ? _winnerBg.withValues(alpha: 0.5) : const Color(0xFFFEE2E2).withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isAdvanced ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5),
         ),
-        child: Column(
-          children: [
-            // 날짜/상태
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+      ),
+      child: Column(
+        children: [
+          // 헤더
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isAdvanced ? const Color(0xFF86EFAC).withValues(alpha: 0.3) : const Color(0xFFFCA5A5).withValues(alpha: 0.3),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
+            ),
+            child: Row(
               children: [
+                Icon(
+                  isAdvanced ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                  size: 16,
+                  color: isAdvanced ? _winnerText : const Color(0xFFDC2626),
+                ),
+                const SizedBox(width: 6),
                 Text(
-                  dateFormat.format(fixture.date.toLocal()),
+                  isAdvanced ? (isFinal ? '우승' : '진출') : '탈락',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: isAdvanced ? _winnerText : const Color(0xFFDC2626),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${teams.length}팀',
                   style: TextStyle(
                     fontSize: 11,
-                    color: _textSecondary,
+                    color: isAdvanced ? _winnerText : const Color(0xFFDC2626),
                   ),
                 ),
-                if (isFinished) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDCFCE7),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      _getStatusText(fixture.status.short),
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF166534),
-                      ),
-                    ),
-                  ),
-                ] else if (fixture.status.short == 'NS') ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDBEAFE),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      '예정',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2563EB),
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
-            const SizedBox(height: 10),
-            // 팀 vs 팀
-            Row(
-              children: [
-                // 홈팀
-                Expanded(
-                  child: _buildTeamRow(
-                    fixture.homeTeam,
-                    isWinner: homeWinner && isFinished,
-                    isHome: true,
-                  ),
-                ),
-                // 스코어
-                Container(
-                  width: 70,
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                  child: isFinished || fixture.status.short != 'NS'
-                      ? FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            '${fixture.homeGoals ?? '-'} - ${fixture.awayGoals ?? '-'}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: _textPrimary,
-                            ),
-                          ),
-                        )
-                      : Text(
-                          'vs',
-                          textAlign: TextAlign.center,
+          ),
+          // 팀 목록
+          ...teams.map((team) => _buildTeamRow(context, team, isAdvanced: isAdvanced, isFinal: isFinal && isAdvanced)),
+        ],
+      ),
+    );
+  }
+
+  /// 개별 팀 행
+  Widget _buildTeamRow(BuildContext context, TeamAdvancement team, {required bool isAdvanced, required bool isFinal}) {
+    return InkWell(
+      onTap: () => context.push('/team/${team.teamId}'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: isAdvanced ? const Color(0xFF86EFAC).withValues(alpha: 0.5) : const Color(0xFFFCA5A5).withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            // 팀 로고
+            _buildTeamLogo(team.teamLogo),
+            const SizedBox(width: 10),
+            // 팀 이름
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          team.teamName,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: _textSecondary,
+                            fontSize: 13,
+                            fontWeight: isFinal ? FontWeight.w700 : FontWeight.w500,
+                            color: _textPrimary,
                           ),
                         ),
-                ),
-                // 원정팀
-                Expanded(
-                  child: _buildTeamRow(
-                    fixture.awayTeam,
-                    isWinner: awayWinner && isFinished,
-                    isHome: false,
+                      ),
+                      if (isFinal) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.emoji_events, size: 16, color: Color(0xFFF59E0B)),
+                      ],
+                    ],
                   ),
-                ),
-              ],
+                  if (team.opponentName != null)
+                    Text(
+                      'vs ${team.opponentName}',
+                      style: TextStyle(fontSize: 11, color: _textSecondary),
+                    ),
+                ],
+              ),
             ),
-            // 승부차기 표시
-            if (fixture.status.short == 'PEN' && fixture.score.penaltyHome != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                '(PK ${fixture.score.penaltyHome} - ${fixture.score.penaltyAway})',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: _textSecondary,
+            // 스코어
+            if (team.goalsFor != null && team.goalsAgainst != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      '${team.goalsFor} - ${team.goalsAgainst}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _textPrimary,
+                      ),
+                    ),
+                    if (team.isPenaltyWin) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        'PK',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: _textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTeamRow(ApiFootballFixtureTeam team, {required bool isWinner, required bool isHome}) {
+  /// 대기 중인 경기 표시
+  Widget _buildPendingFixtures(BuildContext context, List<ApiFootballFixture> fixtures) {
+    final dateFormat = DateFormat('MM/dd HH:mm');
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: isWinner ? _winnerBg : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _border),
       ),
-      child: Row(
-        mainAxisAlignment: isHome ? MainAxisAlignment.end : MainAxisAlignment.start,
+      child: Column(
         children: [
-          if (!isHome) ...[
-            _buildTeamLogo(team.logo),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: Text(
-              team.name,
-              textAlign: isHome ? TextAlign.right : TextAlign.left,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isWinner ? FontWeight.w700 : FontWeight.w500,
-                color: isWinner ? _winnerText : _textPrimary,
-              ),
+          // 헤더
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(9)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.schedule, size: 16, color: _textSecondary),
+                const SizedBox(width: 6),
+                Text(
+                  '예정',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: _textSecondary,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${fixtures.length}경기',
+                  style: TextStyle(fontSize: 11, color: _textSecondary),
+                ),
+              ],
             ),
           ),
-          if (isHome) ...[
-            const SizedBox(width: 8),
-            _buildTeamLogo(team.logo),
-          ],
-          if (isWinner) ...[
-            const SizedBox(width: 4),
-            Icon(
-              Icons.emoji_events,
-              size: 14,
-              color: const Color(0xFFF59E0B),
+          // 경기 목록
+          ...fixtures.map((fixture) => InkWell(
+            onTap: () => context.push('/match/${fixture.id}'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: _border.withValues(alpha: 0.5)),
+                ),
+              ),
+              child: Row(
+                children: [
+                  // 홈팀
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            fixture.homeTeam.name,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                            style: TextStyle(fontSize: 12, color: _textPrimary),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        _buildTeamLogo(fixture.homeTeam.logo),
+                      ],
+                    ),
+                  ),
+                  // 날짜/시간
+                  Container(
+                    width: 80,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Column(
+                      children: [
+                        Text(
+                          dateFormat.format(fixture.date.toLocal()),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10, color: _textSecondary),
+                        ),
+                        const Icon(Icons.hourglass_empty, size: 14, color: Color(0xFF9CA3AF)),
+                      ],
+                    ),
+                  ),
+                  // 원정팀
+                  Expanded(
+                    child: Row(
+                      children: [
+                        _buildTeamLogo(fixture.awayTeam.logo),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            fixture.awayTeam.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, color: _textPrimary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          )),
         ],
       ),
     );
@@ -479,22 +679,4 @@ class TournamentBracketWidget extends StatelessWidget {
     );
   }
 
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'FT':
-        return '종료';
-      case 'AET':
-        return '연장';
-      case 'PEN':
-        return '승부차기';
-      case 'HT':
-        return '하프타임';
-      case '1H':
-      case '2H':
-      case 'ET':
-        return '진행중';
-      default:
-        return status;
-    }
-  }
 }
