@@ -53,6 +53,14 @@ class LeagueIds {
   static const int europaLeague = 3;
   static const int conferenceLeague = 848;
 
+  // 5대 리그 국내 컵 대회
+  static const int faCup = 45;
+  static const int eflCup = 48; // Carabao Cup
+  static const int dfbPokal = 81;
+  static const int copaDelRey = 143;
+  static const int coupeDeFrance = 66;
+  static const int coppaItalia = 137;
+
   // 국제 대회 - 본선
   static const int worldCup = 1;
   static const int euro = 4;
