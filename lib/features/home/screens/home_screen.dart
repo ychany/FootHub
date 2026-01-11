@@ -499,12 +499,42 @@ class _LiveScoresSection extends ConsumerStatefulWidget {
   ConsumerState<_LiveScoresSection> createState() => _LiveScoresSectionState();
 }
 
-class _LiveScoresSectionState extends ConsumerState<_LiveScoresSection> {
+class _LiveScoresSectionState extends ConsumerState<_LiveScoresSection> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // 화면 진입 시 라이브 데이터 자동 갱신 (기존 캐시 데이터 먼저 표시 후 새 데이터 로드)
-    Future.microtask(() => ref.invalidate(soccerLivescoresProvider));
+    _refreshData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 앱이 다시 포그라운드로 돌아올 때 데이터 갱신
+    if (state == AppLifecycleState.resumed) {
+      _refreshData();
+    }
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    // 화면이 다시 활성화될 때 (뒤로가기로 돌아올 때) 데이터 갱신
+    _refreshData();
+  }
+
+  void _refreshData() {
+    Future.microtask(() {
+      if (mounted) {
+        ref.invalidate(soccerLivescoresProvider);
+      }
+    });
   }
 
   @override

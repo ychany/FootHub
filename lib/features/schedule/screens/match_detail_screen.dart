@@ -177,7 +177,7 @@ class MatchDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<MatchDetailScreen> createState() => _MatchDetailScreenState();
 }
 
-class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
+class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> with WidgetsBindingObserver {
   static const _error = Color(0xFFEF4444);
   static const _textSecondary = Color(0xFF6B7280);
   static const _background = Color(0xFFF9FAFB);
@@ -185,13 +185,41 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // 화면 진입 시 라이브 경기 데이터 자동 갱신 (기존 캐시 먼저 표시 후 새 데이터 로드)
+    _refreshData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 앱이 다시 포그라운드로 돌아올 때 데이터 갱신
+    if (state == AppLifecycleState.resumed) {
+      _refreshData();
+    }
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    // 화면이 다시 활성화될 때 (뒤로가기로 돌아올 때) 데이터 갱신
+    _refreshData();
+  }
+
+  void _refreshData() {
     Future.microtask(() {
-      ref.invalidate(matchDetailProvider(widget.eventId));
-      ref.invalidate(matchTimelineProvider(widget.eventId));
-      ref.invalidate(matchStatsProvider(widget.eventId));
-      ref.invalidate(matchLineupProvider(widget.eventId));
-      ref.invalidate(matchPlayerStatsProvider(widget.eventId));
+      if (mounted) {
+        ref.invalidate(matchDetailProvider(widget.eventId));
+        ref.invalidate(matchTimelineProvider(widget.eventId));
+        ref.invalidate(matchStatsProvider(widget.eventId));
+        ref.invalidate(matchLineupProvider(widget.eventId));
+        ref.invalidate(matchPlayerStatsProvider(widget.eventId));
+      }
     });
   }
 

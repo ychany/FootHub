@@ -72,7 +72,7 @@ class LiveMatchesScreen extends ConsumerStatefulWidget {
   ConsumerState<LiveMatchesScreen> createState() => _LiveMatchesScreenState();
 }
 
-class _LiveMatchesScreenState extends ConsumerState<LiveMatchesScreen> {
+class _LiveMatchesScreenState extends ConsumerState<LiveMatchesScreen> with WidgetsBindingObserver {
   static const _primary = Color(0xFF2563EB);
   static const _textPrimary = Color(0xFF111827);
   static const _textSecondary = Color(0xFF6B7280);
@@ -88,11 +88,9 @@ class _LiveMatchesScreenState extends ConsumerState<LiveMatchesScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // 화면 진입 시 라이브 데이터 자동 갱신
-    Future.microtask(() {
-      ref.invalidate(liveMatchesProvider);
-      ref.invalidate(liveMatchesRefreshProvider);
-    });
+    _refreshData();
     // UI에서 마지막 업데이트 시간 갱신용 타이머
     _updateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
@@ -101,8 +99,33 @@ class _LiveMatchesScreenState extends ConsumerState<LiveMatchesScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _updateTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 앱이 다시 포그라운드로 돌아올 때 데이터 갱신
+    if (state == AppLifecycleState.resumed) {
+      _refreshData();
+    }
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    // 화면이 다시 활성화될 때 (뒤로가기로 돌아올 때) 데이터 갱신
+    _refreshData();
+  }
+
+  void _refreshData() {
+    Future.microtask(() {
+      if (mounted) {
+        ref.invalidate(liveMatchesProvider);
+        ref.invalidate(liveMatchesRefreshProvider);
+      }
+    });
   }
 
   @override

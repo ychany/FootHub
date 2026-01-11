@@ -23,7 +23,7 @@ class ScheduleScreen extends ConsumerStatefulWidget {
   ConsumerState<ScheduleScreen> createState() => _ScheduleScreenState();
 }
 
-class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
+class _ScheduleScreenState extends ConsumerState<ScheduleScreen> with WidgetsBindingObserver {
   static const _primary = Color(0xFF2563EB);
   static const _primaryLight = Color(0xFFDBEAFE);
   static const _success = Color(0xFF10B981);
@@ -39,8 +39,38 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // 화면 진입 시 일정 데이터 자동 갱신 (기존 캐시 먼저 표시 후 새 데이터 로드)
-    Future.microtask(() => ref.invalidate(filteredSchedulesProvider));
+    _refreshData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 앱이 다시 포그라운드로 돌아올 때 데이터 갱신
+    if (state == AppLifecycleState.resumed) {
+      _refreshData();
+    }
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    // 화면이 다시 활성화될 때 (뒤로가기로 돌아올 때) 데이터 갱신
+    _refreshData();
+  }
+
+  void _refreshData() {
+    Future.microtask(() {
+      if (mounted) {
+        ref.invalidate(filteredSchedulesProvider);
+      }
+    });
   }
 
   @override
