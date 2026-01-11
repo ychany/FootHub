@@ -2875,6 +2875,15 @@ class _StatBar extends StatelessWidget {
     final homeRatio = total > 0 ? homeValue / total : 0.5;
     final awayRatio = total > 0 ? awayValue / total : 0.5;
 
+    // 숫자가 큰 쪽이 진한 색
+    final homeWins = homeValue > awayValue;
+    final awayWins = awayValue > homeValue;
+    final isDraw = homeValue == awayValue;
+
+    final baseColor = color ?? _primary;
+    final homeColor = isDraw ? baseColor.withValues(alpha: 0.6) : (homeWins ? baseColor : baseColor.withValues(alpha: 0.3));
+    final awayColor = isDraw ? baseColor.withValues(alpha: 0.6) : (awayWins ? baseColor : baseColor.withValues(alpha: 0.3));
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
@@ -2884,10 +2893,10 @@ class _StatBar extends StatelessWidget {
             children: [
               Text(
                 isPercentage ? '$homeValue%' : '$homeValue',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: _textPrimary,
+                  fontWeight: homeWins ? FontWeight.w700 : FontWeight.w500,
+                  color: homeWins ? _textPrimary : _textSecondary,
                 ),
               ),
               Text(
@@ -2899,10 +2908,10 @@ class _StatBar extends StatelessWidget {
               ),
               Text(
                 isPercentage ? '$awayValue%' : '$awayValue',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: _textPrimary,
+                  fontWeight: awayWins ? FontWeight.w700 : FontWeight.w500,
+                  color: awayWins ? _textPrimary : _textSecondary,
                 ),
               ),
             ],
@@ -2915,7 +2924,7 @@ class _StatBar extends StatelessWidget {
                 child: Container(
                   height: 6,
                   decoration: BoxDecoration(
-                    color: color ?? _primary,
+                    color: homeColor,
                     borderRadius: const BorderRadius.horizontal(
                       left: Radius.circular(3),
                     ),
@@ -2928,7 +2937,7 @@ class _StatBar extends StatelessWidget {
                 child: Container(
                   height: 6,
                   decoration: BoxDecoration(
-                    color: (color ?? _primary).withValues(alpha: 0.3),
+                    color: awayColor,
                     borderRadius: const BorderRadius.horizontal(
                       right: Radius.circular(3),
                     ),
