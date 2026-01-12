@@ -734,9 +734,22 @@ class PatchNotesScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: const [
           _PatchNoteCard(
+            version: '1.1.2',
+            buildNumber: '3',
+            isLatest: true,
+            items: [
+              'UEFA 컨퍼런스리그 추가',
+              '2026 FIFA 월드컵 정보 반영',
+              '리그 페이지 로딩 안정성 개선',
+              '순위 페이지 통계 탭 개선',
+              '컵대회 추가 및 개선',
+              '성능 개선 및 버그 수정',
+            ],
+          ),
+          SizedBox(height: 16),
+          _PatchNoteCard(
             version: '1.1.1',
             buildNumber: '2',
-            isLatest: true,
             items: [
               '컵대회 필터 추가 (일정/직관기록)',
               '리그탭 국내컵대회 추가',
