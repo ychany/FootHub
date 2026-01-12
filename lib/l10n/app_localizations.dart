@@ -5357,7 +5357,7 @@ abstract class AppLocalizations {
   /// No description provided for @faqSupportedLeaguesAnswer.
   ///
   /// In ko, this message translates to:
-  /// **'EPL(잉글랜드), 라리가(스페인), 분데스리가(독일), 세리에A(이탈리아), 리그앙(프랑스), K리그, 챔피언스리그, 유로파리그를 지원합니다.'**
+  /// **'EPL(잉글랜드), 라리가(스페인), 분데스리가(독일), 세리에A(이탈리아), 리그앙(프랑스), K리그, 챔피언스리그, 유로파리그, 컨퍼런스리그를 지원합니다.'**
   String get faqSupportedLeaguesAnswer;
 
   /// No description provided for @userDefault.
@@ -7015,6 +7015,12 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'UEL'**
   String get leagueUEL;
+
+  /// No description provided for @leagueUECL.
+  ///
+  /// In ko, this message translates to:
+  /// **'UECL'**
+  String get leagueUECL;
 
   /// No description provided for @leagueDomesticCups.
   ///

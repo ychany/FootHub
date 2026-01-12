@@ -2789,7 +2789,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqSupportedLeaguesAnswer =>
-      'We support EPL (England), La Liga (Spain), Bundesliga (Germany), Serie A (Italy), Ligue 1 (France), K-League, Champions League, and Europa League.';
+      'We support EPL (England), La Liga (Spain), Bundesliga (Germany), Serie A (Italy), Ligue 1 (France), K-League, Champions League, Europa League, and Conference League.';
 
   @override
   String get userDefault => 'User';
@@ -3683,6 +3683,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get leagueUEL => 'UEL';
+
+  @override
+  String get leagueUECL => 'UECL';
 
   @override
   String get leagueDomesticCups => 'Cups';

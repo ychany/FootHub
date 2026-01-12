@@ -28,6 +28,7 @@ class AppConstants {
     'French Ligue 1',
     'UEFA Champions League',
     'UEFA Europa League',
+    'UEFA Conference League',
     'Domestic Cups',
     'International Friendlies',
   ];
@@ -41,6 +42,7 @@ class AppConstants {
     'French Ligue 1',
     'UEFA Champions League',
     'UEFA Europa League',
+    'UEFA Conference League',
   ];
 
   // 5대 국가 컵대회 (필터용)
@@ -57,6 +59,7 @@ class AppConstants {
     'South Korean K League 2': 'K리그2',
     'UEFA Champions League': 'UCL',
     'UEFA Europa League': 'UEL',
+    'UEFA Conference League': 'UECL',
     'International Friendlies': 'A매치',
     'Domestic Cups': '컵대회',
   };
@@ -72,6 +75,7 @@ class AppConstants {
     'K League 2': 'South Korean K League 2',
     'UEFA Champions League': 'UEFA Champions League',
     'UEFA Europa League': 'UEFA Europa League',
+    'UEFA Conference League': 'UEFA Conference League',
     'International Friendlies': 'International Friendlies',
     // 추가 변형 이름들
     'Primera Division': 'Spanish La Liga',
@@ -89,6 +93,7 @@ class AppConstants {
     'South Korean K League 2': 293,
     'UEFA Champions League': 2,
     'UEFA Europa League': 3,
+    'UEFA Conference League': 848,
     'International Friendlies': 10,
   };
 
@@ -141,6 +146,8 @@ class AppConstants {
         return l10n.leagueUCL;
       case 'UEFA Europa League':
         return l10n.leagueUEL;
+      case 'UEFA Conference League':
+        return l10n.leagueUECL;
       case 'Domestic Cups':
         return l10n.leagueDomesticCups;
       case 'International Friendlies':
@@ -190,6 +197,7 @@ class AppConstants {
     if (league.contains('k league')) keywords.add('k league');
     if (league.contains('champions')) keywords.add('champions');
     if (league.contains('europa')) keywords.add('europa');
+    if (league.contains('conference')) keywords.add('conference');
     if (league.contains('friendl')) keywords.add('friendl');
     return keywords;
   }

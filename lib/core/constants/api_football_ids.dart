@@ -21,7 +21,7 @@ class ApiFootballIds {
     // 유럽 대회
     if (name.contains('champions league') || name.contains('ucl')) return LeagueIds.championsLeague;
     if (name.contains('europa league') || name.contains('uel')) return LeagueIds.europaLeague;
-    if (name.contains('conference league')) return LeagueIds.conferenceLeague;
+    if (name.contains('conference league') || name.contains('uecl')) return LeagueIds.conferenceLeague;
 
     // 국제 대회
     if (name.contains('world cup') && !name.contains('qualif')) return LeagueIds.worldCup;
@@ -148,6 +148,7 @@ class LeagueIds {
     // 유럽 대회
     LeagueInfo(id: championsLeague, name: 'UEFA 챔피언스리그', nameEn: 'Champions League', country: 'Europe'),
     LeagueInfo(id: europaLeague, name: 'UEFA 유로파리그', nameEn: 'Europa League', country: 'Europe'),
+    LeagueInfo(id: conferenceLeague, name: 'UEFA 컨퍼런스리그', nameEn: 'Conference League', country: 'Europe'),
   ];
 
   /// 자국 리그 목록 (국가 코드 기반)

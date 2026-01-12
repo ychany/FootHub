@@ -1163,7 +1163,7 @@
   "faqNotification": "How do I set up notifications?",
   "faqNotificationAnswer": "Go to Profile > Notification Settings to configure match start notifications, favorite team notifications, and more.",
   "faqSupportedLeagues": "Which leagues are supported?",
-  "faqSupportedLeaguesAnswer": "We support EPL (England), La Liga (Spain), Bundesliga (Germany), Serie A (Italy), Ligue 1 (France), K-League, Champions League, and Europa League.",
+  "faqSupportedLeaguesAnswer": "We support EPL (England), La Liga (Spain), Bundesliga (Germany), Serie A (Italy), Ligue 1 (France), K-League, Champions League, Europa League, and Conference League.",
 
   "userDefault": "User",
   "activeMember": "Active Member",
@@ -1658,6 +1658,7 @@
   "leagueKLeague2": "K League 2",
   "leagueUCL": "UCL",
   "leagueUEL": "UEL",
+  "leagueUECL": "UECL",
   "leagueDomesticCups": "Cups",
   "leagueInternational": "International",
 

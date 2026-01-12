@@ -411,7 +411,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> with WidgetsBin
         // 리그 순서 정렬 (5대 리그 우선, 그 다음 가나다순)
         final leagueOrder = [
           'Premier League', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1',
-          'K League 1', 'K League 2', 'UEFA Champions League', 'UEFA Europa League',
+          'K League 1', 'K League 2', 'UEFA Champions League', 'UEFA Europa League', 'UEFA Conference League',
         ];
         final sortedLeagues = groupedMatches.keys.toList()
           ..sort((a, b) {

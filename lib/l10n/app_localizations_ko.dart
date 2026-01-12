@@ -2771,7 +2771,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get faqSupportedLeaguesAnswer =>
-      'EPL(잉글랜드), 라리가(스페인), 분데스리가(독일), 세리에A(이탈리아), 리그앙(프랑스), K리그, 챔피언스리그, 유로파리그를 지원합니다.';
+      'EPL(잉글랜드), 라리가(스페인), 분데스리가(독일), 세리에A(이탈리아), 리그앙(프랑스), K리그, 챔피언스리그, 유로파리그, 컨퍼런스리그를 지원합니다.';
 
   @override
   String get userDefault => '사용자';
@@ -3660,6 +3660,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get leagueUEL => 'UEL';
+
+  @override
+  String get leagueUECL => 'UECL';
 
   @override
   String get leagueDomesticCups => '컵대회';
