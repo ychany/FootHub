@@ -166,3 +166,9 @@ final topRedCardsProvider = FutureProvider.family<List<ApiFootballTopScorer>, St
   final service = ref.watch(_apiFootballServiceProvider);
   return service.getTopRedCards(key.leagueId, key.season);
 });
+
+/// 리그 경기 목록 Provider (통계용)
+final leagueFixturesProvider = FutureProvider.family<List<ApiFootballFixture>, StandingsKey>((ref, key) async {
+  final service = ref.watch(_apiFootballServiceProvider);
+  return service.getFixturesByLeague(key.leagueId, key.season);
+});
