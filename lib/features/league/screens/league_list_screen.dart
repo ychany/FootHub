@@ -118,16 +118,17 @@ final popularLeaguesProvider = FutureProvider<List<ApiFootballLeague>>((ref) asy
     ...localLeagueIds,
   ];
 
-  // 재시도 로직이 포함된 리그 조회 함수
+  // 재시도 로직이 포함된 리그 조회 함수 (최대 3회 재시도)
   Future<ApiFootballLeague?> fetchLeagueWithRetry(int id) async {
-    for (int attempt = 0; attempt < 2; attempt++) {
+    for (int attempt = 0; attempt < 3; attempt++) {
       try {
         final result = await service.getLeagueById(id);
         if (result != null) return result;
       } catch (_) {
-        if (attempt < 1) {
-          await Future.delayed(const Duration(milliseconds: 300));
-        }
+        // 재시도 전 대기
+      }
+      if (attempt < 2) {
+        await Future.delayed(Duration(milliseconds: 300 * (attempt + 1)));
       }
     }
     return null;
@@ -138,12 +139,20 @@ final popularLeaguesProvider = FutureProvider<List<ApiFootballLeague>>((ref) asy
     popularLeagueIds.map((id) => fetchLeagueWithRetry(id)),
   );
 
-  // null이 아닌 결과만 필터링하고 원래 순서 유지
+  // 실패한 리그 확인
+  final failedIds = <int>[];
   final leagues = <ApiFootballLeague>[];
   for (int i = 0; i < popularLeagueIds.length; i++) {
     if (results[i] != null) {
       leagues.add(results[i]!);
+    } else {
+      failedIds.add(popularLeagueIds[i]);
     }
+  }
+
+  // 하나라도 실패하면 에러 throw (재시도 유도)
+  if (failedIds.isNotEmpty) {
+    throw Exception('Failed to load leagues: $failedIds');
   }
 
   return leagues;
