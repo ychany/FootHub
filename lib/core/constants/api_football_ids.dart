@@ -52,6 +52,7 @@ class LeagueIds {
   static const int championsLeague = 2;
   static const int europaLeague = 3;
   static const int conferenceLeague = 848;
+  static const int uefaSuperCup = 531;
 
   // 5대 리그 국내 컵 대회
   static const int faCup = 45;
@@ -61,9 +62,17 @@ class LeagueIds {
   static const int coupeDeFrance = 66;
   static const int coppaItalia = 137;
 
-  // 컵 대회 ID 목록 (토너먼트 형식)
+  // 5대 리그 슈퍼컵
+  static const int communityShield = 528; // 잉글랜드
+  static const int supercopaEspana = 556; // 스페인
+  static const int dflSupercup = 529; // 독일
+  static const int supercoppaItaliana = 547; // 이탈리아
+  static const int tropheeDesChampions = 526; // 프랑스
+
+  // 컵 대회 ID 목록 (토너먼트 형식) - 컵 + 슈퍼컵
   static const List<int> cupCompetitionIds = [
     faCup, eflCup, dfbPokal, copaDelRey, coupeDeFrance, coppaItalia,
+    communityShield, supercopaEspana, dflSupercup, supercoppaItaliana, tropheeDesChampions,
   ];
 
   /// 컵 대회 여부 확인
@@ -78,6 +87,7 @@ class LeagueIds {
   static const int copaAmerica = 9;
   static const int africaCup = 6;
   static const int goldCup = 22; // CONCACAF Gold Cup
+  static const int clubWorldCup = 15; // FIFA Club World Cup
 
   // 국제 대회 - 예선
   static const int worldCupQualEurope = 32;
@@ -95,10 +105,12 @@ class LeagueIds {
   // 친선경기
   static const int friendlies = 10;
 
-  // A매치 전체 (국가대표 경기) ID 목록
+  // A매치 전체 (국가대표 경기 + 클럽 월드컵) ID 목록
   static const List<int> internationalLeagueIds = [
     // 본선
     worldCup, euro, asianCup, copaAmerica, africaCup, goldCup,
+    // 클럽 월드컵
+    clubWorldCup,
     // 예선
     worldCupQualEurope, worldCupQualAsia, worldCupQualAfrica,
     worldCupQualSouthAmerica, worldCupQualNorthAmerica,

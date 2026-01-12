@@ -279,17 +279,17 @@ final scheduleNotifierProvider =
 // null = 전체, 'major' = 주요, 그 외 = 특정 리그
 final selectedLeagueProvider = StateProvider<String?>((ref) => 'major');
 
-// 주요 리그 ID 목록 (5대 리그 + 국내컵 + 유럽대회 + A매치 전체)
+// 주요 리그 ID 목록 (5대 리그 + 국내컵/슈퍼컵 + 유럽대회 + A매치 전체)
 final majorLeagueIds = [
   // 5대 리그
   LeagueIds.premierLeague, LeagueIds.laLiga, LeagueIds.serieA,
   LeagueIds.bundesliga, LeagueIds.ligue1,
-  // 5대 리그 국내 컵 대회
-  LeagueIds.faCup, LeagueIds.eflCup, LeagueIds.dfbPokal,
-  LeagueIds.copaDelRey, LeagueIds.coupeDeFrance, LeagueIds.coppaItalia,
+  // 5대 리그 국내 컵 대회 + 슈퍼컵
+  ...LeagueIds.cupCompetitionIds,
   // 유럽 대회
   LeagueIds.championsLeague, LeagueIds.europaLeague, LeagueIds.conferenceLeague,
-  // A매치 전체 (본선 + 예선 + 네이션스리그 + 친선)
+  LeagueIds.uefaSuperCup,
+  // A매치 전체 (본선 + 예선 + 네이션스리그 + 친선 + 클럽월드컵)
   ...LeagueIds.internationalLeagueIds,
 ];
 
