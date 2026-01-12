@@ -1177,6 +1177,14 @@ class _RecordCard extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
+                    DateFormat('yyyy').format(record.date),
+                    style: const TextStyle(
+                      color: Color(0xFF2563EB),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
                     DateFormat('MM/dd').format(record.date),
                     style: const TextStyle(
                       color: Color(0xFF2563EB),
@@ -1184,13 +1192,6 @@ class _RecordCard extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  if (record.mood != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      record.mood!.emoji,
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ],
                 ],
               ),
             ),
