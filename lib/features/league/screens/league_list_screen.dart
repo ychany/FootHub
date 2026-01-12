@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/api_football_ids.dart';
 import '../../../core/services/api_football_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/banner_ad_widget.dart';
@@ -97,6 +98,12 @@ final popularLeaguesProvider = FutureProvider<List<ApiFootballLeague>>((ref) asy
     81,   // DFB Pokal
     137,  // Coppa Italia
     66,   // Coupe de France
+    // 5대 리그 슈퍼컵
+    528,  // Community Shield (잉글랜드)
+    556,  // Supercopa de España (스페인)
+    529,  // DFL Supercup (독일)
+    547,  // Supercoppa Italiana (이탈리아)
+    526,  // Trophée des Champions (프랑스)
     // 유럽 클럽 대회
     2,    // UEFA Champions League
     3,    // UEFA Europa League
@@ -215,7 +222,7 @@ class _LeagueListScreenState extends ConsumerState<LeagueListScreen> {
       data: (leagues) {
         // 카테고리별 그룹화
         final fiveLeagues = leagues.where((l) => _topFiveLeagueIds.contains(l.id)).toList();
-        final domesticCups = leagues.where((l) => [45, 48, 143, 81, 137, 66].contains(l.id)).toList();
+        final domesticCups = leagues.where((l) => LeagueIds.cupCompetitionIds.contains(l.id)).toList();
         final euroComps = leagues.where((l) => [2, 3, 848].contains(l.id)).toList();
         final nationalComps = leagues.where((l) => [1, 4, 6, 9, 17].contains(l.id)).toList();
         // 사용자 자국 리그 (최대 2개)
