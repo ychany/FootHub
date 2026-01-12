@@ -85,8 +85,13 @@ class StandingsScreen extends ConsumerWidget {
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: LeagueIds.getAllLeagues(_getUserCountryCode()).map((league) {
+                          children: LeagueIds.getAllLeagues(_getUserCountryCode())
+                            .where((league) => !LeagueIds.cupCompetitionIds.contains(league.id)) // 컵 대회 제외
+                            .map((league) {
                             final isSelected = selectedLeague == league.id;
+                            // 언어에 따라 이름 선택
+                            final isKorean = Localizations.localeOf(context).languageCode == 'ko';
+                            final leagueName = isKorean ? league.name : league.nameEn;
                             return GestureDetector(
                               onTap: () {
                                 ref.read(selectedStandingsLeagueProvider.notifier).state = league.id;
@@ -100,7 +105,7 @@ class StandingsScreen extends ConsumerWidget {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  AppConstants.getLocalizedLeagueNameById(context, league.id),
+                                  leagueName,
                                   style: TextStyle(
                                     color: isSelected ? Colors.white : _textSecondary,
                                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
