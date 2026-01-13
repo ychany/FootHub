@@ -8,7 +8,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/loading_indicator.dart';
-import '../../../shared/widgets/banner_ad_widget.dart';
 import '../models/attendance_record.dart';
 import '../providers/attendance_provider.dart';
 
@@ -70,7 +69,6 @@ class _AttendanceListScreenState extends ConsumerState<AttendanceListScreen>
       ),
       child: Scaffold(
         backgroundColor: _background,
-        bottomNavigationBar: const BannerAdWidget(),
         body: SafeArea(
           child: Column(
             children: [

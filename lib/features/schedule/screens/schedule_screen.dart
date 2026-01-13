@@ -11,7 +11,6 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/models/match_model.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/loading_indicator.dart';
-import '../../../shared/widgets/banner_ad_widget.dart';
 import '../providers/schedule_provider.dart';
 import '../../diary/providers/diary_provider.dart';
 import '../../league/screens/league_list_screen.dart' show userLocalLeagueIdsProvider;
@@ -85,7 +84,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> with WidgetsBin
       ),
       child: Scaffold(
         backgroundColor: _background,
-        bottomNavigationBar: const BannerAdWidget(),
         body: SafeArea(
           child: Column(
             children: [
