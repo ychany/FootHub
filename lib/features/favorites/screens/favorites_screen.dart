@@ -13,7 +13,6 @@ import '../../../shared/models/player_model.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/team_logo.dart';
-import '../../../shared/widgets/banner_ad_widget.dart';
 import '../providers/favorites_provider.dart';
 import '../../league/screens/league_list_screen.dart' show userLocalLeagueIdsProvider;
 
@@ -35,7 +34,6 @@ class FavoritesScreen extends ConsumerWidget {
       ),
       child: Scaffold(
         backgroundColor: _background,
-        bottomNavigationBar: const BottomBannerAdWidget(),
         body: SafeArea(
           child: Column(
             children: [
