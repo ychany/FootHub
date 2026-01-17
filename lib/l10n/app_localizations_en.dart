@@ -2695,6 +2695,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Goal/Assist/Red card notifications for favorite players';
 
   @override
+  String get lineupNotifications => 'Lineup Notifications';
+
+  @override
+  String get lineupNotificationsDesc =>
+      'Get notified when lineup is announced for favorite team matches';
+
+  @override
+  String get resultNotifications => 'Match Result Notifications';
+
+  @override
+  String get resultNotificationsDesc =>
+      'Get notified when favorite team matches end with final result';
+
+  @override
   String get notificationPermissionGuide => 'Notification Permission';
 
   @override

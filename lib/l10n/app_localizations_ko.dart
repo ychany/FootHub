@@ -2677,6 +2677,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get favoritePlayerEventsDesc => '즐겨찾기 선수 골/어시스트/레드카드 알림';
 
   @override
+  String get lineupNotifications => '라인업 알림';
+
+  @override
+  String get lineupNotificationsDesc => '즐겨찾기 팀 경기 라인업 발표 시 알림';
+
+  @override
+  String get resultNotifications => '경기 결과 알림';
+
+  @override
+  String get resultNotificationsDesc => '즐겨찾기 팀 경기 종료 시 결과 알림';
+
+  @override
   String get notificationPermissionGuide => '알림 권한 안내';
 
   @override

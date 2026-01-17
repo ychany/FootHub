@@ -5180,6 +5180,30 @@ abstract class AppLocalizations {
   /// **'즐겨찾기 선수 골/어시스트/레드카드 알림'**
   String get favoritePlayerEventsDesc;
 
+  /// No description provided for @lineupNotifications.
+  ///
+  /// In ko, this message translates to:
+  /// **'라인업 알림'**
+  String get lineupNotifications;
+
+  /// No description provided for @lineupNotificationsDesc.
+  ///
+  /// In ko, this message translates to:
+  /// **'즐겨찾기 팀 경기 라인업 발표 시 알림'**
+  String get lineupNotificationsDesc;
+
+  /// No description provided for @resultNotifications.
+  ///
+  /// In ko, this message translates to:
+  /// **'경기 결과 알림'**
+  String get resultNotifications;
+
+  /// No description provided for @resultNotificationsDesc.
+  ///
+  /// In ko, this message translates to:
+  /// **'즐겨찾기 팀 경기 종료 시 결과 알림'**
+  String get resultNotificationsDesc;
+
   /// No description provided for @notificationPermissionGuide.
   ///
   /// In ko, this message translates to:

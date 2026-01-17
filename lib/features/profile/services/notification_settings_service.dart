@@ -5,6 +5,8 @@ class NotificationSettings {
   final int matchReminderMinutes;
   final bool liveScoreUpdates;
   final bool favoritePlayerEvents;
+  final bool notifyLineup;
+  final bool notifyResult;
   final bool pushNotifications;
 
   const NotificationSettings({
@@ -12,6 +14,8 @@ class NotificationSettings {
     this.matchReminderMinutes = 30,
     this.liveScoreUpdates = false,
     this.favoritePlayerEvents = false,
+    this.notifyLineup = false,
+    this.notifyResult = false,
     this.pushNotifications = true,
   });
 
@@ -21,6 +25,8 @@ class NotificationSettings {
       matchReminderMinutes: map['matchReminderMinutes'] ?? 30,
       liveScoreUpdates: map['liveScoreUpdates'] ?? false,
       favoritePlayerEvents: map['favoritePlayerEvents'] ?? false,
+      notifyLineup: map['notifyLineup'] ?? false,
+      notifyResult: map['notifyResult'] ?? false,
       pushNotifications: map['pushNotifications'] ?? true,
     );
   }
@@ -31,6 +37,8 @@ class NotificationSettings {
       'matchReminderMinutes': matchReminderMinutes,
       'liveScoreUpdates': liveScoreUpdates,
       'favoritePlayerEvents': favoritePlayerEvents,
+      'notifyLineup': notifyLineup,
+      'notifyResult': notifyResult,
       'pushNotifications': pushNotifications,
     };
   }
@@ -40,6 +48,8 @@ class NotificationSettings {
     int? matchReminderMinutes,
     bool? liveScoreUpdates,
     bool? favoritePlayerEvents,
+    bool? notifyLineup,
+    bool? notifyResult,
     bool? pushNotifications,
   }) {
     return NotificationSettings(
@@ -47,6 +57,8 @@ class NotificationSettings {
       matchReminderMinutes: matchReminderMinutes ?? this.matchReminderMinutes,
       liveScoreUpdates: liveScoreUpdates ?? this.liveScoreUpdates,
       favoritePlayerEvents: favoritePlayerEvents ?? this.favoritePlayerEvents,
+      notifyLineup: notifyLineup ?? this.notifyLineup,
+      notifyResult: notifyResult ?? this.notifyResult,
       pushNotifications: pushNotifications ?? this.pushNotifications,
     );
   }

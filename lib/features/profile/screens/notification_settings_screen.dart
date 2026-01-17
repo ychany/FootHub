@@ -165,6 +165,22 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                 enabled: settings.pushNotifications,
                 onChanged: (value) => notifier.updateLiveScoreUpdates(value),
               ),
+              const _Divider(),
+              _SettingsToggle(
+                title: l10n.lineupNotifications,
+                subtitle: l10n.lineupNotificationsDesc,
+                value: settings.notifyLineup,
+                enabled: settings.pushNotifications,
+                onChanged: (value) => notifier.updateNotifyLineup(value),
+              ),
+              const _Divider(),
+              _SettingsToggle(
+                title: l10n.resultNotifications,
+                subtitle: l10n.resultNotificationsDesc,
+                value: settings.notifyResult,
+                enabled: settings.pushNotifications,
+                onChanged: (value) => notifier.updateNotifyResult(value),
+              ),
             ],
           ),
 

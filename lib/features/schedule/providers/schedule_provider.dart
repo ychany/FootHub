@@ -431,14 +431,17 @@ final liveEventMonitorProvider = Provider<void>((ref) {
     return;
   }
 
-  // 팀 실시간 알림과 선수 이벤트 알림 모두 꺼져있으면 모니터링 중지
-  if (!settings.liveScoreUpdates && !settings.favoritePlayerEvents) {
+  // 팀 실시간 알림과 선수 이벤트 알림, 라인업/결과 알림 모두 꺼져있으면 모니터링 중지
+  if (!settings.liveScoreUpdates && !settings.favoritePlayerEvents &&
+      !settings.notifyLineup && !settings.notifyResult) {
     monitor.stopMonitoring();
     return;
   }
 
   // 활성화된 설정에 따라 모니터링할 대상 결정
-  final teamIdsToMonitor = settings.liveScoreUpdates
+  // 팀 모니터링: liveScoreUpdates, notifyLineup, notifyResult 중 하나라도 켜져있으면 활성화
+  final needTeamMonitoring = settings.liveScoreUpdates || settings.notifyLineup || settings.notifyResult;
+  final teamIdsToMonitor = needTeamMonitoring
       ? favoriteTeamIds.map((id) => int.tryParse(id) ?? 0).toSet()
       : <int>{};
   final playerIdsToMonitor = settings.favoritePlayerEvents
@@ -456,11 +459,15 @@ final liveEventMonitorProvider = Provider<void>((ref) {
     monitor.updateFavorites(
       favoriteTeamIds: teamIdsToMonitor,
       favoritePlayerIds: playerIdsToMonitor,
+      notifyLineup: settings.notifyLineup,
+      notifyResult: settings.notifyResult,
     );
   } else {
     monitor.startMonitoring(
       favoriteTeamIds: teamIdsToMonitor,
       favoritePlayerIds: playerIdsToMonitor,
+      notifyLineup: settings.notifyLineup,
+      notifyResult: settings.notifyResult,
     );
   }
 
