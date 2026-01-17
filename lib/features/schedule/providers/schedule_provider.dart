@@ -423,6 +423,7 @@ final liveEventMonitorProvider = Provider<void>((ref) {
   final favoritePlayerIds = ref.watch(favoritePlayerIdsProvider).value ?? [];
 
   final settings = settingsAsync.valueOrNull;
+  // 싱글톤 인스턴스 사용 (상태 유지)
   final monitor = LiveEventMonitorService();
 
   // 설정이 없거나 푸시 알림이 꺼져있으면 모니터링 중지
@@ -442,10 +443,10 @@ final liveEventMonitorProvider = Provider<void>((ref) {
   // 팀 모니터링: liveScoreUpdates, notifyLineup, notifyResult 중 하나라도 켜져있으면 활성화
   final needTeamMonitoring = settings.liveScoreUpdates || settings.notifyLineup || settings.notifyResult;
   final teamIdsToMonitor = needTeamMonitoring
-      ? favoriteTeamIds.map((id) => int.tryParse(id) ?? 0).toSet()
+      ? favoriteTeamIds.map((id) => int.tryParse(id)).whereType<int>().toSet()
       : <int>{};
   final playerIdsToMonitor = settings.favoritePlayerEvents
-      ? favoritePlayerIds.map((id) => int.tryParse(id) ?? 0).toSet()
+      ? favoritePlayerIds.map((id) => int.tryParse(id)).whereType<int>().toSet()
       : <int>{};
 
   // 모니터링할 대상이 없으면 중지

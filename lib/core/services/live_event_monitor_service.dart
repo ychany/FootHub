@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_football_service.dart';
 import 'local_notification_service.dart';
@@ -60,7 +59,6 @@ class LiveEventMonitorService {
       (_) => _checkLiveEvents(),
     );
 
-    debugPrint('[LiveEventMonitor] Started monitoring - Teams: ${favoriteTeamIds.length}, Players: ${favoritePlayerIds.length}, Lineup: $notifyLineup, Result: $notifyResult');
   }
 
   /// 모니터링 중지
@@ -73,7 +71,6 @@ class LiveEventMonitorService {
     _lastFixtureStatus.clear();
     _lineupNotifiedFixtures.clear();
     _resultNotifiedFixtures.clear();
-    debugPrint('[LiveEventMonitor] Stopped monitoring');
   }
 
   /// 즐겨찾기 업데이트
@@ -103,7 +100,6 @@ class LiveEventMonitorService {
                _favoriteTeamIds.contains(fixture.awayTeam.id);
       }).toList();
 
-      debugPrint('[LiveEventMonitor] Found ${relevantFixtures.length} relevant live matches');
 
       // 각 경기의 이벤트 체크
       for (final fixture in relevantFixtures) {
@@ -115,8 +111,8 @@ class LiveEventMonitorService {
       if (_notifyLineup) {
         await _checkUpcomingLineups();
       }
-    } catch (e) {
-      debugPrint('[LiveEventMonitor] Error checking live events: $e');
+    } catch (_) {
+      // 에러 무시
     }
   }
 
@@ -135,7 +131,6 @@ class LiveEventMonitorService {
         return isFavoriteTeam && notStarted;
       }).toList();
 
-      debugPrint('[LiveEventMonitor] Found ${upcomingFixtures.length} upcoming matches for lineup check');
 
       // 라인업 체크
       for (final fixture in upcomingFixtures) {
@@ -147,34 +142,22 @@ class LiveEventMonitorService {
             _lineupNotifiedFixtures.add(fixture.id);
             await _sendLineupNotification(fixture);
           }
-        } catch (e) {
-          debugPrint('[LiveEventMonitor] Error checking lineup for ${fixture.id}: $e');
+        } catch (_) {
+          // 에러 무시
         }
       }
-    } catch (e) {
-      debugPrint('[LiveEventMonitor] Error checking upcoming lineups: $e');
+    } catch (_) {
+      // 에러 무시
     }
   }
 
-  /// 경기 상태 변화 체크 (라인업/종료)
+  /// 경기 상태 변화 체크 (종료 알림)
+  /// 라인업 알림은 _checkUpcomingLineups()에서 처리
   Future<void> _checkFixtureStatus(ApiFootballFixture fixture) async {
     final fixtureId = fixture.id;
     final currentStatus = fixture.status.short;
     final previousStatus = _lastFixtureStatus[fixtureId];
     _lastFixtureStatus[fixtureId] = currentStatus;
-
-    // 라인업 알림: 라인업이 발표되면 (경기 시작 전 상태에서 lineup available)
-    if (_notifyLineup && !_lineupNotifiedFixtures.contains(fixtureId)) {
-      try {
-        final lineups = await _apiService.getFixtureLineups(fixtureId);
-        if (lineups.isNotEmpty) {
-          _lineupNotifiedFixtures.add(fixtureId);
-          await _sendLineupNotification(fixture);
-        }
-      } catch (e) {
-        debugPrint('[LiveEventMonitor] Error checking lineup for $fixtureId: $e');
-      }
-    }
 
     // 결과 알림: 경기 종료 시
     if (_notifyResult && !_resultNotifiedFixtures.contains(fixtureId)) {
@@ -251,8 +234,8 @@ class LiveEventMonitorService {
       for (final event in newEvents) {
         await _processEvent(fixture, event);
       }
-    } catch (e) {
-      debugPrint('[LiveEventMonitor] Error checking fixture ${fixture.id}: $e');
+    } catch (_) {
+      // 에러 무시
     }
   }
 
@@ -359,7 +342,6 @@ class LiveEventMonitorService {
       payload: fixtureId.toString(),
     );
 
-    debugPrint('[LiveEventMonitor] Sent notification: $title');
   }
 
   /// 저장된 알림 상태 복원 (앱 재시작 시)
@@ -374,8 +356,8 @@ class LiveEventMonitorService {
         _notifiedEvents.clear();
         await prefs.remove('notified_events');
       }
-    } catch (e) {
-      debugPrint('[LiveEventMonitor] Error loading notified events: $e');
+    } catch (_) {
+      // 에러 무시
     }
   }
 
@@ -384,8 +366,8 @@ class LiveEventMonitorService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList('notified_events', _notifiedEvents.toList());
-    } catch (e) {
-      debugPrint('[LiveEventMonitor] Error saving notified events: $e');
+    } catch (_) {
+      // 에러 무시
     }
   }
 
