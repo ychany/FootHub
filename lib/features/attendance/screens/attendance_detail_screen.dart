@@ -11,7 +11,6 @@ import '../../../shared/widgets/photo_carousel.dart';
 import '../../../shared/widgets/football_pitch_view.dart';
 import '../../../shared/widgets/team_comparison_widget.dart';
 import '../../../shared/widgets/standings_table.dart';
-import '../../../shared/widgets/banner_ad_widget.dart';
 import '../models/attendance_record.dart';
 import '../providers/attendance_provider.dart';
 
@@ -116,7 +115,6 @@ class AttendanceDetailScreen extends ConsumerWidget {
       ),
       child: Scaffold(
         backgroundColor: _background,
-        bottomNavigationBar: const BottomBannerAdWidget(),
         body: recordAsync.when(
           data: (record) {
             if (record == null) {
