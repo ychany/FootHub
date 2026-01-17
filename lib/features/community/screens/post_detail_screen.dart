@@ -9,7 +9,6 @@ import '../../../core/utils/error_helper.dart';
 import '../models/post_model.dart';
 import '../providers/community_provider.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../shared/widgets/banner_ad_widget.dart';
 
 class PostDetailScreen extends ConsumerStatefulWidget {
   final String postId;
@@ -172,7 +171,6 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
       ),
       child: Scaffold(
         backgroundColor: _background,
-        bottomNavigationBar: const BottomBannerAdWidget(),
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,

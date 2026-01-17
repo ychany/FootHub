@@ -6,7 +6,6 @@ import '../../attendance/models/attendance_record.dart';
 import '../services/user_profile_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/utils/error_helper.dart';
-import '../../../shared/widgets/banner_ad_widget.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -101,7 +100,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
       child: Scaffold(
         backgroundColor: _background,
-        bottomNavigationBar: const BottomBannerAdWidget(),
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,

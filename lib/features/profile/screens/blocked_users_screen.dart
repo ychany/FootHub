@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../community/providers/community_provider.dart';
-import '../../../shared/widgets/banner_ad_widget.dart';
 
 class BlockedUsersScreen extends ConsumerWidget {
   const BlockedUsersScreen({super.key});
@@ -16,7 +15,6 @@ class BlockedUsersScreen extends ConsumerWidget {
     final blockedUsersAsync = ref.watch(blockedUsersNotifierProvider);
 
     return Scaffold(
-      bottomNavigationBar: const BottomBannerAdWidget(),
       appBar: AppBar(
         title: Text(
           l10n.blockedUsersManagement,

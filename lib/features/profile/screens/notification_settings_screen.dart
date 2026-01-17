@@ -7,7 +7,6 @@ import '../services/notification_settings_service.dart';
 import '../../../core/services/local_notification_service.dart';
 import '../../../core/utils/error_helper.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../shared/widgets/banner_ad_widget.dart';
 
 class NotificationSettingsScreen extends ConsumerStatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -46,7 +45,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
       ),
       child: Scaffold(
         backgroundColor: _background,
-        bottomNavigationBar: const BottomBannerAdWidget(),
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,

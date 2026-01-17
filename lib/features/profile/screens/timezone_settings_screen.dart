@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/timezone_provider.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../shared/widgets/banner_ad_widget.dart';
 
 class TimezoneSettingsScreen extends ConsumerStatefulWidget {
   const TimezoneSettingsScreen({super.key});
@@ -72,7 +71,6 @@ class _TimezoneSettingsScreenState extends ConsumerState<TimezoneSettingsScreen>
       ),
       child: Scaffold(
         backgroundColor: _background,
-        bottomNavigationBar: const BottomBannerAdWidget(),
         body: SafeArea(
           child: Column(
             children: [

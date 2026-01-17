@@ -10,7 +10,6 @@ import '../../../core/constants/api_football_ids.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/utils/error_helper.dart';
-import '../../../shared/widgets/banner_ad_widget.dart';
 
 class CommunityScreen extends ConsumerStatefulWidget {
   const CommunityScreen({super.key});
@@ -135,7 +134,6 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
       ),
       child: Scaffold(
         backgroundColor: _background,
-        bottomNavigationBar: const BannerAdWidget(),
         body: SafeArea(
           child: Column(
             children: [
