@@ -285,13 +285,14 @@ class MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isHome = GoRouterState.of(context).matchedLocation == '/home';
 
     return Scaffold(
       body: child,
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const BannerAdWidget(),
+          if (!isHome) const BannerAdWidget(),
           BottomNavigationBar(
             currentIndex: _calculateSelectedIndex(context),
             onTap: (index) => _onItemTapped(index, context),
