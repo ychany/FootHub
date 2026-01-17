@@ -2409,7 +2409,7 @@ class _ScheduleTab extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    ...upcomingFixtures.map((f) => _MatchCard(fixture: f)),
+                    ...upcomingFixtures.map((f) => _MatchCard(fixture: f, teamId: teamId)),
                   ],
                 ),
               ),
@@ -2466,7 +2466,7 @@ class _ScheduleTab extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    ...pastFixtures.map((f) => _MatchCard(fixture: f, isPast: true)),
+                    ...pastFixtures.map((f) => _MatchCard(fixture: f, teamId: teamId, isPast: true)),
                   ],
                 ),
               ),
@@ -2490,6 +2490,7 @@ class _ScheduleTab extends ConsumerWidget {
 
 class _MatchCard extends StatelessWidget {
   final ApiFootballFixture fixture;
+  final String teamId;
   final bool isPast;
 
   static const _primary = Color(0xFF2563EB);
@@ -2497,8 +2498,39 @@ class _MatchCard extends StatelessWidget {
   static const _textPrimary = Color(0xFF111827);
   static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE5E7EB);
+  static const _win = Color(0xFF22C55E);      // 승리 - 초록
+  static const _draw = Color(0xFF6B7280);     // 무승부 - 회색
+  static const _lose = Color(0xFFEF4444);     // 패배 - 빨강
 
-  const _MatchCard({required this.fixture, this.isPast = false});
+  const _MatchCard({required this.fixture, required this.teamId, this.isPast = false});
+
+  /// 해당 팀 기준 경기 결과 (W/D/L)
+  String? _getMatchResult() {
+    if (!fixture.isFinished) return null;
+
+    final homeGoals = fixture.homeGoals;
+    final awayGoals = fixture.awayGoals;
+    if (homeGoals == null || awayGoals == null) return null;
+
+    final isHomeTeam = fixture.homeTeam.id.toString() == teamId;
+
+    if (homeGoals == awayGoals) return 'D';
+    if (isHomeTeam) {
+      return homeGoals > awayGoals ? 'W' : 'L';
+    } else {
+      return awayGoals > homeGoals ? 'W' : 'L';
+    }
+  }
+
+  Color _getResultColor() {
+    final result = _getMatchResult();
+    switch (result) {
+      case 'W': return _win;
+      case 'D': return _draw;
+      case 'L': return _lose;
+      default: return _textPrimary;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2585,7 +2617,7 @@ class _MatchCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _textPrimary,
+                            color: _getResultColor(),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
