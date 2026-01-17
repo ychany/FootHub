@@ -2475,7 +2475,11 @@
   "favoriteTeamLiveNotifications": "즐겨찾기 팀 실시간 알림",
   "favoriteTeamLiveNotificationsDesc": "즐겨찾기한 팀의 경기 중 실시간 알림을 설정합니다",
   "liveScoreUpdates": "라이브 스코어 업데이트",
-  "liveScoreUpdatesDesc": "경기 중 골/이벤트 실시간 알림",
+  "liveScoreUpdatesDesc": "즐겨찾기 팀 경기 중 골/이벤트 실시간 알림",
+  "favoritePlayerLiveNotifications": "즐겨찾기 선수 실시간 알림",
+  "favoritePlayerLiveNotificationsDesc": "즐겨찾기한 선수의 이벤트 발생 시 알림을 설정합니다",
+  "favoritePlayerEvents": "선수 이벤트 알림",
+  "favoritePlayerEventsDesc": "즐겨찾기 선수 골/어시스트/레드카드 알림",
   "notificationPermissionGuide": "알림 권한 안내",
   "notificationPermissionDesc": "알림을 받으려면 기기 설정에서 FootHub 앱의 알림 권한을 허용해주세요.",
   "errorWithMsg": "오류 발생: {error}",
@@ -3222,5 +3226,55 @@
   "regularTime": "정규 시간",
   "biggestWins": "대승 경기",
   "roundStats": "라운드별 통계",
-  "round": "라운드"
+  "round": "라운드",
+
+  "liveGoalTeam": "{team} 골!",
+  "@liveGoalTeam": {
+    "placeholders": {
+      "team": {"type": "String"}
+    }
+  },
+  "liveGoalPlayer": "{player} 골!",
+  "@liveGoalPlayer": {
+    "placeholders": {
+      "player": {"type": "String"}
+    }
+  },
+  "liveAssist": "{player} 어시스트!",
+  "@liveAssist": {
+    "placeholders": {
+      "player": {"type": "String"}
+    }
+  },
+  "liveRedCard": "레드카드!",
+  "liveGoalWithAssist": "{time} {scorer} (어시스트: {assist})",
+  "@liveGoalWithAssist": {
+    "placeholders": {
+      "time": {"type": "String"},
+      "scorer": {"type": "String"},
+      "assist": {"type": "String"}
+    }
+  },
+  "liveGoalNoAssist": "{time} {scorer}",
+  "@liveGoalNoAssist": {
+    "placeholders": {
+      "time": {"type": "String"},
+      "scorer": {"type": "String"}
+    }
+  },
+  "liveEventTime": "{time} {player} ({team})",
+  "@liveEventTime": {
+    "placeholders": {
+      "time": {"type": "String"},
+      "player": {"type": "String"},
+      "team": {"type": "String"}
+    }
+  },
+  "matchVs": "{home} vs {away}",
+  "@matchVs": {
+    "placeholders": {
+      "home": {"type": "String"},
+      "away": {"type": "String"}
+    }
+  }
 }

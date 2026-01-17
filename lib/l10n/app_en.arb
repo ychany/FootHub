@@ -1121,7 +1121,11 @@
   "favoriteTeamLiveNotifications": "Favorite Team Live Notifications",
   "favoriteTeamLiveNotificationsDesc": "Set live notifications during favorite team matches",
   "liveScoreUpdates": "Live Score Updates",
-  "liveScoreUpdatesDesc": "Real-time goal/event notifications during matches",
+  "liveScoreUpdatesDesc": "Real-time goal/event notifications during favorite team matches",
+  "favoritePlayerLiveNotifications": "Favorite Player Live Notifications",
+  "favoritePlayerLiveNotificationsDesc": "Set notifications for events involving your favorite players",
+  "favoritePlayerEvents": "Player Event Notifications",
+  "favoritePlayerEventsDesc": "Goal/Assist/Red card notifications for favorite players",
   "notificationPermissionGuide": "Notification Permission",
   "notificationPermissionDesc": "To receive notifications, please enable notification permissions for FootHub in your device settings.",
   "errorWithMsg": "Error: {error}",
@@ -1895,5 +1899,55 @@
   "regularTime": "Regular Time",
   "biggestWins": "Biggest Wins",
   "roundStats": "Round Stats",
-  "round": "Round"
+  "round": "Round",
+
+  "liveGoalTeam": "{team} Goal!",
+  "@liveGoalTeam": {
+    "placeholders": {
+      "team": {"type": "String"}
+    }
+  },
+  "liveGoalPlayer": "{player} Goal!",
+  "@liveGoalPlayer": {
+    "placeholders": {
+      "player": {"type": "String"}
+    }
+  },
+  "liveAssist": "{player} Assist!",
+  "@liveAssist": {
+    "placeholders": {
+      "player": {"type": "String"}
+    }
+  },
+  "liveRedCard": "Red Card!",
+  "liveGoalWithAssist": "{time} {scorer} (Assist: {assist})",
+  "@liveGoalWithAssist": {
+    "placeholders": {
+      "time": {"type": "String"},
+      "scorer": {"type": "String"},
+      "assist": {"type": "String"}
+    }
+  },
+  "liveGoalNoAssist": "{time} {scorer}",
+  "@liveGoalNoAssist": {
+    "placeholders": {
+      "time": {"type": "String"},
+      "scorer": {"type": "String"}
+    }
+  },
+  "liveEventTime": "{time} {player} ({team})",
+  "@liveEventTime": {
+    "placeholders": {
+      "time": {"type": "String"},
+      "player": {"type": "String"},
+      "team": {"type": "String"}
+    }
+  },
+  "matchVs": "{home} vs {away}",
+  "@matchVs": {
+    "placeholders": {
+      "home": {"type": "String"},
+      "away": {"type": "String"}
+    }
+  }
 }

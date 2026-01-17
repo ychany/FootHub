@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/api_football_ids.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/local_notification_service.dart';
+import '../../../core/services/live_event_monitor_service.dart';
 import '../../../shared/models/match_model.dart';
 import '../models/notification_setting.dart';
 import '../services/schedule_service.dart';
@@ -412,4 +413,59 @@ final autoScheduleFavoriteNotificationsProvider = FutureProvider<void>((ref) asy
     matches: upcomingMatches,
     reminderMinutes: settings.matchReminderMinutes,
   );
+});
+
+/// 라이브 이벤트 모니터링 Provider
+/// 즐겨찾기 팀/선수의 골, 어시스트 등 실시간 알림
+final liveEventMonitorProvider = Provider<void>((ref) {
+  final settingsAsync = ref.watch(notificationSettingsProvider);
+  final favoriteTeamIds = ref.watch(favoriteTeamIdsProvider).value ?? [];
+  final favoritePlayerIds = ref.watch(favoritePlayerIdsProvider).value ?? [];
+
+  final settings = settingsAsync.valueOrNull;
+  final monitor = LiveEventMonitorService();
+
+  // 설정이 없거나 푸시 알림이 꺼져있으면 모니터링 중지
+  if (settings == null || !settings.pushNotifications) {
+    monitor.stopMonitoring();
+    return;
+  }
+
+  // 팀 실시간 알림과 선수 이벤트 알림 모두 꺼져있으면 모니터링 중지
+  if (!settings.liveScoreUpdates && !settings.favoritePlayerEvents) {
+    monitor.stopMonitoring();
+    return;
+  }
+
+  // 활성화된 설정에 따라 모니터링할 대상 결정
+  final teamIdsToMonitor = settings.liveScoreUpdates
+      ? favoriteTeamIds.map((id) => int.tryParse(id) ?? 0).toSet()
+      : <int>{};
+  final playerIdsToMonitor = settings.favoritePlayerEvents
+      ? favoritePlayerIds.map((id) => int.tryParse(id) ?? 0).toSet()
+      : <int>{};
+
+  // 모니터링할 대상이 없으면 중지
+  if (teamIdsToMonitor.isEmpty && playerIdsToMonitor.isEmpty) {
+    monitor.stopMonitoring();
+    return;
+  }
+
+  // 모니터링 시작 또는 업데이트
+  if (monitor.isMonitoring) {
+    monitor.updateFavorites(
+      favoriteTeamIds: teamIdsToMonitor,
+      favoritePlayerIds: playerIdsToMonitor,
+    );
+  } else {
+    monitor.startMonitoring(
+      favoriteTeamIds: teamIdsToMonitor,
+      favoritePlayerIds: playerIdsToMonitor,
+    );
+  }
+
+  // Provider가 dispose될 때 모니터링 중지
+  ref.onDispose(() {
+    monitor.stopMonitoring();
+  });
 });

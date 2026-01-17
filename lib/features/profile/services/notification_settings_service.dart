@@ -3,15 +3,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class NotificationSettings {
   final bool matchReminder;
   final int matchReminderMinutes;
-  final bool favoriteTeamMatches;
   final bool liveScoreUpdates;
+  final bool favoritePlayerEvents;
   final bool pushNotifications;
 
   const NotificationSettings({
     this.matchReminder = true,
     this.matchReminderMinutes = 30,
-    this.favoriteTeamMatches = true,
     this.liveScoreUpdates = false,
+    this.favoritePlayerEvents = false,
     this.pushNotifications = true,
   });
 
@@ -19,8 +19,8 @@ class NotificationSettings {
     return NotificationSettings(
       matchReminder: map['matchReminder'] ?? true,
       matchReminderMinutes: map['matchReminderMinutes'] ?? 30,
-      favoriteTeamMatches: map['favoriteTeamMatches'] ?? true,
       liveScoreUpdates: map['liveScoreUpdates'] ?? false,
+      favoritePlayerEvents: map['favoritePlayerEvents'] ?? false,
       pushNotifications: map['pushNotifications'] ?? true,
     );
   }
@@ -29,8 +29,8 @@ class NotificationSettings {
     return {
       'matchReminder': matchReminder,
       'matchReminderMinutes': matchReminderMinutes,
-      'favoriteTeamMatches': favoriteTeamMatches,
       'liveScoreUpdates': liveScoreUpdates,
+      'favoritePlayerEvents': favoritePlayerEvents,
       'pushNotifications': pushNotifications,
     };
   }
@@ -38,15 +38,15 @@ class NotificationSettings {
   NotificationSettings copyWith({
     bool? matchReminder,
     int? matchReminderMinutes,
-    bool? favoriteTeamMatches,
     bool? liveScoreUpdates,
+    bool? favoritePlayerEvents,
     bool? pushNotifications,
   }) {
     return NotificationSettings(
       matchReminder: matchReminder ?? this.matchReminder,
       matchReminderMinutes: matchReminderMinutes ?? this.matchReminderMinutes,
-      favoriteTeamMatches: favoriteTeamMatches ?? this.favoriteTeamMatches,
       liveScoreUpdates: liveScoreUpdates ?? this.liveScoreUpdates,
+      favoritePlayerEvents: favoritePlayerEvents ?? this.favoritePlayerEvents,
       pushNotifications: pushNotifications ?? this.pushNotifications,
     );
   }

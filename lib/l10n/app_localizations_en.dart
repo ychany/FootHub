@@ -2677,7 +2677,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get liveScoreUpdatesDesc =>
-      'Real-time goal/event notifications during matches';
+      'Real-time goal/event notifications during favorite team matches';
+
+  @override
+  String get favoritePlayerLiveNotifications =>
+      'Favorite Player Live Notifications';
+
+  @override
+  String get favoritePlayerLiveNotificationsDesc =>
+      'Set notifications for events involving your favorite players';
+
+  @override
+  String get favoritePlayerEvents => 'Player Event Notifications';
+
+  @override
+  String get favoritePlayerEventsDesc =>
+      'Goal/Assist/Red card notifications for favorite players';
 
   @override
   String get notificationPermissionGuide => 'Notification Permission';
@@ -4099,4 +4114,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get round => 'Round';
+
+  @override
+  String liveGoalTeam(String team) {
+    return '$team Goal!';
+  }
+
+  @override
+  String liveGoalPlayer(String player) {
+    return '$player Goal!';
+  }
+
+  @override
+  String liveAssist(String player) {
+    return '$player Assist!';
+  }
+
+  @override
+  String get liveRedCard => 'Red Card!';
+
+  @override
+  String liveGoalWithAssist(String time, String scorer, String assist) {
+    return '$time $scorer (Assist: $assist)';
+  }
+
+  @override
+  String liveGoalNoAssist(String time, String scorer) {
+    return '$time $scorer';
+  }
+
+  @override
+  String liveEventTime(String time, String player, String team) {
+    return '$time $player ($team)';
+  }
+
+  @override
+  String matchVs(String home, String away) {
+    return '$home vs $away';
+  }
 }

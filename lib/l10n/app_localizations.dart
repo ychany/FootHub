@@ -5153,8 +5153,32 @@ abstract class AppLocalizations {
   /// No description provided for @liveScoreUpdatesDesc.
   ///
   /// In ko, this message translates to:
-  /// **'경기 중 골/이벤트 실시간 알림'**
+  /// **'즐겨찾기 팀 경기 중 골/이벤트 실시간 알림'**
   String get liveScoreUpdatesDesc;
+
+  /// No description provided for @favoritePlayerLiveNotifications.
+  ///
+  /// In ko, this message translates to:
+  /// **'즐겨찾기 선수 실시간 알림'**
+  String get favoritePlayerLiveNotifications;
+
+  /// No description provided for @favoritePlayerLiveNotificationsDesc.
+  ///
+  /// In ko, this message translates to:
+  /// **'즐겨찾기한 선수의 이벤트 발생 시 알림을 설정합니다'**
+  String get favoritePlayerLiveNotificationsDesc;
+
+  /// No description provided for @favoritePlayerEvents.
+  ///
+  /// In ko, this message translates to:
+  /// **'선수 이벤트 알림'**
+  String get favoritePlayerEvents;
+
+  /// No description provided for @favoritePlayerEventsDesc.
+  ///
+  /// In ko, this message translates to:
+  /// **'즐겨찾기 선수 골/어시스트/레드카드 알림'**
+  String get favoritePlayerEventsDesc;
 
   /// No description provided for @notificationPermissionGuide.
   ///
@@ -7801,6 +7825,54 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'라운드'**
   String get round;
+
+  /// No description provided for @liveGoalTeam.
+  ///
+  /// In ko, this message translates to:
+  /// **'{team} 골!'**
+  String liveGoalTeam(String team);
+
+  /// No description provided for @liveGoalPlayer.
+  ///
+  /// In ko, this message translates to:
+  /// **'{player} 골!'**
+  String liveGoalPlayer(String player);
+
+  /// No description provided for @liveAssist.
+  ///
+  /// In ko, this message translates to:
+  /// **'{player} 어시스트!'**
+  String liveAssist(String player);
+
+  /// No description provided for @liveRedCard.
+  ///
+  /// In ko, this message translates to:
+  /// **'레드카드!'**
+  String get liveRedCard;
+
+  /// No description provided for @liveGoalWithAssist.
+  ///
+  /// In ko, this message translates to:
+  /// **'{time} {scorer} (어시스트: {assist})'**
+  String liveGoalWithAssist(String time, String scorer, String assist);
+
+  /// No description provided for @liveGoalNoAssist.
+  ///
+  /// In ko, this message translates to:
+  /// **'{time} {scorer}'**
+  String liveGoalNoAssist(String time, String scorer);
+
+  /// No description provided for @liveEventTime.
+  ///
+  /// In ko, this message translates to:
+  /// **'{time} {player} ({team})'**
+  String liveEventTime(String time, String player, String team);
+
+  /// No description provided for @matchVs.
+  ///
+  /// In ko, this message translates to:
+  /// **'{home} vs {away}'**
+  String matchVs(String home, String away);
 }
 
 class _AppLocalizationsDelegate

@@ -48,6 +48,8 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: _textPrimary),
             onPressed: () => Navigator.pop(context),
@@ -134,14 +136,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                 optionLabels: [l10n.minutes15Before, l10n.minutes30Before, l10n.hour1Before, l10n.hours2Before],
                 onChanged: (value) => notifier.updateMatchReminderMinutes(value),
               ),
-              const _Divider(),
-              _SettingsToggle(
-                title: l10n.newMatchScheduleNotification,
-                subtitle: l10n.newMatchScheduleNotificationDesc,
-                value: settings.favoriteTeamMatches,
-                enabled: settings.pushNotifications,
-                onChanged: (value) => notifier.updateFavoriteTeamMatches(value),
-              ),
             ],
           ),
 
@@ -170,6 +164,35 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                 value: settings.liveScoreUpdates,
                 enabled: settings.pushNotifications,
                 onChanged: (value) => notifier.updateLiveScoreUpdates(value),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // 즐겨찾기 선수 실시간 알림
+          _buildSectionHeader(
+            icon: Icons.person_rounded,
+            iconColor: const Color(0xFF8B5CF6),
+            title: l10n.favoritePlayerLiveNotifications,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.favoritePlayerLiveNotificationsDesc,
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SettingsCard(
+            children: [
+              _SettingsToggle(
+                title: l10n.favoritePlayerEvents,
+                subtitle: l10n.favoritePlayerEventsDesc,
+                value: settings.favoritePlayerEvents,
+                enabled: settings.pushNotifications,
+                onChanged: (value) => notifier.updateFavoritePlayerEvents(value),
               ),
             ],
           ),

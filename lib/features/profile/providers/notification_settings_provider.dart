@@ -34,12 +34,12 @@ class NotificationSettingsNotifier extends StateNotifier<AsyncValue<void>> {
     await _updateSetting('matchReminderMinutes', value);
   }
 
-  Future<void> updateFavoriteTeamMatches(bool value) async {
-    await _updateSetting('favoriteTeamMatches', value);
-  }
-
   Future<void> updateLiveScoreUpdates(bool value) async {
     await _updateSetting('liveScoreUpdates', value);
+  }
+
+  Future<void> updateFavoritePlayerEvents(bool value) async {
+    await _updateSetting('favoritePlayerEvents', value);
   }
 
   Future<void> updatePushNotifications(bool value) async {

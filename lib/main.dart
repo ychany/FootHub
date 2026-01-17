@@ -60,6 +60,9 @@ class MatchLogApp extends ConsumerWidget {
     // 즐겨찾기 팀 경기 자동 알림 스케줄링 (백그라운드)
     ref.listen(autoScheduleFavoriteNotificationsProvider, (_, __) {});
 
+    // 라이브 이벤트 모니터링 (즐겨찾기 팀/선수 골 알림)
+    ref.watch(liveEventMonitorProvider);
+
     return MaterialApp.router(
       title: 'MatchLog',
       debugShowCheckedModeBanner: false,

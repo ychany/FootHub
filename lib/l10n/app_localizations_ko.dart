@@ -2661,7 +2661,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String get liveScoreUpdates => '라이브 스코어 업데이트';
 
   @override
-  String get liveScoreUpdatesDesc => '경기 중 골/이벤트 실시간 알림';
+  String get liveScoreUpdatesDesc => '즐겨찾기 팀 경기 중 골/이벤트 실시간 알림';
+
+  @override
+  String get favoritePlayerLiveNotifications => '즐겨찾기 선수 실시간 알림';
+
+  @override
+  String get favoritePlayerLiveNotificationsDesc =>
+      '즐겨찾기한 선수의 이벤트 발생 시 알림을 설정합니다';
+
+  @override
+  String get favoritePlayerEvents => '선수 이벤트 알림';
+
+  @override
+  String get favoritePlayerEventsDesc => '즐겨찾기 선수 골/어시스트/레드카드 알림';
 
   @override
   String get notificationPermissionGuide => '알림 권한 안내';
@@ -4073,4 +4086,42 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get round => '라운드';
+
+  @override
+  String liveGoalTeam(String team) {
+    return '$team 골!';
+  }
+
+  @override
+  String liveGoalPlayer(String player) {
+    return '$player 골!';
+  }
+
+  @override
+  String liveAssist(String player) {
+    return '$player 어시스트!';
+  }
+
+  @override
+  String get liveRedCard => '레드카드!';
+
+  @override
+  String liveGoalWithAssist(String time, String scorer, String assist) {
+    return '$time $scorer (어시스트: $assist)';
+  }
+
+  @override
+  String liveGoalNoAssist(String time, String scorer) {
+    return '$time $scorer';
+  }
+
+  @override
+  String liveEventTime(String time, String player, String team) {
+    return '$time $player ($team)';
+  }
+
+  @override
+  String matchVs(String home, String away) {
+    return '$home vs $away';
+  }
 }
