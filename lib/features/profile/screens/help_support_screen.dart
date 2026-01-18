@@ -732,9 +732,21 @@ class PatchNotesScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: const [
           _PatchNoteCard(
+            version: '1.1.3',
+            buildNumber: '4',
+            isLatest: true,
+            items: [
+              '알림 탭 시 경기 상세 화면으로 이동',
+              '즐겨찾기 팀 실시간 알림 (골/라인업/결과)',
+              '즐겨찾기 선수 이벤트 알림 (골/어시스트)',
+              '알림 설정 UI 개선',
+              '탭 간 광고 유지 개선',
+            ],
+          ),
+          SizedBox(height: 16),
+          _PatchNoteCard(
             version: '1.1.2',
             buildNumber: '3',
-            isLatest: true,
             items: [
               'UEFA 컨퍼런스리그 추가',
               '2026 FIFA 월드컵 정보 반영',
