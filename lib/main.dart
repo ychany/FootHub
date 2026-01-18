@@ -6,6 +6,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
 import 'l10n/app_localizations.dart';
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
@@ -37,7 +38,15 @@ void main() async {
   await initializeDateFormatting('ko', null);
 
   // 로컬 알림 서비스 초기화
-  await LocalNotificationService().initialize();
+  final notificationService = LocalNotificationService();
+  await notificationService.initialize();
+
+  // 알림 탭 시 경기 상세 화면으로 이동
+  notificationService.onNotificationTap = (payload) {
+    if (payload != null && rootNavigatorKey.currentContext != null) {
+      rootNavigatorKey.currentContext!.push('/match/$payload');
+    }
+  };
 
   // AdMob 초기화
   await AdService().initialize();

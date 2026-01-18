@@ -37,8 +37,12 @@ import 'features/league/screens/league_list_screen.dart';
 import 'features/league/screens/league_detail_screen.dart';
 import 'l10n/app_localizations.dart';
 
+// 글로벌 네비게이터 키 (알림 탭 시 네비게이션용)
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     routes: [
       // Splash

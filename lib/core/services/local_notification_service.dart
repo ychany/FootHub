@@ -11,6 +11,9 @@ class LocalNotificationService {
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _isInitialized = false;
 
+  // 알림 탭 시 네비게이션 콜백
+  void Function(String? payload)? onNotificationTap;
+
   // Notification channel for Android
   static const AndroidNotificationChannel _matchChannel = AndroidNotificationChannel(
     'match_notifications',
@@ -69,7 +72,10 @@ class LocalNotificationService {
 
   /// Handle notification tap
   void _onNotificationTapped(NotificationResponse response) {
-    // Navigation can be handled here if needed
+    final payload = response.payload;
+    if (payload != null && onNotificationTap != null) {
+      onNotificationTap!(payload);
+    }
   }
 
   /// Request notification permissions
