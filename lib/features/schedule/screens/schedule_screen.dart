@@ -13,7 +13,7 @@ import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../providers/schedule_provider.dart';
 import '../../diary/providers/diary_provider.dart';
-import '../../league/screens/league_list_screen.dart' show userLocalLeagueIdsProvider;
+import '../../league/screens/league_list_screen.dart' show userLocalLeagueIdsProvider, userCountryCodeProvider, getLocalizedCountryName;
 
 class ScheduleScreen extends ConsumerStatefulWidget {
   const ScheduleScreen({super.key});
@@ -345,6 +345,11 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> with WidgetsBin
       ...localLeagueNames,
     ];
 
+    // 자국 이름 가져오기 (로컬라이징)
+    final userCountryCode = ref.watch(userCountryCodeProvider);
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final userCountryName = getLocalizedCountryName(userCountryCode, languageCode);
+
     return SizedBox(
       height: 40,
       child: ListView(
@@ -359,7 +364,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> with WidgetsBin
               ref.read(selectedLeagueProvider.notifier).state = 'major';
             },
           ),
-          // 전체 (주요 다음)
+          // 전체
           _LeagueChip(
             label: l10n.all,
             isSelected: selectedLeague == null,
@@ -367,6 +372,16 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> with WidgetsBin
               ref.read(selectedLeagueProvider.notifier).state = null;
             },
           ),
+          // 자국 (국가대표 + 연령별 경기) - 전체 다음
+          if (userCountryName != null)
+            _LeagueChip(
+              label: 'myCountry',
+              displayLabel: userCountryName,
+              isSelected: selectedLeague == 'myCountry',
+              onTap: () {
+                ref.read(selectedLeagueProvider.notifier).state = 'myCountry';
+              },
+            ),
           // 개별 리그들 (기본 + 자국 리그)
           ...allLeagues.map(
             (league) => _LeagueChip(

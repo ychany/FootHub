@@ -8,6 +8,7 @@ import '../models/notification_setting.dart';
 import '../services/schedule_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
+import '../../league/screens/league_list_screen.dart' show userLocalLeagueIdsProvider, userNationalTeamIdProvider, userNationalTeamIdsProvider, userCountryCodeProvider, isNationalTeamOfCountry;
 import '../../profile/providers/notification_settings_provider.dart';
 import '../../profile/providers/timezone_provider.dart';
 
@@ -303,14 +304,57 @@ final filteredSchedulesProvider = FutureProvider<List<Match>>((ref) async {
   // 타임존 변경 시 자동 갱신
   ref.watch(timezoneProvider);
 
+  // 사용자 자국 리그 및 국가대표팀 ID
+  final userLocalLeagueIds = ref.watch(userLocalLeagueIdsProvider);
+  final userNationalTeamId = ref.watch(userNationalTeamIdProvider);
+
   var matches = await service.getSchedulesByDate(
     selectedDate,
     favoriteTeamIds: favoriteTeamIds,
   );
 
+  // 자국 국가대표팀 ID 목록 (성인 + 연령별)
+  final userNationalTeamIds = ref.watch(userNationalTeamIdsProvider);
+  final userNationalTeamIdStrs = userNationalTeamIds.map((id) => id.toString()).toSet();
+  final userCountryCode = ref.watch(userCountryCodeProvider);
+
   if (selectedLeague == 'major') {
-    // 주요: 5대 리그 + 유럽대회 + A매치 전체
-    matches = matches.where((m) => majorLeagueIds.contains(m.leagueId)).toList();
+    // 주요: 5대 리그 + 유럽대회 + A매치 + 자국 리그 + 자국 국가대표 경기
+    final userNationalTeamIdStr = userNationalTeamId?.toString();
+    matches = matches.where((m) {
+      // 기존 주요 리그
+      if (majorLeagueIds.contains(m.leagueId)) return true;
+      // 자국 리그
+      if (userLocalLeagueIds.contains(m.leagueId)) return true;
+      // 자국 국가대표팀 경기 - ID 매칭 (성인만)
+      if (userNationalTeamIdStr != null &&
+          (m.homeTeamId == userNationalTeamIdStr || m.awayTeamId == userNationalTeamIdStr)) {
+        return true;
+      }
+      // 자국 국가대표팀 경기 - 팀 이름 매칭 (U23, U20 등 연령별 포함)
+      if (isNationalTeamOfCountry(m.homeTeamName, userCountryCode) ||
+          isNationalTeamOfCountry(m.awayTeamName, userCountryCode)) {
+        return true;
+      }
+      return false;
+    }).toList();
+  } else if (selectedLeague == 'myCountry') {
+    // 자국: 자국 리그 + 국가대표(성인+연령별) 모든 경기
+    matches = matches.where((m) {
+      // 자국 리그
+      if (userLocalLeagueIds.contains(m.leagueId)) return true;
+      // 자국 국가대표팀 경기 - ID 매칭
+      if (userNationalTeamIdStrs.contains(m.homeTeamId) ||
+          userNationalTeamIdStrs.contains(m.awayTeamId)) {
+        return true;
+      }
+      // 자국 국가대표팀 경기 - 팀 이름 매칭 (U23, U20 등 연령별 포함)
+      if (isNationalTeamOfCountry(m.homeTeamName, userCountryCode) ||
+          isNationalTeamOfCountry(m.awayTeamName, userCountryCode)) {
+        return true;
+      }
+      return false;
+    }).toList();
   } else if (selectedLeague == 'International Friendlies') {
     // A매치: 모든 국제대회 (본선 + 예선 + 네이션스리그 + 친선)
     matches = matches.where((m) =>

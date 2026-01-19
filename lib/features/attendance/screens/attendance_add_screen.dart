@@ -16,7 +16,7 @@ import '../../../shared/services/storage_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/attendance_record.dart';
 import '../providers/attendance_provider.dart';
-import '../../league/screens/league_list_screen.dart' show userLocalLeagueIdsProvider;
+import '../../league/screens/league_list_screen.dart' show userLocalLeagueIdsProvider, userCountryCodeProvider, userNationalTeamIdsProvider, getLocalizedCountryName, isNationalTeamOfCountry;
 
 class AttendanceAddScreen extends ConsumerStatefulWidget {
   final String? matchId;
@@ -511,7 +511,9 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
             label: Text(_searchLeague != null
                 ? AppLocalizations.of(context)!.searchLeagueMatchesForDate(
                     DateFormat('MM/dd').format(_selectedDate),
-                    AppConstants.getLocalizedLeagueName(context, _searchLeague!))
+                    _searchLeague == 'myCountry'
+                        ? (getLocalizedCountryName(ref.read(userCountryCodeProvider), Localizations.localeOf(context).languageCode) ?? '')
+                        : AppConstants.getLocalizedLeagueName(context, _searchLeague!))
                 : AppLocalizations.of(context)!.searchAllMatchesForDate(
                     DateFormat('MM/dd').format(_selectedDate))),
           ),
@@ -523,6 +525,9 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
   Widget _buildLeagueSelector() {
     // 사용자 자국 리그 ID 가져오기
     final localLeagueIds = ref.watch(userLocalLeagueIdsProvider);
+    final userCountryCode = ref.watch(userCountryCodeProvider);
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final userCountryName = getLocalizedCountryName(userCountryCode, languageCode);
 
     // 자국 리그 이름 목록 생성
     final localLeagueNames = localLeagueIds
@@ -555,6 +560,16 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
                 onTap: () => setState(() => _searchLeague = null),
               ),
               const SizedBox(width: 8),
+              // 자국 필터 (국가대표 + 연령별 경기)
+              if (userCountryName != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _LeagueFilterChip(
+                    label: userCountryName,
+                    isSelected: _searchLeague == 'myCountry',
+                    onTap: () => setState(() => _searchLeague = 'myCountry'),
+                  ),
+                ),
               ...allLeagues.map((league) => Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: _LeagueFilterChip(
@@ -1929,6 +1944,28 @@ class _AttendanceAddScreenState extends ConsumerState<AttendanceAddScreen> {
           final filtered = fixtures.where((f) =>
             LeagueIds.cupCompetitionIds.contains(f.league.id)
           ).toList();
+          setState(() => _searchResults = filtered);
+        }
+        // 자국 필터 (자국 리그 + 국가대표 성인/연령별)
+        else if (_searchLeague == 'myCountry') {
+          final localLeagueIds = ref.read(userLocalLeagueIdsProvider);
+          final nationalTeamIds = ref.read(userNationalTeamIdsProvider);
+          final countryCode = ref.read(userCountryCodeProvider);
+          final filtered = fixtures.where((f) {
+            // 자국 리그
+            if (localLeagueIds.contains(f.league.id)) return true;
+            // 자국 국가대표팀 경기 - ID 매칭
+            if (nationalTeamIds.contains(f.homeTeam.id) ||
+                nationalTeamIds.contains(f.awayTeam.id)) {
+              return true;
+            }
+            // 자국 국가대표팀 경기 - 팀 이름 매칭 (U23, U20 등)
+            if (isNationalTeamOfCountry(f.homeTeam.name, countryCode) ||
+                isNationalTeamOfCountry(f.awayTeam.name, countryCode)) {
+              return true;
+            }
+            return false;
+          }).toList();
           setState(() => _searchResults = filtered);
         }
         else {

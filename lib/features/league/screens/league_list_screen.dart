@@ -58,6 +58,144 @@ const Map<String, List<int>> _countryToLeagueIds = {
 /// 5대 리그 ID 목록 (중복 방지용)
 const List<int> _topFiveLeagueIds = [39, 140, 135, 78, 61];
 
+/// 국가 코드 → 국가대표팀 ID 매핑 (API-Football team ID)
+/// 성인 + 연령별 대표팀 모두 포함
+const Map<String, List<int>> _countryToNationalTeamIds = {
+  'KR': [2018, 2017, 2016, 15125, 15132],  // 대한민국 (성인, U23, U20, U17, 여자)
+  'JP': [2019, 15130, 3004, 15133],         // 일본
+  'CN': [2015],                              // 중국
+  'US': [2384, 7681, 7682],                  // 미국
+  'GB': [10, 1066, 1064, 1085],              // 잉글랜드
+  'ES': [9, 1068, 1065, 1086],               // 스페인
+  'IT': [768, 1070, 1067],                   // 이탈리아
+  'DE': [25, 1069, 1063],                    // 독일
+  'FR': [2, 1071, 1062],                     // 프랑스
+  'PT': [27, 1072],                          // 포르투갈
+  'NL': [1118, 1073],                        // 네덜란드
+  'BE': [1],                                  // 벨기에
+  'TR': [3589],                               // 튀르키예
+  'BR': [6, 1074, 1061],                     // 브라질
+  'AR': [26, 1075],                          // 아르헨티나
+  'MX': [2382],                               // 멕시코
+  'AU': [2024],                               // 호주
+  'SA': [2383],                               // 사우디아라비아
+  'PL': [18],                                 // 폴란드
+  'AT': [775],                                // 오스트리아
+  'CH': [15],                                 // 스위스
+  'SE': [1091],                               // 스웨덴
+  'NO': [1077],                               // 노르웨이
+  'DK': [21],                                 // 덴마크
+  'HR': [3],                                  // 크로아티아
+  'RS': [1082],                               // 세르비아
+};
+
+/// 국가 코드 → 국가 이름 (영어)
+const Map<String, String> _countryCodeToNameEn = {
+  'KR': 'South Korea',
+  'JP': 'Japan',
+  'CN': 'China',
+  'US': 'USA',
+  'GB': 'England',
+  'ES': 'Spain',
+  'IT': 'Italy',
+  'DE': 'Germany',
+  'FR': 'France',
+  'PT': 'Portugal',
+  'NL': 'Netherlands',
+  'BE': 'Belgium',
+  'TR': 'Turkey',
+  'BR': 'Brazil',
+  'AR': 'Argentina',
+  'MX': 'Mexico',
+  'AU': 'Australia',
+  'SA': 'Saudi Arabia',
+  'PL': 'Poland',
+  'AT': 'Austria',
+  'CH': 'Switzerland',
+  'SE': 'Sweden',
+  'NO': 'Norway',
+  'DK': 'Denmark',
+  'HR': 'Croatia',
+  'RS': 'Serbia',
+};
+
+/// 국가 코드 → 국가 이름 (한글)
+const Map<String, String> _countryCodeToNameKo = {
+  'KR': '대한민국',
+  'JP': '일본',
+  'CN': '중국',
+  'US': '미국',
+  'GB': '잉글랜드',
+  'ES': '스페인',
+  'IT': '이탈리아',
+  'DE': '독일',
+  'FR': '프랑스',
+  'PT': '포르투갈',
+  'NL': '네덜란드',
+  'BE': '벨기에',
+  'TR': '튀르키예',
+  'BR': '브라질',
+  'AR': '아르헨티나',
+  'MX': '멕시코',
+  'AU': '호주',
+  'SA': '사우디아라비아',
+  'PL': '폴란드',
+  'AT': '오스트리아',
+  'CH': '스위스',
+  'SE': '스웨덴',
+  'NO': '노르웨이',
+  'DK': '덴마크',
+  'HR': '크로아티아',
+  'RS': '세르비아',
+};
+
+/// 국가 이름 가져오기 (locale 기반)
+String? getLocalizedCountryName(String countryCode, String languageCode) {
+  if (languageCode == 'ko') {
+    return _countryCodeToNameKo[countryCode];
+  }
+  return _countryCodeToNameEn[countryCode];
+}
+
+/// 국가 코드 → 팀 이름 매칭 키워드 (API에서 다양한 이름으로 올 수 있음)
+const Map<String, List<String>> _countryToTeamNameKeywords = {
+  'KR': ['Korea Republic', 'South Korea', 'Korea'],
+  'JP': ['Japan'],
+  'CN': ['China'],
+  'US': ['USA', 'United States'],
+  'GB': ['England'],
+  'ES': ['Spain'],
+  'IT': ['Italy'],
+  'DE': ['Germany'],
+  'FR': ['France'],
+  'PT': ['Portugal'],
+  'NL': ['Netherlands', 'Holland'],
+  'BE': ['Belgium'],
+  'TR': ['Turkey', 'Türkiye'],
+  'BR': ['Brazil'],
+  'AR': ['Argentina'],
+  'MX': ['Mexico'],
+  'AU': ['Australia'],
+  'SA': ['Saudi Arabia'],
+  'PL': ['Poland'],
+  'AT': ['Austria'],
+  'CH': ['Switzerland'],
+  'SE': ['Sweden'],
+  'NO': ['Norway'],
+  'DK': ['Denmark'],
+  'HR': ['Croatia'],
+  'RS': ['Serbia'],
+};
+
+/// 팀 이름이 해당 국가의 대표팀인지 확인
+bool isNationalTeamOfCountry(String teamName, String countryCode) {
+  final keywords = _countryToTeamNameKeywords[countryCode];
+  if (keywords == null) return false;
+
+  final teamNameLower = teamName.toLowerCase();
+  return keywords.any((keyword) => teamNameLower.contains(keyword.toLowerCase()));
+}
+
 /// 사용자 국가 코드 Provider
 final userCountryCodeProvider = Provider<String>((ref) {
   // 기기의 locale에서 국가 코드 가져오기
@@ -75,6 +213,25 @@ final userLocalLeagueIdsProvider = Provider<List<int>>((ref) {
     return [];
   }
   return leagueIds.take(2).toList(); // 최대 2개
+});
+
+/// 사용자 자국 국가대표팀 ID Provider (성인 대표팀만)
+final userNationalTeamIdProvider = Provider<int?>((ref) {
+  final countryCode = ref.watch(userCountryCodeProvider);
+  final teamIds = _countryToNationalTeamIds[countryCode];
+  return teamIds?.isNotEmpty == true ? teamIds!.first : null;
+});
+
+/// 사용자 자국 국가대표팀 ID 목록 Provider (성인 + 연령별 모두)
+final userNationalTeamIdsProvider = Provider<List<int>>((ref) {
+  final countryCode = ref.watch(userCountryCodeProvider);
+  return _countryToNationalTeamIds[countryCode] ?? [];
+});
+
+/// 사용자 자국 이름 Provider (영어 기본)
+final userCountryNameProvider = Provider<String?>((ref) {
+  final countryCode = ref.watch(userCountryCodeProvider);
+  return _countryCodeToNameEn[countryCode];
 });
 
 /// 인기 리그 목록 Provider
