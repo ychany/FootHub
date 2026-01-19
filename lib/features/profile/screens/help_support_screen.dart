@@ -730,87 +730,100 @@ class PatchNotesScreen extends StatelessWidget {
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
-        children: const [
+        children: [
+          _PatchNoteCard(
+            version: '1.1.4',
+            buildNumber: '5',
+            isLatest: true,
+            latestLabel: l10n.patchNotesLatest,
+            items: [
+              l10n.patchNote_1_1_4_1,
+              l10n.patchNote_1_1_4_2,
+              l10n.patchNote_1_1_4_3,
+              l10n.patchNote_1_1_4_4,
+              l10n.patchNote_1_1_4_5,
+            ],
+          ),
+          const SizedBox(height: 16),
           _PatchNoteCard(
             version: '1.1.3',
             buildNumber: '4',
-            isLatest: true,
             items: [
-              '알림 탭 시 경기 상세 화면으로 이동',
-              '즐겨찾기 팀 실시간 알림 (골/라인업/결과)',
-              '즐겨찾기 선수 이벤트 알림 (골/어시스트)',
-              '알림 설정 UI 개선',
-              '탭 간 광고 유지 개선',
+              l10n.patchNote_1_1_3_1,
+              l10n.patchNote_1_1_3_2,
+              l10n.patchNote_1_1_3_3,
+              l10n.patchNote_1_1_3_4,
+              l10n.patchNote_1_1_3_5,
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _PatchNoteCard(
             version: '1.1.2',
             buildNumber: '3',
             items: [
-              'UEFA 컨퍼런스리그 추가',
-              '2026 FIFA 월드컵 정보 반영',
-              '리그 페이지 로딩 안정성 개선',
-              '순위 페이지 통계 탭 개선',
-              '컵대회 추가 및 개선',
-              '성능 개선 및 버그 수정',
+              l10n.patchNote_1_1_2_1,
+              l10n.patchNote_1_1_2_2,
+              l10n.patchNote_1_1_2_3,
+              l10n.patchNote_1_1_2_4,
+              l10n.patchNote_1_1_2_5,
+              l10n.patchNote_1_1_2_6,
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _PatchNoteCard(
             version: '1.1.1',
             buildNumber: '2',
             items: [
-              '컵대회 필터 추가 (일정/직관기록)',
-              '리그탭 국내컵대회 추가',
-              '국내컵대회 토너먼트 페이지',
-              '컵대회 토너먼트/통계 페이지 개선',
-              '컵대회 득점/도움 통계 추가',
-              '통계 탭 색상 수정',
-              '동적 로드 추가',
-              '북중미 월드컵 진출국 하드코딩',
-              '승부차기 및 연장전 점수 표시',
+              l10n.patchNote_1_1_1_1,
+              l10n.patchNote_1_1_1_2,
+              l10n.patchNote_1_1_1_3,
+              l10n.patchNote_1_1_1_4,
+              l10n.patchNote_1_1_1_5,
+              l10n.patchNote_1_1_1_6,
+              l10n.patchNote_1_1_1_7,
+              l10n.patchNote_1_1_1_8,
+              l10n.patchNote_1_1_1_9,
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _PatchNoteCard(
             version: '1.1.0',
             buildNumber: '1',
             items: [
-              '즐겨찾기 팀 알림 기능',
-              'A매치에 필터 추가, 달력 수정',
-              '팀정보 순위페이지 추가',
-              '팀정보 이적탭 날짜 파싱 수정',
-              '선수정보 출전경기 탭 추가',
-              '라인업 페이지 교체 아웃 추가',
-              '부상/결장 선수 디테일 페이지 오류 수정',
-              '팀정보 - 일정탭 날짜 기준 수정',
-              '라이브 데이터 자동 갱신 개선',
+              l10n.patchNote_1_1_0_1,
+              l10n.patchNote_1_1_0_2,
+              l10n.patchNote_1_1_0_3,
+              l10n.patchNote_1_1_0_4,
+              l10n.patchNote_1_1_0_5,
+              l10n.patchNote_1_1_0_6,
+              l10n.patchNote_1_1_0_7,
+              l10n.patchNote_1_1_0_8,
+              l10n.patchNote_1_1_0_9,
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _PatchNoteCard(
             version: '1.0.0',
             buildNumber: '3',
             items: [
-              '리그 일정에 라운드 표시',
-              '하프타임(HT) 표시',
-              '시즌 자동 감지 개선',
-              '자국 리그 필터 자동 추가',
-              '즐겨찾기 선수 검색 개선',
+              l10n.patchNote_1_0_0_3_1,
+              l10n.patchNote_1_0_0_3_2,
+              l10n.patchNote_1_0_0_3_3,
+              l10n.patchNote_1_0_0_3_4,
+              l10n.patchNote_1_0_0_3_5,
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _PatchNoteCard(
             version: '1.0.0',
             buildNumber: '2',
             items: [
-              'Apple 로그인 지원',
-              '회원탈퇴 기능 추가',
-              '커뮤니티 신고/차단 기능',
-              '국가별 리그 탐색 페이지',
-              '라이브 경기 추가시간 표시',
-              '성능 개선 및 버그 수정',
+              l10n.patchNote_1_0_0_2_1,
+              l10n.patchNote_1_0_0_2_2,
+              l10n.patchNote_1_0_0_2_3,
+              l10n.patchNote_1_0_0_2_4,
+              l10n.patchNote_1_0_0_2_5,
+              l10n.patchNote_1_0_0_2_6,
             ],
           ),
         ],
@@ -823,12 +836,14 @@ class _PatchNoteCard extends StatelessWidget {
   final String version;
   final String buildNumber;
   final bool isLatest;
+  final String? latestLabel;
   final List<String> items;
 
   const _PatchNoteCard({
     required this.version,
     required this.buildNumber,
     this.isLatest = false,
+    this.latestLabel,
     required this.items,
   });
 
@@ -874,7 +889,7 @@ class _PatchNoteCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (isLatest) ...[
+                if (isLatest && latestLabel != null) ...[
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -882,9 +897,9 @@ class _PatchNoteCard extends StatelessWidget {
                       color: const Color(0xFF10B981).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text(
-                      'Latest',
-                      style: TextStyle(
+                    child: Text(
+                      latestLabel!,
+                      style: const TextStyle(
                         color: Color(0xFF10B981),
                         fontSize: 11,
                         fontWeight: FontWeight.w600,

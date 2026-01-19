@@ -4169,4 +4169,151 @@ class AppLocalizationsEn extends AppLocalizations {
   String matchVs(String home, String away) {
     return '$home vs $away';
   }
+
+  @override
+  String get patchNotesLatest => 'Latest';
+
+  @override
+  String get patchNote_1_1_4_1 =>
+      'Added local league filter (Schedule tab, Match Diary)';
+
+  @override
+  String get patchNote_1_1_4_2 =>
+      'Display age-group national team matches (U23, U20, etc.)';
+
+  @override
+  String get patchNote_1_1_4_3 => 'Separated leagues with same name by country';
+
+  @override
+  String get patchNote_1_1_4_4 => 'Fixed missed penalty goal record error';
+
+  @override
+  String get patchNote_1_1_4_5 => 'Patch notes localization (Korean/English)';
+
+  @override
+  String get patchNote_1_1_3_1 =>
+      'Navigate to match detail when tapping notification';
+
+  @override
+  String get patchNote_1_1_3_2 =>
+      'Real-time notifications for favorite teams (Goal/Lineup/Result)';
+
+  @override
+  String get patchNote_1_1_3_3 =>
+      'Event notifications for favorite players (Goal/Assist)';
+
+  @override
+  String get patchNote_1_1_3_4 => 'Improved notification settings UI';
+
+  @override
+  String get patchNote_1_1_3_5 => 'Improved ad persistence between tabs';
+
+  @override
+  String get patchNote_1_1_2_1 => 'Added UEFA Conference League';
+
+  @override
+  String get patchNote_1_1_2_2 => 'Updated 2026 FIFA World Cup information';
+
+  @override
+  String get patchNote_1_1_2_3 => 'Improved league page loading stability';
+
+  @override
+  String get patchNote_1_1_2_4 => 'Improved stats tab on standings page';
+
+  @override
+  String get patchNote_1_1_2_5 => 'Added and improved cup competitions';
+
+  @override
+  String get patchNote_1_1_2_6 => 'Performance improvements and bug fixes';
+
+  @override
+  String get patchNote_1_1_1_1 =>
+      'Added cup competition filter (Schedule/Match records)';
+
+  @override
+  String get patchNote_1_1_1_2 =>
+      'Added domestic cup competitions to league tab';
+
+  @override
+  String get patchNote_1_1_1_3 => 'Domestic cup tournament bracket page';
+
+  @override
+  String get patchNote_1_1_1_4 => 'Improved cup tournament/stats pages';
+
+  @override
+  String get patchNote_1_1_1_5 => 'Added cup competition goal/assist stats';
+
+  @override
+  String get patchNote_1_1_1_6 => 'Fixed stats tab colors';
+
+  @override
+  String get patchNote_1_1_1_7 => 'Added dynamic loading';
+
+  @override
+  String get patchNote_1_1_1_8 => 'Hardcoded CONCACAF World Cup qualifiers';
+
+  @override
+  String get patchNote_1_1_1_9 =>
+      'Display penalty shootout and extra time scores';
+
+  @override
+  String get patchNote_1_1_0_1 => 'Favorite team notification feature';
+
+  @override
+  String get patchNote_1_1_0_2 => 'Added filter to A-match, fixed calendar';
+
+  @override
+  String get patchNote_1_1_0_3 => 'Added standings page to team info';
+
+  @override
+  String get patchNote_1_1_0_4 => 'Fixed date parsing in team transfer tab';
+
+  @override
+  String get patchNote_1_1_0_5 => 'Added appearances tab to player info';
+
+  @override
+  String get patchNote_1_1_0_6 => 'Added substitution out to lineup page';
+
+  @override
+  String get patchNote_1_1_0_7 =>
+      'Fixed injury/missing player detail page error';
+
+  @override
+  String get patchNote_1_1_0_8 => 'Fixed date criteria in team schedule tab';
+
+  @override
+  String get patchNote_1_1_0_9 => 'Improved live data auto-refresh';
+
+  @override
+  String get patchNote_1_0_0_3_1 => 'Display round in league schedule';
+
+  @override
+  String get patchNote_1_0_0_3_2 => 'Display half-time (HT)';
+
+  @override
+  String get patchNote_1_0_0_3_3 => 'Improved auto season detection';
+
+  @override
+  String get patchNote_1_0_0_3_4 => 'Auto-add local league filter';
+
+  @override
+  String get patchNote_1_0_0_3_5 => 'Improved favorite player search';
+
+  @override
+  String get patchNote_1_0_0_2_1 => 'Apple Sign-In support';
+
+  @override
+  String get patchNote_1_0_0_2_2 => 'Added account deletion feature';
+
+  @override
+  String get patchNote_1_0_0_2_3 => 'Community report/block features';
+
+  @override
+  String get patchNote_1_0_0_2_4 => 'Browse leagues by country page';
+
+  @override
+  String get patchNote_1_0_0_2_5 => 'Display added time for live matches';
+
+  @override
+  String get patchNote_1_0_0_2_6 => 'Performance improvements and bug fixes';
 }

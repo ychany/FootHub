@@ -7903,6 +7903,282 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'{home} vs {away}'**
   String matchVs(String home, String away);
+
+  /// No description provided for @patchNotesLatest.
+  ///
+  /// In ko, this message translates to:
+  /// **'최신'**
+  String get patchNotesLatest;
+
+  /// No description provided for @patchNote_1_1_4_1.
+  ///
+  /// In ko, this message translates to:
+  /// **'자국 필터 추가 (일정탭, 직관일기)'**
+  String get patchNote_1_1_4_1;
+
+  /// No description provided for @patchNote_1_1_4_2.
+  ///
+  /// In ko, this message translates to:
+  /// **'연령별 대표팀 경기 표시 (U23, U20 등)'**
+  String get patchNote_1_1_4_2;
+
+  /// No description provided for @patchNote_1_1_4_3.
+  ///
+  /// In ko, this message translates to:
+  /// **'동일 이름 리그 국가별 분리'**
+  String get patchNote_1_1_4_3;
+
+  /// No description provided for @patchNote_1_1_4_4.
+  ///
+  /// In ko, this message translates to:
+  /// **'실축(Missed Penalty) 골 기록 오류 수정'**
+  String get patchNote_1_1_4_4;
+
+  /// No description provided for @patchNote_1_1_4_5.
+  ///
+  /// In ko, this message translates to:
+  /// **'패치노트 다국어 지원 (한국어/영어)'**
+  String get patchNote_1_1_4_5;
+
+  /// No description provided for @patchNote_1_1_3_1.
+  ///
+  /// In ko, this message translates to:
+  /// **'알림 탭 시 경기 상세 화면으로 이동'**
+  String get patchNote_1_1_3_1;
+
+  /// No description provided for @patchNote_1_1_3_2.
+  ///
+  /// In ko, this message translates to:
+  /// **'즐겨찾기 팀 실시간 알림 (골/라인업/결과)'**
+  String get patchNote_1_1_3_2;
+
+  /// No description provided for @patchNote_1_1_3_3.
+  ///
+  /// In ko, this message translates to:
+  /// **'즐겨찾기 선수 이벤트 알림 (골/어시스트)'**
+  String get patchNote_1_1_3_3;
+
+  /// No description provided for @patchNote_1_1_3_4.
+  ///
+  /// In ko, this message translates to:
+  /// **'알림 설정 UI 개선'**
+  String get patchNote_1_1_3_4;
+
+  /// No description provided for @patchNote_1_1_3_5.
+  ///
+  /// In ko, this message translates to:
+  /// **'탭 간 광고 유지 개선'**
+  String get patchNote_1_1_3_5;
+
+  /// No description provided for @patchNote_1_1_2_1.
+  ///
+  /// In ko, this message translates to:
+  /// **'UEFA 컨퍼런스리그 추가'**
+  String get patchNote_1_1_2_1;
+
+  /// No description provided for @patchNote_1_1_2_2.
+  ///
+  /// In ko, this message translates to:
+  /// **'2026 FIFA 월드컵 정보 반영'**
+  String get patchNote_1_1_2_2;
+
+  /// No description provided for @patchNote_1_1_2_3.
+  ///
+  /// In ko, this message translates to:
+  /// **'리그 페이지 로딩 안정성 개선'**
+  String get patchNote_1_1_2_3;
+
+  /// No description provided for @patchNote_1_1_2_4.
+  ///
+  /// In ko, this message translates to:
+  /// **'순위 페이지 통계 탭 개선'**
+  String get patchNote_1_1_2_4;
+
+  /// No description provided for @patchNote_1_1_2_5.
+  ///
+  /// In ko, this message translates to:
+  /// **'컵대회 추가 및 개선'**
+  String get patchNote_1_1_2_5;
+
+  /// No description provided for @patchNote_1_1_2_6.
+  ///
+  /// In ko, this message translates to:
+  /// **'성능 개선 및 버그 수정'**
+  String get patchNote_1_1_2_6;
+
+  /// No description provided for @patchNote_1_1_1_1.
+  ///
+  /// In ko, this message translates to:
+  /// **'컵대회 필터 추가 (일정/직관기록)'**
+  String get patchNote_1_1_1_1;
+
+  /// No description provided for @patchNote_1_1_1_2.
+  ///
+  /// In ko, this message translates to:
+  /// **'리그탭 국내컵대회 추가'**
+  String get patchNote_1_1_1_2;
+
+  /// No description provided for @patchNote_1_1_1_3.
+  ///
+  /// In ko, this message translates to:
+  /// **'국내컵대회 토너먼트 페이지'**
+  String get patchNote_1_1_1_3;
+
+  /// No description provided for @patchNote_1_1_1_4.
+  ///
+  /// In ko, this message translates to:
+  /// **'컵대회 토너먼트/통계 페이지 개선'**
+  String get patchNote_1_1_1_4;
+
+  /// No description provided for @patchNote_1_1_1_5.
+  ///
+  /// In ko, this message translates to:
+  /// **'컵대회 득점/도움 통계 추가'**
+  String get patchNote_1_1_1_5;
+
+  /// No description provided for @patchNote_1_1_1_6.
+  ///
+  /// In ko, this message translates to:
+  /// **'통계 탭 색상 수정'**
+  String get patchNote_1_1_1_6;
+
+  /// No description provided for @patchNote_1_1_1_7.
+  ///
+  /// In ko, this message translates to:
+  /// **'동적 로드 추가'**
+  String get patchNote_1_1_1_7;
+
+  /// No description provided for @patchNote_1_1_1_8.
+  ///
+  /// In ko, this message translates to:
+  /// **'북중미 월드컵 진출국 하드코딩'**
+  String get patchNote_1_1_1_8;
+
+  /// No description provided for @patchNote_1_1_1_9.
+  ///
+  /// In ko, this message translates to:
+  /// **'승부차기 및 연장전 점수 표시'**
+  String get patchNote_1_1_1_9;
+
+  /// No description provided for @patchNote_1_1_0_1.
+  ///
+  /// In ko, this message translates to:
+  /// **'즐겨찾기 팀 알림 기능'**
+  String get patchNote_1_1_0_1;
+
+  /// No description provided for @patchNote_1_1_0_2.
+  ///
+  /// In ko, this message translates to:
+  /// **'A매치에 필터 추가, 달력 수정'**
+  String get patchNote_1_1_0_2;
+
+  /// No description provided for @patchNote_1_1_0_3.
+  ///
+  /// In ko, this message translates to:
+  /// **'팀정보 순위페이지 추가'**
+  String get patchNote_1_1_0_3;
+
+  /// No description provided for @patchNote_1_1_0_4.
+  ///
+  /// In ko, this message translates to:
+  /// **'팀정보 이적탭 날짜 파싱 수정'**
+  String get patchNote_1_1_0_4;
+
+  /// No description provided for @patchNote_1_1_0_5.
+  ///
+  /// In ko, this message translates to:
+  /// **'선수정보 출전경기 탭 추가'**
+  String get patchNote_1_1_0_5;
+
+  /// No description provided for @patchNote_1_1_0_6.
+  ///
+  /// In ko, this message translates to:
+  /// **'라인업 페이지 교체 아웃 추가'**
+  String get patchNote_1_1_0_6;
+
+  /// No description provided for @patchNote_1_1_0_7.
+  ///
+  /// In ko, this message translates to:
+  /// **'부상/결장 선수 디테일 페이지 오류 수정'**
+  String get patchNote_1_1_0_7;
+
+  /// No description provided for @patchNote_1_1_0_8.
+  ///
+  /// In ko, this message translates to:
+  /// **'팀정보 - 일정탭 날짜 기준 수정'**
+  String get patchNote_1_1_0_8;
+
+  /// No description provided for @patchNote_1_1_0_9.
+  ///
+  /// In ko, this message translates to:
+  /// **'라이브 데이터 자동 갱신 개선'**
+  String get patchNote_1_1_0_9;
+
+  /// No description provided for @patchNote_1_0_0_3_1.
+  ///
+  /// In ko, this message translates to:
+  /// **'리그 일정에 라운드 표시'**
+  String get patchNote_1_0_0_3_1;
+
+  /// No description provided for @patchNote_1_0_0_3_2.
+  ///
+  /// In ko, this message translates to:
+  /// **'하프타임(HT) 표시'**
+  String get patchNote_1_0_0_3_2;
+
+  /// No description provided for @patchNote_1_0_0_3_3.
+  ///
+  /// In ko, this message translates to:
+  /// **'시즌 자동 감지 개선'**
+  String get patchNote_1_0_0_3_3;
+
+  /// No description provided for @patchNote_1_0_0_3_4.
+  ///
+  /// In ko, this message translates to:
+  /// **'자국 리그 필터 자동 추가'**
+  String get patchNote_1_0_0_3_4;
+
+  /// No description provided for @patchNote_1_0_0_3_5.
+  ///
+  /// In ko, this message translates to:
+  /// **'즐겨찾기 선수 검색 개선'**
+  String get patchNote_1_0_0_3_5;
+
+  /// No description provided for @patchNote_1_0_0_2_1.
+  ///
+  /// In ko, this message translates to:
+  /// **'Apple 로그인 지원'**
+  String get patchNote_1_0_0_2_1;
+
+  /// No description provided for @patchNote_1_0_0_2_2.
+  ///
+  /// In ko, this message translates to:
+  /// **'회원탈퇴 기능 추가'**
+  String get patchNote_1_0_0_2_2;
+
+  /// No description provided for @patchNote_1_0_0_2_3.
+  ///
+  /// In ko, this message translates to:
+  /// **'커뮤니티 신고/차단 기능'**
+  String get patchNote_1_0_0_2_3;
+
+  /// No description provided for @patchNote_1_0_0_2_4.
+  ///
+  /// In ko, this message translates to:
+  /// **'국가별 리그 탐색 페이지'**
+  String get patchNote_1_0_0_2_4;
+
+  /// No description provided for @patchNote_1_0_0_2_5.
+  ///
+  /// In ko, this message translates to:
+  /// **'라이브 경기 추가시간 표시'**
+  String get patchNote_1_0_0_2_5;
+
+  /// No description provided for @patchNote_1_0_0_2_6.
+  ///
+  /// In ko, this message translates to:
+  /// **'성능 개선 및 버그 수정'**
+  String get patchNote_1_0_0_2_6;
 }
 
 class _AppLocalizationsDelegate
