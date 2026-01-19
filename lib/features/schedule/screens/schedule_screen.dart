@@ -414,35 +414,64 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> with WidgetsBin
           );
         }
 
-        // 리그별로 그룹화
+        // 리그별로 그룹화 (leagueId 기준 - 동일 이름의 다른 나라 리그 분리)
         final groupedMatches = <String, List<Match>>{};
         for (final match in matches) {
-          final leagueName = match.league;
-          groupedMatches.putIfAbsent(leagueName, () => []).add(match);
+          // leagueId가 있으면 id 기준, 없으면 이름 기준으로 그룹화
+          final groupKey = match.leagueId != null
+              ? 'id_${match.leagueId}'
+              : 'name_${match.league}';
+          groupedMatches.putIfAbsent(groupKey, () => []).add(match);
         }
 
         // 리그 순서 정렬 (5대 리그 우선, 그 다음 가나다순)
-        final leagueOrder = [
-          'Premier League', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1',
-          'K League 1', 'K League 2', 'UEFA Champions League', 'UEFA Europa League', 'UEFA Conference League',
+        // leagueId 기준 우선순위 (5대 리그 + 유럽대회)
+        final leagueIdOrder = [
+          39,   // Premier League (England)
+          140,  // La Liga
+          135,  // Serie A
+          78,   // Bundesliga
+          61,   // Ligue 1
+          292,  // K League 1
+          293,  // K League 2
+          2,    // UEFA Champions League
+          3,    // UEFA Europa League
+          848,  // UEFA Conference League
         ];
-        final sortedLeagues = groupedMatches.keys.toList()
+        final sortedGroupKeys = groupedMatches.keys.toList()
           ..sort((a, b) {
-            final aIndex = leagueOrder.indexWhere((l) => a.contains(l));
-            final bIndex = leagueOrder.indexWhere((l) => b.contains(l));
+            // leagueId 추출 (id_123 형식)
+            int? getLeagueId(String key) {
+              if (key.startsWith('id_')) {
+                return int.tryParse(key.substring(3));
+              }
+              return null;
+            }
+            final aId = getLeagueId(a);
+            final bId = getLeagueId(b);
+
+            // ID 기반 우선순위 비교
+            final aIndex = aId != null ? leagueIdOrder.indexOf(aId) : -1;
+            final bIndex = bId != null ? leagueIdOrder.indexOf(bId) : -1;
             if (aIndex != -1 && bIndex != -1) return aIndex.compareTo(bIndex);
             if (aIndex != -1) return -1;
             if (bIndex != -1) return 1;
-            return a.compareTo(b);
+
+            // 둘 다 우선순위 목록에 없으면 리그 이름으로 정렬
+            final aLeagueName = groupedMatches[a]!.first.league;
+            final bLeagueName = groupedMatches[b]!.first.league;
+            return aLeagueName.compareTo(bLeagueName);
           });
 
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: Column(
-            children: sortedLeagues.map((league) {
-              final leagueMatches = groupedMatches[league]!;
+            children: sortedGroupKeys.map((groupKey) {
+              final leagueMatches = groupedMatches[groupKey]!;
+              // 첫 번째 경기의 리그 이름 사용
+              final leagueName = leagueMatches.first.league;
               return _LeagueMatchGroup(
-                leagueName: league,
+                leagueName: leagueName,
                 matches: leagueMatches,
               );
             }).toList(),
@@ -478,6 +507,25 @@ class _LeagueMatchGroup extends StatelessWidget {
   });
 
   int? get _leagueId => matches.isNotEmpty ? matches.first.leagueId : null;
+  String? get _leagueCountry => matches.isNotEmpty ? matches.first.leagueCountry : null;
+
+  /// 표시할 리그 이름 생성 (5대 리그가 아닌 경우 국가 추가)
+  String _getDisplayLeagueName(BuildContext context) {
+    final localizedName = AppConstants.getLocalizedLeagueName(context, leagueName);
+
+    // 5대 리그 ID는 국가 표시 안함
+    const majorLeagueIds = {39, 140, 135, 78, 61, 2, 3, 848, 292, 293};
+    if (_leagueId != null && majorLeagueIds.contains(_leagueId)) {
+      return localizedName;
+    }
+
+    // 동일 이름이지만 5대 리그가 아닌 경우 국가명 추가
+    if (_leagueCountry != null && _leagueCountry!.isNotEmpty) {
+      return '$localizedName ($_leagueCountry)';
+    }
+
+    return localizedName;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -511,7 +559,7 @@ class _LeagueMatchGroup extends StatelessWidget {
                     _buildLeagueLogo(matches.first),
                   Expanded(
                     child: Text(
-                      AppConstants.getLocalizedLeagueName(context, leagueName),
+                      _getDisplayLeagueName(context),
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
