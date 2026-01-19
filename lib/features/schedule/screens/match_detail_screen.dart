@@ -462,7 +462,8 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
     // 골 & 레드카드 이벤트 가져오기
     final eventsAsync = ref.watch(matchTimelineProvider(match.id.toString()));
     final allEvents = eventsAsync.valueOrNull ?? [];
-    final goalEvents = allEvents.where((e) => e.type == 'Goal').toList();
+    // Missed Penalty는 type=Goal이지만 실제 골이 아니므로 제외
+    final goalEvents = allEvents.where((e) => e.type == 'Goal' && e.detail != 'Missed Penalty').toList();
     final redCardEvents = allEvents.where((e) => e.type == 'Card' && e.detail == 'Red Card').toList();
     final homeGoalEvents = goalEvents.where((e) => e.teamId == match.homeTeam.id).toList();
     final awayGoalEvents = goalEvents.where((e) => e.teamId == match.awayTeam.id).toList();
@@ -3161,7 +3162,9 @@ class _TimelineItem extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     switch (event.type.toLowerCase()) {
       case 'goal':
-        if (event.detail?.toLowerCase().contains('penalty') == true) {
+        if (event.detail == 'Missed Penalty') {
+          return l10n.missedPenalty;
+        } else if (event.detail?.toLowerCase().contains('penalty') == true) {
           return l10n.penaltyGoal;
         } else if (event.detail?.toLowerCase().contains('own') == true) {
           return l10n.ownGoal;
@@ -3186,6 +3189,9 @@ class _TimelineItem extends StatelessWidget {
   IconData _getEventIcon() {
     switch (event.type.toLowerCase()) {
       case 'goal':
+        if (event.detail == 'Missed Penalty') {
+          return Icons.cancel_outlined; // 실축은 X 아이콘
+        }
         return Icons.sports_soccer;
       case 'card':
         return Icons.style;
@@ -3201,6 +3207,9 @@ class _TimelineItem extends StatelessWidget {
   Color _getEventColor() {
     switch (event.type.toLowerCase()) {
       case 'goal':
+        if (event.detail == 'Missed Penalty') {
+          return const Color(0xFFEF4444); // 실축은 빨간색
+        }
         return const Color(0xFF10B981);
       case 'card':
         if (event.detail?.toLowerCase().contains('red') == true) {

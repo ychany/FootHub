@@ -1203,6 +1203,10 @@
   "@penaltyGoal": {
     "description": "Penalty goal"
   },
+  "missedPenalty": "PK 실축",
+  "@missedPenalty": {
+    "description": "Missed penalty"
+  },
   "ownGoal": "자책",
   "@ownGoal": {
     "description": "Own goal"

@@ -1778,6 +1778,12 @@ abstract class AppLocalizations {
   /// **'페널티골'**
   String get penaltyGoal;
 
+  /// Missed penalty
+  ///
+  /// In ko, this message translates to:
+  /// **'PK 실축'**
+  String get missedPenalty;
+
   /// Own goal
   ///
   /// In ko, this message translates to:

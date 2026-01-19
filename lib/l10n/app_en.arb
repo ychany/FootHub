@@ -561,6 +561,7 @@
   "noTimelineInfo": "No timeline",
   "assistLabel": "Assist: {name}",
   "penaltyGoal": "Penalty",
+  "missedPenalty": "Missed PK",
   "ownGoal": "Own Goal",
   "goalLabel": "Goal",
   "warningCard": "Yellow",

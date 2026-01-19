@@ -883,6 +883,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get penaltyGoal => '페널티골';
 
   @override
+  String get missedPenalty => 'PK 실축';
+
+  @override
   String get ownGoal => '자책';
 
   @override

@@ -885,6 +885,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get penaltyGoal => 'Penalty';
 
   @override
+  String get missedPenalty => 'Missed PK';
+
+  @override
   String get ownGoal => 'OG';
 
   @override
