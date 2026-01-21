@@ -1296,7 +1296,13 @@
 
   "uclDirect": "UCL Direct",
   "uclQualification": "UCL Qual",
+  "uclRoundOf16": "UCL R16",
+  "uclPlayoff": "UCL PO",
   "uelDirect": "UEL Direct",
+  "uelRoundOf16": "UEL R16",
+  "uelPlayoff": "UEL PO",
+  "ueclRoundOf16": "UECL R16",
+  "ueclPlayoff": "UECL PO",
   "championship": "Championship",
   "lowerSplit": "Lower Split",
   "promotion": "Promotion",

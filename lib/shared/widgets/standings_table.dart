@@ -417,40 +417,58 @@ class StandingsTab extends ConsumerWidget {
     );
   }
 
-  // description 필드를 기반으로 존 색상 반환
+  // description 필드를 기반으로 존 색상 반환 (standings_screen.dart와 동일한 색상 체계)
   Color? _getZoneColor(String? description) {
     if (description == null || description.isEmpty) return null;
     final desc = description.toLowerCase();
 
-    // 챔피언스리그 (초록)
+    // 챔피언스리그 16강 직행 (진한 파랑)
+    if ((desc.contains('champions league') || desc.contains('ucl')) &&
+        (desc.contains('round of 16') || desc.contains('1/8'))) {
+      return Colors.blue.shade800;
+    }
+    // 챔피언스리그 플레이오프 (청록)
+    if ((desc.contains('champions league') || desc.contains('ucl')) &&
+        (desc.contains('playoff') || desc.contains('play-off') || desc.contains('1/16'))) {
+      return Colors.cyan.shade600;
+    }
+    // 챔피언스리그 일반 (파랑)
     if (desc.contains('champions league') || desc.contains('ucl')) {
-      return const Color(0xFF10B981);
+      return Colors.blue;
     }
-    // 유로파리그 (파랑)
+    // 유로파리그 16강 직행 (진한 주황)
+    if (desc.contains('europa league') && (desc.contains('round of 16') || desc.contains('1/8'))) {
+      return Colors.orange.shade800;
+    }
+    // 유로파리그 플레이오프 (황색)
+    if (desc.contains('europa league') && (desc.contains('playoff') || desc.contains('play-off') || desc.contains('1/16'))) {
+      return Colors.amber.shade700;
+    }
+    // 유로파리그 일반 (주황)
     if (desc.contains('europa league') || desc.contains('uel')) {
-      return const Color(0xFF3B82F6);
+      return Colors.orange;
     }
-    // 컨퍼런스리그 (청록)
+    // 컨퍼런스리그 (녹색)
     if (desc.contains('conference league') || desc.contains('uecl')) {
-      return const Color(0xFF06B6D4);
+      return Colors.green;
     }
-    // 승격 (초록)
+    // 승격 (녹색)
     if (desc.contains('promotion')) {
-      return const Color(0xFF10B981);
+      return Colors.green;
     }
     // 플레이오프 (주황)
     if (desc.contains('playoff') || desc.contains('play-off')) {
-      return const Color(0xFFF59E0B);
+      return Colors.amber.shade700;
     }
-    // 강등 (빨강)
-    if (desc.contains('relegation')) {
-      return const Color(0xFFEF4444);
+    // 강등/탈락 (빨강)
+    if (desc.contains('relegation') || desc.contains('elimination')) {
+      return Colors.red;
     }
-    // 다음 라운드 진출 (초록) - 컵 대회용
+    // 다음 라운드 진출 (녹색) - 컵 대회용
     if (desc.contains('next round') ||
         desc.contains('knockout') ||
         desc.contains('qualification')) {
-      return const Color(0xFF10B981);
+      return Colors.green;
     }
 
     return null;
@@ -472,27 +490,58 @@ class StandingsTab extends ConsumerWidget {
       }
     }
 
-    // 간략화된 레이블로 변환
-    return zones.entries.map((e) {
-      String label = e.key;
-      if (label.toLowerCase().contains('champions league')) {
-        label = 'UCL';
-      } else if (label.toLowerCase().contains('europa league')) {
-        label = 'UEL';
-      } else if (label.toLowerCase().contains('conference league')) {
-        label = 'UECL';
-      } else if (label.toLowerCase().contains('relegation')) {
+    // 간략화된 레이블로 변환 (중복 제거를 위해 label 기준으로 그룹화)
+    final labelColorMap = <String, Color>{};
+
+    for (final e in zones.entries) {
+      final desc = e.key.toLowerCase();
+      String label;
+
+      if (desc.contains('champions league') || desc.contains('ucl')) {
+        if (desc.contains('round of 16') || desc.contains('1/8')) {
+          label = l10n.uclRoundOf16;
+        } else if (desc.contains('playoff') || desc.contains('play-off') || desc.contains('1/16')) {
+          label = l10n.uclPlayoff;
+        } else {
+          label = 'UCL';
+        }
+      } else if (desc.contains('europa league') || desc.contains('uel')) {
+        if (desc.contains('round of 16') || desc.contains('1/8')) {
+          label = l10n.uelRoundOf16;
+        } else if (desc.contains('playoff') || desc.contains('play-off') || desc.contains('1/16')) {
+          label = l10n.uelPlayoff;
+        } else {
+          label = 'UEL';
+        }
+      } else if (desc.contains('conference league') || desc.contains('uecl')) {
+        if (desc.contains('round of 16') || desc.contains('1/8')) {
+          label = l10n.ueclRoundOf16;
+        } else if (desc.contains('playoff') || desc.contains('play-off') || desc.contains('1/16')) {
+          label = l10n.ueclPlayoff;
+        } else {
+          label = 'UECL';
+        }
+      } else if (desc.contains('relegation') || desc.contains('elimination')) {
         label = l10n.relegation;
-      } else if (label.toLowerCase().contains('promotion')) {
+      } else if (desc.contains('promotion')) {
         label = l10n.promotion;
-      } else if (label.toLowerCase().contains('playoff')) {
+      } else if (desc.contains('playoff') || desc.contains('play-off')) {
         label = l10n.playoff;
-      } else if (label.length > 10) {
-        label = '${label.substring(0, 10)}...';
+      } else if (e.key.length > 15) {
+        label = '${e.key.substring(0, 12)}...';
+      } else {
+        label = e.key;
       }
 
-      return (color: e.value, label: label);
-    }).toList();
+      // 같은 레이블이 없을 때만 추가 (중복 방지)
+      if (!labelColorMap.containsKey(label)) {
+        labelColorMap[label] = e.value;
+      }
+    }
+
+    return labelColorMap.entries
+        .map((e) => (color: e.value, label: e.key))
+        .toList();
   }
 
   Widget _buildLegendItem(Color color, String label) {

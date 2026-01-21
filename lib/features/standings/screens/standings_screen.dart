@@ -467,10 +467,10 @@ class StandingsScreen extends ConsumerWidget {
     final hasUclGeneral = descriptions.any((d) => d.contains('champions') && !d.contains('championship') && !d.contains('1/8') && !d.contains('1/16') && !d.contains('qualification') && !d.contains('qualifying'));
 
     if (hasUclDirect) {
-      legendItems.add(_LegendItem(color: Colors.blue.shade800, label: l10n.uclDirect));
+      legendItems.add(_LegendItem(color: Colors.blue.shade800, label: l10n.uclRoundOf16));
     }
     if (hasUclPlayoff) {
-      legendItems.add(_LegendItem(color: Colors.cyan.shade600, label: 'UCL PO'));
+      legendItems.add(_LegendItem(color: Colors.cyan.shade600, label: l10n.uclPlayoff));
     }
     if (hasUclGeneral) {
       legendItems.add(_LegendItem(color: Colors.blue, label: 'UCL'));
@@ -484,10 +484,10 @@ class StandingsScreen extends ConsumerWidget {
     final hasUelGeneral = descriptions.any((d) => d.contains('europa') && !d.contains('1/8') && !d.contains('1/16') && !d.contains('qualification') && !d.contains('qualifying') && !d.contains('relegation'));
 
     if (hasUelDirect) {
-      legendItems.add(_LegendItem(color: Colors.orange.shade800, label: l10n.uelDirect));
+      legendItems.add(_LegendItem(color: Colors.orange.shade800, label: l10n.uelRoundOf16));
     }
     if (hasUelPlayoff) {
-      legendItems.add(_LegendItem(color: Colors.amber.shade700, label: 'UEL PO'));
+      legendItems.add(_LegendItem(color: Colors.amber.shade700, label: l10n.uelPlayoff));
     }
     if (hasUelGeneral) {
       legendItems.add(_LegendItem(color: Colors.orange, label: 'UEL'));

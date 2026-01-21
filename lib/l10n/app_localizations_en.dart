@@ -2078,7 +2078,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get uclQualification => 'UCL Qual';
 
   @override
+  String get uclRoundOf16 => 'UCL R16';
+
+  @override
+  String get uclPlayoff => 'UCL PO';
+
+  @override
   String get uelDirect => 'UEL Direct';
+
+  @override
+  String get uelRoundOf16 => 'UEL R16';
+
+  @override
+  String get uelPlayoff => 'UEL PO';
+
+  @override
+  String get ueclRoundOf16 => 'UECL R16';
+
+  @override
+  String get ueclPlayoff => 'UECL PO';
 
   @override
   String get mon => 'Mon';

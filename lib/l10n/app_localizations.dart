@@ -4058,11 +4058,47 @@ abstract class AppLocalizations {
   /// **'UCL 예선'**
   String get uclQualification;
 
+  /// No description provided for @uclRoundOf16.
+  ///
+  /// In ko, this message translates to:
+  /// **'UCL 16강'**
+  String get uclRoundOf16;
+
+  /// No description provided for @uclPlayoff.
+  ///
+  /// In ko, this message translates to:
+  /// **'UCL PO'**
+  String get uclPlayoff;
+
   /// No description provided for @uelDirect.
   ///
   /// In ko, this message translates to:
   /// **'UEL 직행'**
   String get uelDirect;
+
+  /// No description provided for @uelRoundOf16.
+  ///
+  /// In ko, this message translates to:
+  /// **'UEL 16강'**
+  String get uelRoundOf16;
+
+  /// No description provided for @uelPlayoff.
+  ///
+  /// In ko, this message translates to:
+  /// **'UEL PO'**
+  String get uelPlayoff;
+
+  /// No description provided for @ueclRoundOf16.
+  ///
+  /// In ko, this message translates to:
+  /// **'UECL 16강'**
+  String get ueclRoundOf16;
+
+  /// No description provided for @ueclPlayoff.
+  ///
+  /// In ko, this message translates to:
+  /// **'UECL PO'**
+  String get ueclPlayoff;
 
   /// No description provided for @mon.
   ///

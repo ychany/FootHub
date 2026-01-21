@@ -2073,7 +2073,25 @@ class AppLocalizationsKo extends AppLocalizations {
   String get uclQualification => 'UCL 예선';
 
   @override
+  String get uclRoundOf16 => 'UCL 16강';
+
+  @override
+  String get uclPlayoff => 'UCL PO';
+
+  @override
   String get uelDirect => 'UEL 직행';
+
+  @override
+  String get uelRoundOf16 => 'UEL 16강';
+
+  @override
+  String get uelPlayoff => 'UEL PO';
+
+  @override
+  String get ueclRoundOf16 => 'UECL 16강';
+
+  @override
+  String get ueclPlayoff => 'UECL PO';
 
   @override
   String get mon => '월';
