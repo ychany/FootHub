@@ -2097,6 +2097,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roundOf16 => '16강';
 
   @override
+  String get groupStage => '조별리그';
+
+  @override
   String get mon => '월';
 
   @override

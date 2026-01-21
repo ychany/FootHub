@@ -321,7 +321,7 @@ class _LeagueDetailScreenState extends ConsumerState<LeagueDetailScreen> with Si
                   tabs: league?.type == 'Cup'
                       ? [
                           Tab(text: AppLocalizations.of(context)!.schedule),
-                          Tab(text: AppLocalizations.of(context)!.tournament),
+                          Tab(text: AppLocalizations.of(context)!.standings),
                           Tab(text: AppLocalizations.of(context)!.stats),
                         ]
                       : [
@@ -3357,8 +3357,8 @@ class _SeasonDropdown extends StatelessWidget {
 // ============================================================================
 // 토너먼트 탭 (컵대회용)
 // ============================================================================
-// 토너먼트 탭 서브탭 상태
-final _tournamentSubTabProvider = StateProvider<int>((ref) => 0);
+// 토너먼트 탭 서브탭 상태 (autoDispose로 페이지 이동 시 초기화)
+final _tournamentSubTabProvider = StateProvider.autoDispose<int>((ref) => 0);
 
 class _TournamentTab extends ConsumerWidget {
   final int leagueId;

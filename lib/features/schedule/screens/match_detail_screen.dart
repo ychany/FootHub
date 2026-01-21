@@ -3567,58 +3567,165 @@ class _ComparisonTab extends StatelessWidget {
 }
 
 // ============ Standings Tab ============
+// 경기 상세 순위탭 서브탭 상태 (컵 대회용)
+final _matchStandingsSubTabProvider = StateProvider.autoDispose<int>((ref) => 0);
+
+// 리그 정보 Provider (컵 대회 여부 확인용)
+final _leagueInfoForMatchProvider = FutureProvider.family<ApiFootballLeague?, int>((ref, leagueId) async {
+  final service = ApiFootballService();
+  return service.getLeagueById(leagueId);
+});
+
 class _StandingsTab extends ConsumerWidget {
   final ApiFootballFixture match;
 
+  static const _border = Color(0xFFE5E7EB);
+
   const _StandingsTab({required this.match});
-
-  /// 토너먼트 라운드인지 확인 (녹아웃 스테이지)
-  bool _isTournamentRound(String? round) {
-    if (round == null) return false;
-    final lower = round.toLowerCase();
-
-    // 리그 페이즈/조별리그는 순위표 표시
-    if (lower.contains('league stage') ||
-        lower.contains('league phase') ||
-        lower.contains('group')) {
-      return false;
-    }
-
-    // 토너먼트 라운드 (녹아웃 스테이지)
-    return lower.contains('final') ||
-           lower.contains('semi') ||
-           lower.contains('quarter') ||
-           lower.contains('round of') ||
-           lower.contains('1/') ||
-           lower.contains('knockout') ||
-           lower.contains('play-off') ||
-           lower.contains('playoff');
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final season = match.league.season ?? DateTime.now().year;
     final leagueId = match.league.id;
-    final round = match.league.round;
     final standingsKey = StandingsKey(leagueId, season);
 
     // 순위 데이터 확인
     final standingsAsync = ref.watch(leagueStandingsProvider(standingsKey));
-    final hasStandings = standingsAsync.valueOrNull?.isNotEmpty ?? false;
+    // 리그 정보로 컵 대회 여부 확인
+    final leagueInfoAsync = ref.watch(_leagueInfoForMatchProvider(leagueId));
+    final isCup = leagueInfoAsync.valueOrNull?.type == 'Cup';
 
-    // 토너먼트 라운드이고 순위 데이터가 없으면 대진표 표시
-    if (_isTournamentRound(round) && !hasStandings) {
-      return _TournamentBracketTab(leagueId: leagueId, season: season);
-    }
+    return standingsAsync.when(
+      data: (standings) {
+        final hasStandings = standings.isNotEmpty;
 
-    // 그 외에는 순위표 표시
-    return StandingsTab(
-      leagueId: leagueId,
-      season: season,
-      homeTeamId: match.homeTeam.id,
-      awayTeamId: match.awayTeam.id,
-      leagueName: match.league.name,
-      leagueLogo: match.league.logo,
+        // 컵 대회이고 순위 데이터가 있으면 서브탭 표시 (조별리그 | 토너먼트)
+        if (isCup && hasStandings) {
+          return _buildCupStandingsWithSubTabs(context, ref, standingsKey);
+        }
+
+        // 컵 대회인데 순위 데이터가 없으면 토너먼트만 표시
+        if (isCup && !hasStandings) {
+          return _TournamentBracketTab(leagueId: leagueId, season: season);
+        }
+
+        // 리그인 경우 순위표만 표시
+        return StandingsTab(
+          leagueId: leagueId,
+          season: season,
+          homeTeamId: match.homeTeam.id,
+          awayTeamId: match.awayTeam.id,
+          leagueName: match.league.name,
+          leagueLogo: match.league.logo,
+        );
+      },
+      loading: () {
+        // 로딩 중에는 컵 대회면 서브탭 포함하여 표시
+        if (isCup) {
+          return _buildCupStandingsWithSubTabs(context, ref, standingsKey);
+        }
+        return const Center(child: LoadingIndicator());
+      },
+      error: (_, __) {
+        // 에러 시 컵 대회면 토너먼트만 표시
+        if (isCup) {
+          return _TournamentBracketTab(leagueId: leagueId, season: season);
+        }
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              Text(
+                AppLocalizations.of(context)!.cannotLoadData,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCupStandingsWithSubTabs(BuildContext context, WidgetRef ref, StandingsKey standingsKey) {
+    final l10n = AppLocalizations.of(context)!;
+    final selectedSubTab = ref.watch(_matchStandingsSubTabProvider);
+
+    return Column(
+      children: [
+        // 서브탭 선택 (조별리그 | 토너먼트)
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _border),
+          ),
+          child: Row(
+            children: [
+              _buildSubTabButton(
+                context,
+                label: l10n.groupStage,
+                isSelected: selectedSubTab == 0,
+                onTap: () => ref.read(_matchStandingsSubTabProvider.notifier).state = 0,
+              ),
+              _buildSubTabButton(
+                context,
+                label: l10n.tournament,
+                isSelected: selectedSubTab == 1,
+                onTap: () => ref.read(_matchStandingsSubTabProvider.notifier).state = 1,
+              ),
+            ],
+          ),
+        ),
+        // 서브탭 컨텐츠
+        Expanded(
+          child: selectedSubTab == 0
+              ? StandingsTab(
+                  leagueId: standingsKey.leagueId,
+                  season: standingsKey.season,
+                  homeTeamId: match.homeTeam.id,
+                  awayTeamId: match.awayTeam.id,
+                  leagueName: match.league.name,
+                  leagueLogo: match.league.logo,
+                )
+              : _TournamentBracketTab(
+                  leagueId: standingsKey.leagueId,
+                  season: standingsKey.season,
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubTabButton(
+    BuildContext context, {
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF2563EB) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.white : Colors.grey.shade600,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

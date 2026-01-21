@@ -2102,6 +2102,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roundOf16 => 'Round of 16';
 
   @override
+  String get groupStage => 'Group Stage';
+
+  @override
   String get mon => 'Mon';
 
   @override

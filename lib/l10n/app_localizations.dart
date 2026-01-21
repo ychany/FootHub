@@ -4106,6 +4106,12 @@ abstract class AppLocalizations {
   /// **'16강'**
   String get roundOf16;
 
+  /// No description provided for @groupStage.
+  ///
+  /// In ko, this message translates to:
+  /// **'조별리그'**
+  String get groupStage;
+
   /// No description provided for @mon.
   ///
   /// In ko, this message translates to:
