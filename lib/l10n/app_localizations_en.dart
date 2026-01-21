@@ -4216,6 +4216,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get patchNotesLatest => 'Latest';
 
   @override
+  String get patchNote_1_1_5_1 => 'Added app update notification';
+
+  @override
+  String get patchNote_1_1_5_2 =>
+      'Improved coach info (latest coach display, career period fix)';
+
+  @override
+  String get patchNote_1_1_5_3 =>
+      'Improved cup standings page (group stage/tournament tabs)';
+
+  @override
+  String get patchNote_1_1_5_4 => 'Improved cup competition legend';
+
+  @override
+  String get patchNote_1_1_5_5 => 'Improved splash screen';
+
+  @override
+  String get patchNote_1_1_5_6 => 'Bug fixes and performance improvements';
+
+  @override
   String get patchNote_1_1_4_1 =>
       'Added local league filter (Schedule tab, Match Diary)';
 

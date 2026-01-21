@@ -4186,6 +4186,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get patchNotesLatest => '최신';
 
   @override
+  String get patchNote_1_1_5_1 => '앱 업데이트 알림 기능 추가';
+
+  @override
+  String get patchNote_1_1_5_2 => '감독 정보 개선 (최신 감독 표시, 경력 기간 수정)';
+
+  @override
+  String get patchNote_1_1_5_3 => '컵대회 순위 페이지 개선 (조별리그/토너먼트 탭)';
+
+  @override
+  String get patchNote_1_1_5_4 => '컵대회 범례 개선';
+
+  @override
+  String get patchNote_1_1_5_5 => '스플래시 화면 개선';
+
+  @override
+  String get patchNote_1_1_5_6 => '버그 수정 및 성능 개선';
+
+  @override
   String get patchNote_1_1_4_1 => '자국 필터 추가 (일정탭, 직관일기)';
 
   @override

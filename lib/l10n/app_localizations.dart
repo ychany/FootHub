@@ -7988,6 +7988,42 @@ abstract class AppLocalizations {
   /// **'최신'**
   String get patchNotesLatest;
 
+  /// No description provided for @patchNote_1_1_5_1.
+  ///
+  /// In ko, this message translates to:
+  /// **'앱 업데이트 알림 기능 추가'**
+  String get patchNote_1_1_5_1;
+
+  /// No description provided for @patchNote_1_1_5_2.
+  ///
+  /// In ko, this message translates to:
+  /// **'감독 정보 개선 (최신 감독 표시, 경력 기간 수정)'**
+  String get patchNote_1_1_5_2;
+
+  /// No description provided for @patchNote_1_1_5_3.
+  ///
+  /// In ko, this message translates to:
+  /// **'컵대회 순위 페이지 개선 (조별리그/토너먼트 탭)'**
+  String get patchNote_1_1_5_3;
+
+  /// No description provided for @patchNote_1_1_5_4.
+  ///
+  /// In ko, this message translates to:
+  /// **'컵대회 범례 개선'**
+  String get patchNote_1_1_5_4;
+
+  /// No description provided for @patchNote_1_1_5_5.
+  ///
+  /// In ko, this message translates to:
+  /// **'스플래시 화면 개선'**
+  String get patchNote_1_1_5_5;
+
+  /// No description provided for @patchNote_1_1_5_6.
+  ///
+  /// In ko, this message translates to:
+  /// **'버그 수정 및 성능 개선'**
+  String get patchNote_1_1_5_6;
+
   /// No description provided for @patchNote_1_1_4_1.
   ///
   /// In ko, this message translates to:

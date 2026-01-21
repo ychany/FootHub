@@ -1973,6 +1973,13 @@
 
   "patchNotesLatest": "Latest",
 
+  "patchNote_1_1_5_1": "Added app update notification",
+  "patchNote_1_1_5_2": "Improved coach info (latest coach display, career period fix)",
+  "patchNote_1_1_5_3": "Improved cup standings page (group stage/tournament tabs)",
+  "patchNote_1_1_5_4": "Improved cup competition legend",
+  "patchNote_1_1_5_5": "Improved splash screen",
+  "patchNote_1_1_5_6": "Bug fixes and performance improvements",
+
   "patchNote_1_1_4_1": "Added local league filter (Schedule tab, Match Diary)",
   "patchNote_1_1_4_2": "Display age-group national team matches (U23, U20, etc.)",
   "patchNote_1_1_4_3": "Separated leagues with same name by country",
