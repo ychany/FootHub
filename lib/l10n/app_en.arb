@@ -1303,6 +1303,8 @@
   "uelPlayoff": "UEL PO",
   "ueclRoundOf16": "UECL R16",
   "ueclPlayoff": "UECL PO",
+  "roundOf16": "Round of 16",
+  "playoff": "Playoff",
   "championship": "Championship",
   "lowerSplit": "Lower Split",
   "promotion": "Promotion",

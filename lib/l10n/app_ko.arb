@@ -2157,6 +2157,8 @@
   "uelPlayoff": "UEL PO",
   "ueclRoundOf16": "UECL 16강",
   "ueclPlayoff": "UECL PO",
+  "roundOf16": "16강",
+  "playoff": "플레이오프",
   "mon": "월",
   "tue": "화",
   "wed": "수",

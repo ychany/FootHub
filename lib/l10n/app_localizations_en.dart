@@ -2099,6 +2099,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ueclPlayoff => 'UECL PO';
 
   @override
+  String get roundOf16 => 'Round of 16';
+
+  @override
   String get mon => 'Mon';
 
   @override

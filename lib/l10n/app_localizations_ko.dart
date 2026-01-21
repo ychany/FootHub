@@ -2094,6 +2094,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get ueclPlayoff => 'UECL PO';
 
   @override
+  String get roundOf16 => '16강';
+
+  @override
   String get mon => '월';
 
   @override

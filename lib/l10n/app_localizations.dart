@@ -4100,6 +4100,12 @@ abstract class AppLocalizations {
   /// **'UECL PO'**
   String get ueclPlayoff;
 
+  /// No description provided for @roundOf16.
+  ///
+  /// In ko, this message translates to:
+  /// **'16강'**
+  String get roundOf16;
+
   /// No description provided for @mon.
   ///
   /// In ko, this message translates to:

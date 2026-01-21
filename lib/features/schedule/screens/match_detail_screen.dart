@@ -11,6 +11,8 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/football_pitch_view.dart';
 import '../../../shared/widgets/team_comparison_widget.dart';
 import '../../../shared/widgets/standings_table.dart';
+import '../../../shared/widgets/tournament_bracket_widget.dart';
+import '../../standings/providers/standings_provider.dart';
 import '../../../shared/widgets/banner_ad_widget.dart';
 import '../../../l10n/app_localizations.dart';
 import '../providers/schedule_provider.dart';
@@ -3565,22 +3567,112 @@ class _ComparisonTab extends StatelessWidget {
 }
 
 // ============ Standings Tab ============
-class _StandingsTab extends StatelessWidget {
+class _StandingsTab extends ConsumerWidget {
   final ApiFootballFixture match;
 
   const _StandingsTab({required this.match});
 
-  @override
-  Widget build(BuildContext context) {
-    final season = match.league.season ?? DateTime.now().year;
+  /// 토너먼트 라운드인지 확인 (녹아웃 스테이지)
+  bool _isTournamentRound(String? round) {
+    if (round == null) return false;
+    final lower = round.toLowerCase();
 
+    // 리그 페이즈/조별리그는 순위표 표시
+    if (lower.contains('league stage') ||
+        lower.contains('league phase') ||
+        lower.contains('group')) {
+      return false;
+    }
+
+    // 토너먼트 라운드 (녹아웃 스테이지)
+    return lower.contains('final') ||
+           lower.contains('semi') ||
+           lower.contains('quarter') ||
+           lower.contains('round of') ||
+           lower.contains('1/') ||
+           lower.contains('knockout') ||
+           lower.contains('play-off') ||
+           lower.contains('playoff');
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final season = match.league.season ?? DateTime.now().year;
+    final leagueId = match.league.id;
+    final round = match.league.round;
+    final standingsKey = StandingsKey(leagueId, season);
+
+    // 순위 데이터 확인
+    final standingsAsync = ref.watch(leagueStandingsProvider(standingsKey));
+    final hasStandings = standingsAsync.valueOrNull?.isNotEmpty ?? false;
+
+    // 토너먼트 라운드이고 순위 데이터가 없으면 대진표 표시
+    if (_isTournamentRound(round) && !hasStandings) {
+      return _TournamentBracketTab(leagueId: leagueId, season: season);
+    }
+
+    // 그 외에는 순위표 표시
     return StandingsTab(
-      leagueId: match.league.id,
+      leagueId: leagueId,
       season: season,
       homeTeamId: match.homeTeam.id,
       awayTeamId: match.awayTeam.id,
       leagueName: match.league.name,
       leagueLogo: match.league.logo,
+    );
+  }
+}
+
+// ============ Tournament Bracket Tab ============
+class _TournamentBracketTab extends ConsumerWidget {
+  final int leagueId;
+  final int season;
+
+  const _TournamentBracketTab({required this.leagueId, required this.season});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final standingsKey = StandingsKey(leagueId, season);
+    final fixturesAsync = ref.watch(leagueFixturesProvider(standingsKey));
+
+    return fixturesAsync.when(
+      data: (fixtures) {
+        if (fixtures.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.emoji_events_outlined, size: 48, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  AppLocalizations.of(context)!.noScheduledMatches,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                ),
+              ],
+            ),
+          );
+        }
+        return TournamentBracketWidget(fixtures: fixtures);
+      },
+      loading: () => const Center(child: LoadingIndicator()),
+      error: (error, _) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text(
+              AppLocalizations.of(context)!.cannotLoadData,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => ref.invalidate(leagueFixturesProvider(standingsKey)),
+              child: Text(AppLocalizations.of(context)!.retry),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

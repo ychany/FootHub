@@ -3370,10 +3370,31 @@ class _TournamentTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedSubTab = ref.watch(_tournamentSubTabProvider);
+    // 순위 데이터가 있는지 확인 (조별리그/리그페이즈가 있는 컵대회)
+    final standingsAsync = ref.watch(leagueStandingsProvider(leagueId));
+
+    return standingsAsync.when(
+      data: (standings) {
+        final hasStandings = standings.isNotEmpty;
+        return _buildTournamentContent(context, ref, selectedSubTab, hasStandings);
+      },
+      loading: () {
+        // 로딩 중에는 순위 탭 포함 4개 탭으로 기본 표시 (순위 탭 내부에서 로딩 표시)
+        return _buildTournamentContent(context, ref, selectedSubTab, true);
+      },
+      error: (_, __) {
+        // 에러 시 순위 탭 없이 3개 탭으로 표시
+        return _buildTournamentContent(context, ref, selectedSubTab, false);
+      },
+    );
+  }
+
+  Widget _buildTournamentContent(BuildContext context, WidgetRef ref, int selectedSubTab, bool hasStandings) {
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       children: [
-        // 서브탭 선택 (브라켓 | 득점 | 도움)
+        // 서브탭 선택
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           padding: const EdgeInsets.all(4),
@@ -3382,40 +3403,485 @@ class _TournamentTab extends ConsumerWidget {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: _border),
           ),
-          child: Builder(
-            builder: (context) {
-              final l10n = AppLocalizations.of(context)!;
-              return Row(
-                children: [
-                  _SubTabButton(
-                    label: l10n.tournament,
-                    isSelected: selectedSubTab == 0,
-                    onTap: () => ref.read(_tournamentSubTabProvider.notifier).state = 0,
-                  ),
-                  _SubTabButton(
-                    label: l10n.goals,
-                    isSelected: selectedSubTab == 1,
-                    onTap: () => ref.read(_tournamentSubTabProvider.notifier).state = 1,
-                  ),
-                  _SubTabButton(
-                    label: l10n.assists,
-                    isSelected: selectedSubTab == 2,
-                    onTap: () => ref.read(_tournamentSubTabProvider.notifier).state = 2,
-                  ),
-                ],
-              );
-            },
-          ),
+          child: hasStandings
+              ? Row(
+                  children: [
+                    _SubTabButton(
+                      label: l10n.standings,
+                      isSelected: selectedSubTab == 0,
+                      onTap: () => ref.read(_tournamentSubTabProvider.notifier).state = 0,
+                    ),
+                    _SubTabButton(
+                      label: l10n.tournament,
+                      isSelected: selectedSubTab == 1,
+                      onTap: () => ref.read(_tournamentSubTabProvider.notifier).state = 1,
+                    ),
+                    _SubTabButton(
+                      label: l10n.goals,
+                      isSelected: selectedSubTab == 2,
+                      onTap: () => ref.read(_tournamentSubTabProvider.notifier).state = 2,
+                    ),
+                    _SubTabButton(
+                      label: l10n.assists,
+                      isSelected: selectedSubTab == 3,
+                      onTap: () => ref.read(_tournamentSubTabProvider.notifier).state = 3,
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    _SubTabButton(
+                      label: l10n.tournament,
+                      isSelected: selectedSubTab == 0,
+                      onTap: () => ref.read(_tournamentSubTabProvider.notifier).state = 0,
+                    ),
+                    _SubTabButton(
+                      label: l10n.goals,
+                      isSelected: selectedSubTab == 1,
+                      onTap: () => ref.read(_tournamentSubTabProvider.notifier).state = 1,
+                    ),
+                    _SubTabButton(
+                      label: l10n.assists,
+                      isSelected: selectedSubTab == 2,
+                      onTap: () => ref.read(_tournamentSubTabProvider.notifier).state = 2,
+                    ),
+                  ],
+                ),
         ),
         // 서브탭 컨텐츠
         Expanded(
-          child: selectedSubTab == 0
-              ? _TournamentBracketContent(leagueId: leagueId)
-              : selectedSubTab == 1
-                  ? _TopScorersContent(leagueId: leagueId)
-                  : _TopAssistsContent(leagueId: leagueId),
+          child: hasStandings
+              ? _buildCupWithStandingsContent(selectedSubTab)
+              : _buildRegularCupContent(selectedSubTab),
         ),
       ],
+    );
+  }
+
+  // 순위 데이터가 있는 컵대회 컨텐츠 (순위 | 토너먼트 | 득점 | 도움)
+  Widget _buildCupWithStandingsContent(int selectedSubTab) {
+    switch (selectedSubTab) {
+      case 0:
+        return _CupStandingsContent(leagueId: leagueId);
+      case 1:
+        return _TournamentBracketContent(leagueId: leagueId);
+      case 2:
+        return _TopScorersContent(leagueId: leagueId);
+      case 3:
+        return _TopAssistsContent(leagueId: leagueId);
+      default:
+        return _CupStandingsContent(leagueId: leagueId);
+    }
+  }
+
+  // 일반 컵대회 컨텐츠 (토너먼트 | 득점 | 도움)
+  Widget _buildRegularCupContent(int selectedSubTab) {
+    switch (selectedSubTab) {
+      case 0:
+        return _TournamentBracketContent(leagueId: leagueId);
+      case 1:
+        return _TopScorersContent(leagueId: leagueId);
+      case 2:
+        return _TopAssistsContent(leagueId: leagueId);
+      default:
+        return _TournamentBracketContent(leagueId: leagueId);
+    }
+  }
+}
+
+// UCL/UEL/UECL 리그 페이즈 순위 컨텐츠 (조별 리그 지원)
+class _CupStandingsContent extends ConsumerWidget {
+  final int leagueId;
+
+  static const _primary = Color(0xFF2563EB);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _border = Color(0xFFE5E7EB);
+
+  const _CupStandingsContent({required this.leagueId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isGroupStageAsync = ref.watch(isGroupStageLeagueProvider(leagueId));
+
+    return isGroupStageAsync.when(
+      data: (isGroupStage) {
+        if (isGroupStage) {
+          return _buildGroupedStandings(context, ref);
+        } else {
+          return _buildSingleStandings(context, ref);
+        }
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => _buildSingleStandings(context, ref),
+    );
+  }
+
+  // 조별 리그 순위 표시
+  Widget _buildGroupedStandings(BuildContext context, WidgetRef ref) {
+    final groupedAsync = ref.watch(leagueStandingsGroupedProvider(leagueId));
+
+    return groupedAsync.when(
+      data: (groupedStandings) {
+        if (groupedStandings.isEmpty) {
+          return _buildEmptyState(context);
+        }
+
+        // 그룹 이름으로 정렬 (A조, B조, C조...)
+        final sortedGroups = groupedStandings.keys.toList()
+          ..sort((a, b) => a.compareTo(b));
+
+        // 범례를 위해 모든 standings 합치기
+        final allStandings = groupedStandings.values.expand((e) => e).toList();
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 범례
+              _buildLeagueLegend(context, allStandings),
+              const SizedBox(height: 12),
+              // 그룹별 순위표
+              ...sortedGroups.map((groupName) {
+                final standings = groupedStandings[groupName]!;
+                return _buildGroupCard(context, groupName, standings);
+              }),
+            ],
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => _buildErrorState(context, ref),
+    );
+  }
+
+  // 그룹 카드 위젯
+  Widget _buildGroupCard(BuildContext context, String groupName, List<ApiFootballStanding> standings) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 그룹 헤더
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _primary.withValues(alpha: 0.08),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _primary,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    groupName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 테이블 헤더
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+            ),
+            child: Row(
+              children: [
+                const SizedBox(width: 28, child: Text('#', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _textSecondary), textAlign: TextAlign.center)),
+                const SizedBox(width: 6),
+                Expanded(child: Text(AppLocalizations.of(context)!.team, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _textSecondary))),
+                _buildHeaderCell('P'),
+                _buildHeaderCell('W'),
+                _buildHeaderCell('D'),
+                _buildHeaderCell('L'),
+                _buildHeaderCell('GD'),
+                _buildHeaderCell('Pts'),
+              ],
+            ),
+          ),
+          // 순위 행들
+          ...standings.map((standing) => _buildStandingRow(context, standing)),
+        ],
+      ),
+    );
+  }
+
+  // 단일 순위표 (조별 리그가 아닌 경우)
+  Widget _buildSingleStandings(BuildContext context, WidgetRef ref) {
+    final standingsAsync = ref.watch(leagueStandingsProvider(leagueId));
+
+    return standingsAsync.when(
+      data: (standings) {
+        if (standings.isEmpty) {
+          return _buildEmptyState(context);
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // 범례
+              _buildLeagueLegend(context, standings),
+              const SizedBox(height: 12),
+              // 순위표
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _border),
+                ),
+                child: Column(
+                  children: [
+                    // 헤더
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+                      ),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 28, child: Text('#', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _textSecondary), textAlign: TextAlign.center)),
+                          const SizedBox(width: 6),
+                          Expanded(child: Text(AppLocalizations.of(context)!.team, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _textSecondary))),
+                          _buildHeaderCell('P'),
+                          _buildHeaderCell('W'),
+                          _buildHeaderCell('D'),
+                          _buildHeaderCell('L'),
+                          _buildHeaderCell('GD'),
+                          _buildHeaderCell('Pts'),
+                        ],
+                      ),
+                    ),
+                    // 순위 행들
+                    ...standings.map((standing) => _buildStandingRow(context, standing)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => _buildErrorState(context, ref),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.leaderboard_outlined, size: 48, color: _textSecondary),
+          const SizedBox(height: 16),
+          Text(
+            AppLocalizations.of(context)!.noStandingsInfo,
+            style: const TextStyle(color: _textSecondary, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, WidgetRef ref) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 48, color: _textSecondary),
+          const SizedBox(height: 16),
+          Text(
+            AppLocalizations.of(context)!.cannotLoadStandings,
+            style: const TextStyle(color: _textSecondary, fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () => ref.invalidate(leagueStandingsProvider(leagueId)),
+            child: Text(AppLocalizations.of(context)!.retry),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderCell(String text) {
+    return SizedBox(
+      width: 28,
+      child: Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _textSecondary), textAlign: TextAlign.center),
+    );
+  }
+
+  Widget _buildStandingRow(BuildContext context, ApiFootballStanding standing) {
+    final desc = standing.description?.toLowerCase() ?? '';
+    final rowColor = _getRowColor(desc);
+    final rankColor = _getRankColor(desc);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: rowColor,
+        border: Border(top: BorderSide(color: _border, width: 0.5)),
+      ),
+      child: Row(
+        children: [
+          // 순위
+          SizedBox(
+            width: 28,
+            child: Text(
+              '${standing.rank}',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: rankColor),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 6),
+          // 팀 로고 + 이름
+          Expanded(
+            child: GestureDetector(
+              onTap: () => context.push('/team/${standing.teamId}'),
+              child: Row(
+                children: [
+                  if (standing.teamLogo != null)
+                    CachedNetworkImage(
+                      imageUrl: standing.teamLogo!,
+                      width: 20,
+                      height: 20,
+                      errorWidget: (_, __, ___) => const Icon(Icons.sports_soccer, size: 20),
+                    ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      standing.teamName,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          _buildDataCell('${standing.played}'),
+          _buildDataCell('${standing.win}', color: Colors.green),
+          _buildDataCell('${standing.draw}'),
+          _buildDataCell('${standing.lose}', color: Colors.red),
+          _buildDataCell('${standing.goalsDiff > 0 ? '+' : ''}${standing.goalsDiff}',
+              color: standing.goalsDiff > 0 ? Colors.green : (standing.goalsDiff < 0 ? Colors.red : null)),
+          _buildDataCell('${standing.points}', isBold: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataCell(String text, {Color? color, bool isBold = false}) {
+    return SizedBox(
+      width: 28,
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 11, fontWeight: isBold ? FontWeight.w700 : FontWeight.w500, color: color ?? const Color(0xFF111827)),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Color? _getRowColor(String desc) {
+    // UCL/UEL/UECL 리그 페이즈 순위 색상
+    final isR16 = desc.contains('1/8') || desc.contains('round of 16');
+    final isPlayoff = desc.contains('1/16') || desc.contains('playoff') || desc.contains('play-off');
+    final isEliminated = desc.contains('elimination');
+    // 조별리그 진출
+    final isQualified = desc.contains('qualification') || desc.contains('knockout') || desc.contains('next round');
+
+    if (isR16) return Colors.blue.shade800.withValues(alpha: 0.12);
+    if (isPlayoff) return Colors.cyan.shade300.withValues(alpha: 0.15);
+    if (isEliminated) return Colors.red.withValues(alpha: 0.08);
+    if (isQualified) return Colors.green.withValues(alpha: 0.1);
+    return null;
+  }
+
+  Color _getRankColor(String desc) {
+    final isR16 = desc.contains('1/8') || desc.contains('round of 16');
+    final isPlayoff = desc.contains('1/16') || desc.contains('playoff') || desc.contains('play-off');
+    final isEliminated = desc.contains('elimination');
+    // 조별리그 진출
+    final isQualified = desc.contains('qualification') || desc.contains('knockout') || desc.contains('next round');
+
+    if (isR16) return Colors.blue.shade800;
+    if (isPlayoff) return Colors.cyan.shade600;
+    if (isEliminated) return Colors.red;
+    if (isQualified) return Colors.green;
+    return Colors.grey;
+  }
+
+  Widget _buildLeagueLegend(BuildContext context, List<ApiFootballStanding> standings) {
+    final l10n = AppLocalizations.of(context)!;
+    final descriptions = standings
+        .where((s) => s.description != null && s.description!.isNotEmpty)
+        .map((s) => s.description!.toLowerCase())
+        .toSet();
+
+    final legendItems = <Widget>[];
+
+    // UCL/UEL/UECL 리그 페이즈 (36팀 단일 리그)
+    final hasR16 = descriptions.any((d) => d.contains('1/8') || d.contains('round of 16'));
+    final hasPlayoff = descriptions.any((d) => d.contains('1/16') || d.contains('playoff') || d.contains('play-off'));
+    final hasElimination = descriptions.any((d) => d.contains('elimination'));
+
+    // 조별리그 (유로, 월드컵 등 - 진출/탈락)
+    final hasQualification = descriptions.any((d) =>
+        d.contains('qualification') || d.contains('진출') ||
+        d.contains('knockout') || d.contains('next round'));
+
+    if (hasR16) {
+      legendItems.add(_LegendItem(color: Colors.blue.shade800, label: l10n.roundOf16));
+    }
+    if (hasPlayoff) {
+      legendItems.add(_LegendItem(color: Colors.cyan.shade600, label: l10n.playoff));
+    }
+    if (hasElimination) {
+      legendItems.add(_LegendItem(color: Colors.red, label: l10n.relegation));
+    }
+    if (hasQualification && !hasR16 && !hasPlayoff) {
+      // 조별리그 진출 (녹색)
+      legendItems.add(_LegendItem(color: Colors.green, label: l10n.advanceLabel));
+    }
+
+    if (legendItems.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _border),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 6,
+        children: legendItems,
+      ),
     );
   }
 }
