@@ -9,6 +9,19 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get updateAvailable => 'Update Available';
+
+  @override
+  String get updateAvailableMessage =>
+      'A new version is available.\nPlease update for a better experience.';
+
+  @override
+  String get updateNow => 'Update';
+
+  @override
+  String get updateLater => 'Later';
+
+  @override
   String get appName => 'FootHub';
 
   @override

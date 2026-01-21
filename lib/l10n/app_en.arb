@@ -2,6 +2,11 @@
   "@@locale": "en",
   "@@last_modified": "2025-12-25",
 
+  "updateAvailable": "Update Available",
+  "updateAvailableMessage": "A new version is available.\nPlease update for a better experience.",
+  "updateNow": "Update",
+  "updateLater": "Later",
+
   "appName": "FootHub",
   "appTagline": "FootHub",
 

@@ -9,6 +9,19 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
+  String get updateAvailable => '업데이트 안내';
+
+  @override
+  String get updateAvailableMessage =>
+      '새로운 버전이 출시되었습니다.\n더 나은 서비스를 위해 업데이트해주세요.';
+
+  @override
+  String get updateNow => '업데이트';
+
+  @override
+  String get updateLater => '나중에';
+
+  @override
   String get appName => 'FootHub';
 
   @override

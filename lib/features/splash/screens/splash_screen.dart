@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/services/app_update_service.dart';
 import '../../../features/national_team/providers/selected_national_team_provider.dart';
 import '../../../features/favorites/providers/favorites_provider.dart';
 import '../../../l10n/app_localizations.dart';
@@ -56,16 +58,57 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _initialize() async {
-    // 최소 1초 보장 + 실제 데이터 로딩 병렬 실행
-    await Future.wait([
+    // 최소 1초 보장 + 실제 데이터 로딩 + 업데이트 체크 병렬 실행
+    final results = await Future.wait([
       Future.delayed(const Duration(milliseconds: 1000)),
       _loadInitialData(),
+      AppUpdateService.isUpdateAvailable(),
     ]);
 
     if (!mounted) return;
 
-    // 로그인 상태와 관계없이 홈으로 이동
+    final isUpdateAvailable = results[2] as bool;
+
+    // 업데이트 가능하면 다이얼로그 표시
+    if (isUpdateAvailable) {
+      final shouldUpdate = await _showUpdateDialog();
+      if (shouldUpdate && mounted) {
+        await launchUrl(
+          Uri.parse(AppUpdateService.appStoreUrl),
+          mode: LaunchMode.externalApplication,
+        );
+      }
+    }
+
+    if (!mounted) return;
+
+    // 홈으로 이동
     context.go('/home');
+  }
+
+  Future<bool> _showUpdateDialog() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.updateAvailable),
+        content: Text(l10n.updateAvailableMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.updateLater),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.updateNow),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
   }
 
   Future<void> _loadInitialData() async {

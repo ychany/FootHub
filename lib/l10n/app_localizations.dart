@@ -98,6 +98,30 @@ abstract class AppLocalizations {
     Locale('ko'),
   ];
 
+  /// No description provided for @updateAvailable.
+  ///
+  /// In ko, this message translates to:
+  /// **'업데이트 안내'**
+  String get updateAvailable;
+
+  /// No description provided for @updateAvailableMessage.
+  ///
+  /// In ko, this message translates to:
+  /// **'새로운 버전이 출시되었습니다.\n더 나은 서비스를 위해 업데이트해주세요.'**
+  String get updateAvailableMessage;
+
+  /// No description provided for @updateNow.
+  ///
+  /// In ko, this message translates to:
+  /// **'업데이트'**
+  String get updateNow;
+
+  /// No description provided for @updateLater.
+  ///
+  /// In ko, this message translates to:
+  /// **'나중에'**
+  String get updateLater;
+
   /// App name
   ///
   /// In ko, this message translates to:
