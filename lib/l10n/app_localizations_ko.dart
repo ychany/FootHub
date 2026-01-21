@@ -1921,6 +1921,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String nTeams(int count) {
+    return '$count팀';
+  }
+
+  @override
   String get matchTeam => '경기 팀';
 
   @override

@@ -2093,6 +2093,14 @@
       }
     }
   },
+  "nTeams": "{count}팀",
+  "@nTeams": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "matchTeam": "경기 팀",
   "relegation": "강등",
   "promotion": "승격",

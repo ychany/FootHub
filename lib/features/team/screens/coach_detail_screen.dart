@@ -622,7 +622,7 @@ class _CoachDetailContent extends ConsumerWidget {
                 ),
                 const Spacer(),
                 Text(
-                  l10n.nPlayers(coach.career.length),
+                  l10n.nTeams(coach.career.length),
                   style: const TextStyle(
                     fontSize: 13,
                     color: _textSecondary,
@@ -641,7 +641,14 @@ class _CoachDetailContent extends ConsumerWidget {
             separatorBuilder: (_, __) => const Divider(height: 1, color: _border),
             itemBuilder: (context, index) {
               final career = coach.career[index];
-              final isCurrentTeam = career.end == null;
+              // 첫 번째 경력(가장 최근)이면서 end가 null인 경우에만 "현재"로 표시
+              final isCurrentTeam = index == 0 && career.end == null;
+
+              // end가 null이면 이전 경력(더 최근)의 start를 종료연도로 사용
+              int? inferredEndYear = career.endYear;
+              if (career.end == null && index > 0) {
+                inferredEndYear = coach.career[index - 1].startYear;
+              }
 
               return InkWell(
                 onTap: career.teamId != null
@@ -733,7 +740,10 @@ class _CoachDetailContent extends ConsumerWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              ErrorHelper.getLocalizedPeriodText(context, career.periodText),
+                              // 첫 번째 경력만 "current" 표시, 나머지는 종료연도 표시
+                              isCurrentTeam
+                                  ? ErrorHelper.getLocalizedPeriodText(context, career.periodText)
+                                  : '${career.startYear ?? '?'} - ${inferredEndYear ?? career.startYear ?? '?'}',
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: _textSecondary,

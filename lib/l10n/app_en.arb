@@ -702,6 +702,7 @@
   "ownGoal": "OG",
   "nTimes": "{count}x",
   "nPlayers": "{count} players",
+  "nTeams": "{count} teams",
   "nMatches": "{count} matches",
   "matchTeam": "Match Team",
   "relegation": "Relegation",

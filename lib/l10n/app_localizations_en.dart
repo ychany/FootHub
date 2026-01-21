@@ -1926,6 +1926,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String nTeams(int count) {
+    return '$count teams';
+  }
+
+  @override
   String get matchTeam => 'Match Team';
 
   @override

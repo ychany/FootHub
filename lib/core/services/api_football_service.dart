@@ -690,8 +690,35 @@ class ApiFootballService {
     if (data == null || data['response'] == null || (data['response'] as List).isEmpty) {
       return null;
     }
-    // 가장 최근 감독 반환 (첫 번째)
-    return ApiFootballCoach.fromJson((data['response'] as List).first);
+
+    final responseList = data['response'] as List;
+
+    // 시작일 기준으로 가장 최근 감독 찾기 (end가 null이고 start가 가장 최근인 감독)
+    Map<String, dynamic>? latestCoach;
+    DateTime? latestStart;
+
+    for (final coach in responseList) {
+      final career = coach['career'] as List? ?? [];
+      if (career.isEmpty) continue;
+
+      final currentPosition = career.first;
+      final endDate = currentPosition['end'];
+      final startStr = currentPosition['start'] as String?;
+
+      // end가 null인 감독만 (현재 재직 중)
+      if (endDate != null) continue;
+
+      if (startStr != null) {
+        final start = DateTime.tryParse(startStr);
+        if (start != null && (latestStart == null || start.isAfter(latestStart))) {
+          latestStart = start;
+          latestCoach = coach;
+        }
+      }
+    }
+
+    // 현재 재직 중인 감독이 없으면 첫 번째 반환
+    return ApiFootballCoach.fromJson(latestCoach ?? responseList.first);
   }
 
   /// 감독 ID로 조회

@@ -3758,6 +3758,12 @@ abstract class AppLocalizations {
   /// **'{count}명'**
   String nPlayers(int count);
 
+  /// No description provided for @nTeams.
+  ///
+  /// In ko, this message translates to:
+  /// **'{count}팀'**
+  String nTeams(int count);
+
   /// No description provided for @matchTeam.
   ///
   /// In ko, this message translates to:
