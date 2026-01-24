@@ -299,7 +299,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get kickoffNotification => 'Kickoff Alert';
 
   @override
-  String get kickoffNotificationDesc => '30 min before kickoff';
+  String get kickoffNotificationDesc => 'Get notified when match kicks off';
 
   @override
   String get lineupNotification => 'Lineup Alert';

@@ -665,13 +665,13 @@ abstract class AppLocalizations {
   /// Kickoff notification
   ///
   /// In ko, this message translates to:
-  /// **'경기 시작 알림'**
+  /// **'킥오프 알림'**
   String get kickoffNotification;
 
   /// Kickoff notification description
   ///
   /// In ko, this message translates to:
-  /// **'킥오프 30분 전에 알림'**
+  /// **'경기 시작 정시에 알림'**
   String get kickoffNotificationDesc;
 
   /// Lineup notification

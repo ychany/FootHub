@@ -1004,7 +1004,6 @@ class _ScheduleMatchCard extends ConsumerWidget {
       ref.read(scheduleNotifierProvider.notifier).setNotification(
         matchId: match.id,
         notifyKickoff: true,
-        notifyLineup: false,
         notifyResult: false,
       );
     }
@@ -1137,7 +1136,6 @@ class _NotificationSettingsDialogState extends ConsumerState<_NotificationSettin
 
   // 로컬 상태로 알림 설정 관리 (기본값: 경기 시작 알림만)
   bool _notifyKickoff = true;
-  bool _notifyLineup = false;
   bool _notifyResult = false;
   bool _isInitialized = false;
   bool _hasExistingSetting = false;
@@ -1189,7 +1187,6 @@ class _NotificationSettingsDialogState extends ConsumerState<_NotificationSettin
             if (setting != null) {
               _hasExistingSetting = true;
               _notifyKickoff = setting.notifyKickoff;
-              _notifyLineup = setting.notifyLineup;
               _notifyResult = setting.notifyResult;
             }
           }
@@ -1206,17 +1203,6 @@ class _NotificationSettingsDialogState extends ConsumerState<_NotificationSettin
                 value: _notifyKickoff,
                 onChanged: (value) {
                   setState(() => _notifyKickoff = value);
-                },
-              ),
-              const Divider(height: 1, color: _border),
-              _buildNotificationTile(
-                icon: Icons.people_outline,
-                iconColor: Colors.blue,
-                title: l10n.lineupNotification,
-                subtitle: l10n.lineupNotificationDesc,
-                value: _notifyLineup,
-                onChanged: (value) {
-                  setState(() => _notifyLineup = value);
                 },
               ),
               const Divider(height: 1, color: _border),
@@ -1342,11 +1328,10 @@ class _NotificationSettingsDialogState extends ConsumerState<_NotificationSettin
   void _saveNotification() {
     final l10n = AppLocalizations.of(context)!;
     // 알림이 하나라도 켜져 있으면 저장, 아니면 삭제
-    if (_notifyKickoff || _notifyLineup || _notifyResult) {
+    if (_notifyKickoff || _notifyResult) {
       ref.read(scheduleNotifierProvider.notifier).setNotification(
         matchId: widget.match.id,
         notifyKickoff: _notifyKickoff,
-        notifyLineup: _notifyLineup,
         notifyResult: _notifyResult,
       );
       Navigator.pop(context);

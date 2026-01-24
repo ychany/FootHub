@@ -3434,7 +3434,6 @@ class _MatchNotificationDialogState extends ConsumerState<_MatchNotificationDial
   static const _border = Color(0xFFE5E7EB);
 
   bool _notifyKickoff = true;
-  bool _notifyLineup = false;
   bool _notifyResult = false;
   bool _isInitialized = false;
   bool _hasExistingSetting = false;
@@ -3485,7 +3484,6 @@ class _MatchNotificationDialogState extends ConsumerState<_MatchNotificationDial
             if (setting != null) {
               _hasExistingSetting = true;
               _notifyKickoff = setting.notifyKickoff;
-              _notifyLineup = setting.notifyLineup;
               _notifyResult = setting.notifyResult;
             }
           }
@@ -3502,17 +3500,6 @@ class _MatchNotificationDialogState extends ConsumerState<_MatchNotificationDial
                 value: _notifyKickoff,
                 onChanged: (value) {
                   setState(() => _notifyKickoff = value);
-                },
-              ),
-              const Divider(height: 1, color: _border),
-              _buildNotificationTile(
-                icon: Icons.people_outline,
-                iconColor: Colors.blue,
-                title: l10n.lineupNotification,
-                subtitle: l10n.lineupNotificationDesc,
-                value: _notifyLineup,
-                onChanged: (value) {
-                  setState(() => _notifyLineup = value);
                 },
               ),
               const Divider(height: 1, color: _border),
@@ -3634,11 +3621,10 @@ class _MatchNotificationDialogState extends ConsumerState<_MatchNotificationDial
 
   void _saveNotification() {
     final l10n = AppLocalizations.of(context)!;
-    if (_notifyKickoff || _notifyLineup || _notifyResult) {
+    if (_notifyKickoff || _notifyResult) {
       ref.read(scheduleNotifierProvider.notifier).setNotification(
         matchId: widget.matchId,
         notifyKickoff: _notifyKickoff,
-        notifyLineup: _notifyLineup,
         notifyResult: _notifyResult,
       );
       Navigator.pop(context);

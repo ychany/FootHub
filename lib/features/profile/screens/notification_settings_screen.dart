@@ -138,6 +138,18 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          _SettingsCard(
+            children: [
+              _SettingsToggle(
+                title: l10n.kickoffNotification,
+                subtitle: l10n.kickoffNotificationDesc,
+                value: settings.matchKickoff,
+                enabled: settings.pushNotifications,
+                onChanged: (value) => notifier.updateMatchKickoff(value),
+              ),
+            ],
+          ),
 
           const SizedBox(height: 24),
 
@@ -164,14 +176,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                 value: settings.liveScoreUpdates,
                 enabled: settings.pushNotifications,
                 onChanged: (value) => notifier.updateLiveScoreUpdates(value),
-              ),
-              const _Divider(),
-              _SettingsToggle(
-                title: l10n.lineupNotifications,
-                subtitle: l10n.lineupNotificationsDesc,
-                value: settings.notifyLineup,
-                enabled: settings.pushNotifications,
-                onChanged: (value) => notifier.updateNotifyLineup(value),
               ),
               const _Divider(),
               _SettingsToggle(

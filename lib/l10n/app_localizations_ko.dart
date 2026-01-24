@@ -296,10 +296,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get matchNotification => '경기 알림 설정';
 
   @override
-  String get kickoffNotification => '경기 시작 알림';
+  String get kickoffNotification => '킥오프 알림';
 
   @override
-  String get kickoffNotificationDesc => '킥오프 30분 전에 알림';
+  String get kickoffNotificationDesc => '경기 시작 정시에 알림';
 
   @override
   String get lineupNotification => '라인업 발표';

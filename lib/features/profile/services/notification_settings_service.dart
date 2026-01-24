@@ -3,18 +3,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class NotificationSettings {
   final bool matchReminder;
   final int matchReminderMinutes;
+  final bool matchKickoff; // 경기 시작 알림 (정시)
   final bool liveScoreUpdates;
   final bool favoritePlayerEvents;
-  final bool notifyLineup;
   final bool notifyResult;
   final bool pushNotifications;
 
   const NotificationSettings({
     this.matchReminder = true,
     this.matchReminderMinutes = 30,
+    this.matchKickoff = true,
     this.liveScoreUpdates = false,
     this.favoritePlayerEvents = false,
-    this.notifyLineup = false,
     this.notifyResult = false,
     this.pushNotifications = true,
   });
@@ -23,9 +23,9 @@ class NotificationSettings {
     return NotificationSettings(
       matchReminder: map['matchReminder'] ?? true,
       matchReminderMinutes: map['matchReminderMinutes'] ?? 30,
+      matchKickoff: map['matchKickoff'] ?? true,
       liveScoreUpdates: map['liveScoreUpdates'] ?? false,
       favoritePlayerEvents: map['favoritePlayerEvents'] ?? false,
-      notifyLineup: map['notifyLineup'] ?? false,
       notifyResult: map['notifyResult'] ?? false,
       pushNotifications: map['pushNotifications'] ?? true,
     );
@@ -35,9 +35,9 @@ class NotificationSettings {
     return {
       'matchReminder': matchReminder,
       'matchReminderMinutes': matchReminderMinutes,
+      'matchKickoff': matchKickoff,
       'liveScoreUpdates': liveScoreUpdates,
       'favoritePlayerEvents': favoritePlayerEvents,
-      'notifyLineup': notifyLineup,
       'notifyResult': notifyResult,
       'pushNotifications': pushNotifications,
     };
@@ -46,18 +46,18 @@ class NotificationSettings {
   NotificationSettings copyWith({
     bool? matchReminder,
     int? matchReminderMinutes,
+    bool? matchKickoff,
     bool? liveScoreUpdates,
     bool? favoritePlayerEvents,
-    bool? notifyLineup,
     bool? notifyResult,
     bool? pushNotifications,
   }) {
     return NotificationSettings(
       matchReminder: matchReminder ?? this.matchReminder,
       matchReminderMinutes: matchReminderMinutes ?? this.matchReminderMinutes,
+      matchKickoff: matchKickoff ?? this.matchKickoff,
       liveScoreUpdates: liveScoreUpdates ?? this.liveScoreUpdates,
       favoritePlayerEvents: favoritePlayerEvents ?? this.favoritePlayerEvents,
-      notifyLineup: notifyLineup ?? this.notifyLineup,
       notifyResult: notifyResult ?? this.notifyResult,
       pushNotifications: pushNotifications ?? this.pushNotifications,
     );

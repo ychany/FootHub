@@ -42,8 +42,8 @@ class NotificationSettingsNotifier extends StateNotifier<AsyncValue<void>> {
     await _updateSetting('favoritePlayerEvents', value);
   }
 
-  Future<void> updateNotifyLineup(bool value) async {
-    await _updateSetting('notifyLineup', value);
+  Future<void> updateMatchKickoff(bool value) async {
+    await _updateSetting('matchKickoff', value);
   }
 
   Future<void> updateNotifyResult(bool value) async {

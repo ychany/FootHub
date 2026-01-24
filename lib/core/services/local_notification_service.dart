@@ -286,6 +286,7 @@ class LocalNotificationService {
 enum NotificationType {
   reminder,
   kickoff,
-  lineup,
   result,
+  goal,      // 응원팀 골
+  redCard,   // 응원팀 레드카드
 }

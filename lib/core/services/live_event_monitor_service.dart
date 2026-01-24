@@ -22,9 +22,8 @@ class LiveEventMonitorService {
   // 모니터링 중인 경기 ID들과 마지막 이벤트 수
   final Map<int, int> _lastEventCounts = {};
 
-  // 경기 상태 추적 (라인업/종료 알림용)
+  // 경기 상태 추적 (종료 알림용)
   final Map<int, String> _lastFixtureStatus = {};
-  final Set<int> _lineupNotifiedFixtures = {};
   final Set<int> _resultNotifiedFixtures = {};
 
   // 현재 즐겨찾기 팀/선수 ID
@@ -32,21 +31,18 @@ class LiveEventMonitorService {
   Set<int> _favoritePlayerIds = {};
 
   // 알림 설정
-  bool _notifyLineup = false;
   bool _notifyResult = false;
 
   /// 모니터링 시작
   void startMonitoring({
     required Set<int> favoriteTeamIds,
     required Set<int> favoritePlayerIds,
-    bool notifyLineup = false,
     bool notifyResult = false,
   }) {
     if (_isMonitoring) return;
 
     _favoriteTeamIds = favoriteTeamIds;
     _favoritePlayerIds = favoritePlayerIds;
-    _notifyLineup = notifyLineup;
     _notifyResult = notifyResult;
     _isMonitoring = true;
 
@@ -69,7 +65,6 @@ class LiveEventMonitorService {
     _notifiedEvents.clear();
     _lastEventCounts.clear();
     _lastFixtureStatus.clear();
-    _lineupNotifiedFixtures.clear();
     _resultNotifiedFixtures.clear();
   }
 
@@ -77,12 +72,10 @@ class LiveEventMonitorService {
   void updateFavorites({
     required Set<int> favoriteTeamIds,
     required Set<int> favoritePlayerIds,
-    bool? notifyLineup,
     bool? notifyResult,
   }) {
     _favoriteTeamIds = favoriteTeamIds;
     _favoritePlayerIds = favoritePlayerIds;
-    if (notifyLineup != null) _notifyLineup = notifyLineup;
     if (notifyResult != null) _notifyResult = notifyResult;
   }
 
@@ -106,53 +99,12 @@ class LiveEventMonitorService {
         await _checkFixtureEvents(fixture);
         await _checkFixtureStatus(fixture);
       }
-
-      // 라인업 알림이 켜져있으면 곧 시작할 경기도 체크 (라인업은 경기 시작 전에 발표됨)
-      if (_notifyLineup) {
-        await _checkUpcomingLineups();
-      }
-    } catch (_) {
-      // 에러 무시
-    }
-  }
-
-  /// 곧 시작할 경기의 라인업 체크
-  Future<void> _checkUpcomingLineups() async {
-    try {
-      // 오늘 경기 가져오기
-      final todayFixtures = await _apiService.getFixturesByDate(DateTime.now());
-
-      // 즐겨찾기 팀 경기 중 아직 시작 안한 경기 필터링
-      final upcomingFixtures = todayFixtures.where((fixture) {
-        final isFavoriteTeam = _favoriteTeamIds.contains(fixture.homeTeam.id) ||
-                               _favoriteTeamIds.contains(fixture.awayTeam.id);
-        // 아직 시작 안한 경기 (NS = Not Started, TBD = To Be Defined)
-        final notStarted = fixture.status.short == 'NS' || fixture.status.short == 'TBD';
-        return isFavoriteTeam && notStarted;
-      }).toList();
-
-
-      // 라인업 체크
-      for (final fixture in upcomingFixtures) {
-        if (_lineupNotifiedFixtures.contains(fixture.id)) continue;
-
-        try {
-          final lineups = await _apiService.getFixtureLineups(fixture.id);
-          if (lineups.isNotEmpty) {
-            _lineupNotifiedFixtures.add(fixture.id);
-            await _sendLineupNotification(fixture);
-          }
-        } catch (_) {
-          // 에러 무시
-        }
-      }
     } catch (_) {
       // 에러 무시
     }
   }
 
   /// 경기 상태 변화 체크 (종료 알림)
-  /// 라인업 알림은 _checkUpcomingLineups()에서 처리
   Future<void> _checkFixtureStatus(ApiFootballFixture fixture) async {
     final fixtureId = fixture.id;
     final currentStatus = fixture.status.short;
@@ -172,19 +124,6 @@ class LiveEventMonitorService {
         await _sendResultNotification(fixture);
       }
     }
-  }
-
-  /// 라인업 알림 발송
-  Future<void> _sendLineupNotification(ApiFootballFixture fixture) async {
-    final title = '📋 라인업 발표!';
-    final body = '${fixture.homeTeam.name} vs ${fixture.awayTeam.name}';
-
-    await _sendNotification(
-      title: title,
-      body: body,
-      fixtureId: fixture.id,
-      eventType: 'lineup',
-    );
   }
 
   /// 경기 결과 알림 발송

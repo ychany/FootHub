@@ -575,7 +575,7 @@
   "substitutionLabel": "Sub",
   "matchNotificationSettings": "Match Notifications",
   "kickoffNotification": "Kickoff Alert",
-  "kickoffNotificationDesc": "30 min before kickoff",
+  "kickoffNotificationDesc": "Get notified when match kicks off",
   "lineupNotification": "Lineup Alert",
   "lineupNotificationDesc": "When lineup released",
   "resultNotification": "Result Alert",

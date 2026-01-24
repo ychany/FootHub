@@ -6,7 +6,6 @@ class NotificationSetting extends Equatable {
   final String userId;
   final String matchId;
   final bool notifyKickoff;
-  final bool notifyLineup;
   final bool notifyResult;
   final DateTime? createdAt;
 
@@ -15,7 +14,6 @@ class NotificationSetting extends Equatable {
     required this.userId,
     required this.matchId,
     this.notifyKickoff = true,
-    this.notifyLineup = false,
     this.notifyResult = true,
     this.createdAt,
   });
@@ -27,7 +25,6 @@ class NotificationSetting extends Equatable {
       userId: data['userId'] as String,
       matchId: data['matchId'] as String,
       notifyKickoff: data['notifyKickoff'] as bool? ?? true,
-      notifyLineup: data['notifyLineup'] as bool? ?? false,
       notifyResult: data['notifyResult'] as bool? ?? true,
       createdAt: data['createdAt'] != null
           ? (data['createdAt'] as Timestamp).toDate()
@@ -40,7 +37,6 @@ class NotificationSetting extends Equatable {
       'userId': userId,
       'matchId': matchId,
       'notifyKickoff': notifyKickoff,
-      'notifyLineup': notifyLineup,
       'notifyResult': notifyResult,
       'createdAt': createdAt != null
           ? Timestamp.fromDate(createdAt!)
@@ -53,7 +49,6 @@ class NotificationSetting extends Equatable {
     String? userId,
     String? matchId,
     bool? notifyKickoff,
-    bool? notifyLineup,
     bool? notifyResult,
     DateTime? createdAt,
   }) {
@@ -62,13 +57,12 @@ class NotificationSetting extends Equatable {
       userId: userId ?? this.userId,
       matchId: matchId ?? this.matchId,
       notifyKickoff: notifyKickoff ?? this.notifyKickoff,
-      notifyLineup: notifyLineup ?? this.notifyLineup,
       notifyResult: notifyResult ?? this.notifyResult,
       createdAt: createdAt ?? this.createdAt,
     );
   }
 
-  bool get hasAnyNotification => notifyKickoff || notifyLineup || notifyResult;
+  bool get hasAnyNotification => notifyKickoff || notifyResult;
 
   @override
   List<Object?> get props => [
@@ -76,7 +70,6 @@ class NotificationSetting extends Equatable {
         userId,
         matchId,
         notifyKickoff,
-        notifyLineup,
         notifyResult,
       ];
 }

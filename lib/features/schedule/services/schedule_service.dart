@@ -314,7 +314,6 @@ class ScheduleService {
     required String userId,
     required String matchId,
     bool notifyKickoff = true,
-    bool notifyLineup = false,
     bool notifyResult = true,
   }) async {
     final existing = await getNotificationSetting(userId, matchId);
@@ -324,7 +323,6 @@ class ScheduleService {
       userId: userId,
       matchId: matchId,
       notifyKickoff: notifyKickoff,
-      notifyLineup: notifyLineup,
       notifyResult: notifyResult,
       createdAt: existing?.createdAt ?? DateTime.now(),
     );
@@ -340,7 +338,7 @@ class ScheduleService {
   Future<void> toggleNotification({
     required String userId,
     required String matchId,
-    required String type, // 'kickoff', 'lineup', 'result'
+    required String type, // 'kickoff', 'result'
     required bool value,
   }) async {
     final existing = await getNotificationSetting(userId, matchId);
@@ -350,9 +348,6 @@ class ScheduleService {
       switch (type) {
         case 'kickoff':
           updates['notifyKickoff'] = value;
-          break;
-        case 'lineup':
-          updates['notifyLineup'] = value;
           break;
         case 'result':
           updates['notifyResult'] = value;
@@ -365,7 +360,6 @@ class ScheduleService {
         userId: userId,
         matchId: matchId,
         notifyKickoff: type == 'kickoff' ? value : true,
-        notifyLineup: type == 'lineup' ? value : false,
         notifyResult: type == 'result' ? value : true,
       );
     }

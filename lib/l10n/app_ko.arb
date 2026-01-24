@@ -359,11 +359,11 @@
   "@matchNotification": {
     "description": "Match notification settings"
   },
-  "kickoffNotification": "경기 시작 알림",
+  "kickoffNotification": "킥오프 알림",
   "@kickoffNotification": {
     "description": "Kickoff notification"
   },
-  "kickoffNotificationDesc": "킥오프 30분 전에 알림",
+  "kickoffNotificationDesc": "경기 시작 정시에 알림",
   "@kickoffNotificationDesc": {
     "description": "Kickoff notification description"
   },
