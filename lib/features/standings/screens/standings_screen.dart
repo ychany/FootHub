@@ -13,6 +13,7 @@ import '../../../core/services/api_football_service.dart';
 import '../../../core/utils/error_helper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/empty_state.dart';
+import '../../../shared/widgets/tournament_bracket_widget.dart';
 import '../providers/standings_provider.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -84,7 +85,11 @@ class StandingsScreen extends ConsumerWidget {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: LeagueIds.getAllLeagues(_getUserCountryCode())
-                            .where((league) => !LeagueIds.cupCompetitionIds.contains(league.id)) // 컵 대회 제외
+                            .where((league) =>
+                              // 국내 컵대회는 제외 (토너먼트만 있고 순위표 없음)
+                              // 유럽 대회(챔스, 유로파, 컨퍼런스)는 포함
+                              !LeagueIds.cupCompetitionIds.contains(league.id)
+                            )
                             .map((league) {
                             final isSelected = selectedLeague == league.id;
                             // 언어에 따라 이름 선택
@@ -160,7 +165,7 @@ class StandingsScreen extends ConsumerWidget {
 
                     const SizedBox(height: 12),
 
-                    // 탭 선택 (순위 | 득점 | 어시스트 | 통계)
+                    // 탭 선택 (컵대회: 순위 | 토너먼트 | 득점 | 도움 | 통계, 리그: 순위 | 득점 | 어시스트 | 통계)
                     Container(
                       margin: const EdgeInsets.symmetric(horizontal: 16),
                       padding: const EdgeInsets.all(4),
@@ -169,49 +174,177 @@ class StandingsScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: _border),
                       ),
-                      child: Row(
-                        children: [
-                          _TabButton(
-                            label: l10n.rank,
-                            isSelected: selectedTab == 0,
-                            onTap: () => ref.read(selectedStandingsTabProvider.notifier).state = 0,
-                          ),
-                          _TabButton(
-                            label: l10n.goals,
-                            isSelected: selectedTab == 1,
-                            onTap: () => ref.read(selectedStandingsTabProvider.notifier).state = 1,
-                          ),
-                          _TabButton(
-                            label: l10n.assists,
-                            isSelected: selectedTab == 2,
-                            onTap: () => ref.read(selectedStandingsTabProvider.notifier).state = 2,
-                          ),
-                          _TabButton(
-                            label: l10n.stats,
-                            isSelected: selectedTab == 3,
-                            onTap: () => ref.read(selectedStandingsTabProvider.notifier).state = 3,
-                          ),
-                        ],
-                      ),
+                      child: isCup
+                          ? Row(
+                              children: [
+                                _TabButton(
+                                  label: l10n.rank,
+                                  isSelected: selectedTab == 0,
+                                  onTap: () => ref.read(selectedStandingsTabProvider.notifier).state = 0,
+                                ),
+                                _TabButton(
+                                  label: l10n.tournament,
+                                  isSelected: selectedTab == 1,
+                                  onTap: () => ref.read(selectedStandingsTabProvider.notifier).state = 1,
+                                ),
+                                _TabButton(
+                                  label: l10n.goals,
+                                  isSelected: selectedTab == 2,
+                                  onTap: () => ref.read(selectedStandingsTabProvider.notifier).state = 2,
+                                ),
+                                _TabButton(
+                                  label: l10n.assists,
+                                  isSelected: selectedTab == 3,
+                                  onTap: () => ref.read(selectedStandingsTabProvider.notifier).state = 3,
+                                ),
+                                _TabButton(
+                                  label: l10n.stats,
+                                  isSelected: selectedTab == 4,
+                                  onTap: () => ref.read(selectedStandingsTabProvider.notifier).state = 4,
+                                ),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                _TabButton(
+                                  label: l10n.rank,
+                                  isSelected: selectedTab == 0,
+                                  onTap: () => ref.read(selectedStandingsTabProvider.notifier).state = 0,
+                                ),
+                                _TabButton(
+                                  label: l10n.goals,
+                                  isSelected: selectedTab == 1,
+                                  onTap: () => ref.read(selectedStandingsTabProvider.notifier).state = 1,
+                                ),
+                                _TabButton(
+                                  label: l10n.assists,
+                                  isSelected: selectedTab == 2,
+                                  onTap: () => ref.read(selectedStandingsTabProvider.notifier).state = 2,
+                                ),
+                                _TabButton(
+                                  label: l10n.stats,
+                                  isSelected: selectedTab == 3,
+                                  onTap: () => ref.read(selectedStandingsTabProvider.notifier).state = 3,
+                                ),
+                              ],
+                            ),
                     ),
 
                     const SizedBox(height: 12),
 
                     // 탭별 컨텐츠
                     Expanded(
-                      child: selectedTab == 0
-                          ? _buildStandingsContent(context, ref, standingsAsync, standingsKey, isCup, selectedLeague)
-                          : selectedTab == 1
-                              ? _buildTopScorersContent(context, ref, topScorersAsync, standingsKey)
-                              : selectedTab == 2
-                                  ? _buildTopAssistsContent(context, ref, topAssistsAsync, standingsKey)
-                                  : _buildLeagueStatsContent(context, ref, standingsAsync, standingsKey),
+                      child: isCup
+                          ? _buildCupTabContent(context, ref, selectedTab, standingsAsync, standingsKey, selectedLeague, topScorersAsync, topAssistsAsync)
+                          : _buildLeagueTabContent(context, ref, selectedTab, standingsAsync, standingsKey, selectedLeague, topScorersAsync, topAssistsAsync),
                     ),
                   ],
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // 컵대회 탭 컨텐츠 (순위 | 토너먼트 | 득점 | 도움 | 통계)
+  Widget _buildCupTabContent(
+    BuildContext context,
+    WidgetRef ref,
+    int selectedTab,
+    AsyncValue<List<ApiFootballStanding>> standingsAsync,
+    StandingsKey standingsKey,
+    int selectedLeague,
+    AsyncValue<List<ApiFootballTopScorer>> topScorersAsync,
+    AsyncValue<List<ApiFootballTopScorer>> topAssistsAsync,
+  ) {
+    switch (selectedTab) {
+      case 0:
+        return _buildStandingsContent(context, ref, standingsAsync, standingsKey, true, selectedLeague);
+      case 1:
+        return _buildTournamentContent(context, ref, standingsKey);
+      case 2:
+        return _buildTopScorersContent(context, ref, topScorersAsync, standingsKey);
+      case 3:
+        return _buildTopAssistsContent(context, ref, topAssistsAsync, standingsKey);
+      case 4:
+        return _buildLeagueStatsContent(context, ref, standingsAsync, standingsKey);
+      default:
+        return _buildStandingsContent(context, ref, standingsAsync, standingsKey, true, selectedLeague);
+    }
+  }
+
+  // 일반 리그 탭 컨텐츠 (순위 | 득점 | 어시스트 | 통계)
+  Widget _buildLeagueTabContent(
+    BuildContext context,
+    WidgetRef ref,
+    int selectedTab,
+    AsyncValue<List<ApiFootballStanding>> standingsAsync,
+    StandingsKey standingsKey,
+    int selectedLeague,
+    AsyncValue<List<ApiFootballTopScorer>> topScorersAsync,
+    AsyncValue<List<ApiFootballTopScorer>> topAssistsAsync,
+  ) {
+    switch (selectedTab) {
+      case 0:
+        return _buildStandingsContent(context, ref, standingsAsync, standingsKey, false, selectedLeague);
+      case 1:
+        return _buildTopScorersContent(context, ref, topScorersAsync, standingsKey);
+      case 2:
+        return _buildTopAssistsContent(context, ref, topAssistsAsync, standingsKey);
+      case 3:
+        return _buildLeagueStatsContent(context, ref, standingsAsync, standingsKey);
+      default:
+        return _buildStandingsContent(context, ref, standingsAsync, standingsKey, false, selectedLeague);
+    }
+  }
+
+  // 토너먼트 대진표 컨텐츠
+  Widget _buildTournamentContent(
+    BuildContext context,
+    WidgetRef ref,
+    StandingsKey standingsKey,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final fixturesAsync = ref.watch(leagueFixturesProvider(standingsKey));
+
+    return fixturesAsync.when(
+      data: (fixtures) {
+        if (fixtures.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.account_tree_outlined, size: 64, color: _textSecondary),
+                const SizedBox(height: 16),
+                Text(
+                  l10n.noDataAvailable,
+                  style: const TextStyle(color: _textSecondary),
+                ),
+              ],
+            ),
+          );
+        }
+        return TournamentBracketWidget(fixtures: fixtures);
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: _textSecondary),
+            const SizedBox(height: 16),
+            Text(
+              l10n.cannotLoadData,
+              style: const TextStyle(color: _textSecondary, fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => ref.invalidate(leagueFixturesProvider(standingsKey)),
+              child: Text(l10n.retry),
+            ),
+          ],
         ),
       ),
     );
