@@ -99,6 +99,8 @@ class StandingsScreen extends ConsumerWidget {
                               onTap: () {
                                 ref.read(selectedStandingsLeagueProvider.notifier).state = league.id;
                                 ref.read(selectedSeasonProvider.notifier).state = null;
+                                // 리그 변경 시 탭을 0(순위)으로 초기화 (컵/리그 탭 구조가 다름)
+                                ref.read(selectedStandingsTabProvider.notifier).state = 0;
                               },
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
