@@ -323,9 +323,13 @@ final filteredSchedulesProvider = FutureProvider<List<Match>>((ref) async {
     final userNationalTeamIdStr = userNationalTeamId?.toString();
     matches = matches.where((m) {
       // 기존 주요 리그
-      if (majorLeagueIds.contains(m.leagueId)) return true;
+      if (majorLeagueIds.contains(m.leagueId)) {
+        return true;
+      }
       // 자국 리그
-      if (userLocalLeagueIds.contains(m.leagueId)) return true;
+      if (userLocalLeagueIds.contains(m.leagueId)) {
+        return true;
+      }
       // 자국 국가대표팀 경기 - ID 매칭 (성인만)
       if (userNationalTeamIdStr != null &&
           (m.homeTeamId == userNationalTeamIdStr || m.awayTeamId == userNationalTeamIdStr)) {

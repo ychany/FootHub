@@ -100,7 +100,7 @@ class LeagueIds {
 
   // 국제 대회 - 네이션스리그
   static const int uefaNationsLeague = 5;
-  static const int concacafNationsLeague = 378;
+  static const int concacafNationsLeague = 723; // 수정: 378은 Guinea Ligue 1
 
   // 친선경기
   static const int friendlies = 10;
