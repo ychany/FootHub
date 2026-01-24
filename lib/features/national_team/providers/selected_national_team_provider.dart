@@ -144,41 +144,41 @@ const List<WorldCup2026Team> worldCup2026Teams = [
   WorldCup2026Team(teamId: 5529, nameKo: '캐나다', nameEn: 'Canada', countryCode: 'CA', confederation: 'CONCACAF', fifaRanking: 27, bestResult: '조별리그'),
   WorldCup2026Team(teamId: 16, nameKo: '멕시코', nameEn: 'Mexico', countryCode: 'MX', confederation: 'CONCACAF', fifaRanking: 15, bestResult: '8강'),
   WorldCup2026Team(teamId: 2384, nameKo: '미국', nameEn: 'USA', countryCode: 'US', confederation: 'CONCACAF', fifaRanking: 14, bestResult: '3위'),
-  WorldCup2026Team(teamId: 1530, nameKo: '파나마', nameEn: 'Panama', countryCode: 'PA', confederation: 'CONCACAF', fifaRanking: 30, bestResult: '조별리그'),
-  WorldCup2026Team(teamId: 5564, nameKo: '퀴라소', nameEn: 'Curaçao', countryCode: 'CW', confederation: 'CONCACAF', fifaRanking: 82, bestResult: null),
-  WorldCup2026Team(teamId: 5555, nameKo: '아이티', nameEn: 'Haiti', countryCode: 'HT', confederation: 'CONCACAF', fifaRanking: 84, bestResult: '조별리그'),
+  WorldCup2026Team(teamId: 11, nameKo: '파나마', nameEn: 'Panama', countryCode: 'PA', confederation: 'CONCACAF', fifaRanking: 30, bestResult: '조별리그'),
+  WorldCup2026Team(teamId: 5530, nameKo: '퀴라소', nameEn: 'Curaçao', countryCode: 'CW', confederation: 'CONCACAF', fifaRanking: 82, bestResult: null),
+  WorldCup2026Team(teamId: 2386, nameKo: '아이티', nameEn: 'Haiti', countryCode: 'HT', confederation: 'CONCACAF', fifaRanking: 84, bestResult: '조별리그'),
 
   // 아시아 (AFC) - 8팀
   WorldCup2026Team(teamId: 22, nameKo: '이란', nameEn: 'Iran', countryCode: 'IR', confederation: 'AFC', fifaRanking: 20, bestResult: '조별리그'),
-  WorldCup2026Team(teamId: 2387, nameKo: '우즈베키스탄', nameEn: 'Uzbekistan', countryCode: 'UZ', confederation: 'AFC', fifaRanking: 50, bestResult: null),
+  WorldCup2026Team(teamId: 1568, nameKo: '우즈베키스탄', nameEn: 'Uzbekistan', countryCode: 'UZ', confederation: 'AFC', fifaRanking: 50, bestResult: null),
   WorldCup2026Team(teamId: 17, nameKo: '대한민국', nameEn: 'South Korea', countryCode: 'KR', confederation: 'AFC', fifaRanking: 22, bestResult: '4위'),
-  WorldCup2026Team(teamId: 2379, nameKo: '요르단', nameEn: 'Jordan', countryCode: 'JO', confederation: 'AFC', fifaRanking: 66, bestResult: null),
+  WorldCup2026Team(teamId: 1548, nameKo: '요르단', nameEn: 'Jordan', countryCode: 'JO', confederation: 'AFC', fifaRanking: 66, bestResult: null),
   WorldCup2026Team(teamId: 12, nameKo: '일본', nameEn: 'Japan', countryCode: 'JP', confederation: 'AFC', fifaRanking: 18, bestResult: '16강'),
   WorldCup2026Team(teamId: 20, nameKo: '호주', nameEn: 'Australia', countryCode: 'AU', confederation: 'AFC', fifaRanking: 26, bestResult: '16강'),
-  WorldCup2026Team(teamId: 1570, nameKo: '카타르', nameEn: 'Qatar', countryCode: 'QA', confederation: 'AFC', fifaRanking: 51, bestResult: '조별리그'),
+  WorldCup2026Team(teamId: 1569, nameKo: '카타르', nameEn: 'Qatar', countryCode: 'QA', confederation: 'AFC', fifaRanking: 51, bestResult: '조별리그'),
   WorldCup2026Team(teamId: 23, nameKo: '사우디아라비아', nameEn: 'Saudi Arabia', countryCode: 'SA', confederation: 'AFC', fifaRanking: 60, bestResult: '16강'),
 
   // 아프리카 (CAF) - 9팀
-  WorldCup2026Team(teamId: 2382, nameKo: '이집트', nameEn: 'Egypt', countryCode: 'EG', confederation: 'CAF', fifaRanking: 34, bestResult: '16강'),
-  WorldCup2026Team(teamId: 28, nameKo: '세네갈', nameEn: 'Senegal', countryCode: 'SN', confederation: 'CAF', fifaRanking: 19, bestResult: '8강'),
-  WorldCup2026Team(teamId: 15, nameKo: '남아프리카공화국', nameEn: 'South Africa', countryCode: 'ZA', confederation: 'CAF', fifaRanking: 61, bestResult: '조별리그'),
-  WorldCup2026Team(teamId: 5563, nameKo: '카보베르데', nameEn: 'Cape Verde', countryCode: 'CV', confederation: 'CAF', fifaRanking: 68, bestResult: null),
+  WorldCup2026Team(teamId: 32, nameKo: '이집트', nameEn: 'Egypt', countryCode: 'EG', confederation: 'CAF', fifaRanking: 34, bestResult: '16강'),
+  WorldCup2026Team(teamId: 13, nameKo: '세네갈', nameEn: 'Senegal', countryCode: 'SN', confederation: 'CAF', fifaRanking: 19, bestResult: '8강'),
+  WorldCup2026Team(teamId: 1531, nameKo: '남아프리카공화국', nameEn: 'South Africa', countryCode: 'ZA', confederation: 'CAF', fifaRanking: 61, bestResult: '조별리그'),
+  WorldCup2026Team(teamId: 1533, nameKo: '카보베르데', nameEn: 'Cape Verde', countryCode: 'CV', confederation: 'CAF', fifaRanking: 68, bestResult: null),
   WorldCup2026Team(teamId: 31, nameKo: '모로코', nameEn: 'Morocco', countryCode: 'MA', confederation: 'CAF', fifaRanking: 11, bestResult: '4위'),
-  WorldCup2026Team(teamId: 5765, nameKo: '코트디부아르', nameEn: 'Ivory Coast', countryCode: 'CI', confederation: 'CAF', fifaRanking: 42, bestResult: '조별리그'),
-  WorldCup2026Team(teamId: 1536, nameKo: '알제리', nameEn: 'Algeria', countryCode: 'DZ', confederation: 'CAF', fifaRanking: 35, bestResult: '16강'),
-  WorldCup2026Team(teamId: 27, nameKo: '튀니지', nameEn: 'Tunisia', countryCode: 'TN', confederation: 'CAF', fifaRanking: 40, bestResult: '조별리그'),
-  WorldCup2026Team(teamId: 1534, nameKo: '가나', nameEn: 'Ghana', countryCode: 'GH', confederation: 'CAF', fifaRanking: 72, bestResult: '8강'),
+  WorldCup2026Team(teamId: 1501, nameKo: '코트디부아르', nameEn: 'Ivory Coast', countryCode: 'CI', confederation: 'CAF', fifaRanking: 42, bestResult: '조별리그'),
+  WorldCup2026Team(teamId: 1532, nameKo: '알제리', nameEn: 'Algeria', countryCode: 'DZ', confederation: 'CAF', fifaRanking: 35, bestResult: '16강'),
+  WorldCup2026Team(teamId: 28, nameKo: '튀니지', nameEn: 'Tunisia', countryCode: 'TN', confederation: 'CAF', fifaRanking: 40, bestResult: '조별리그'),
+  WorldCup2026Team(teamId: 1504, nameKo: '가나', nameEn: 'Ghana', countryCode: 'GH', confederation: 'CAF', fifaRanking: 72, bestResult: '8강'),
 
   // 남미 (CONMEBOL) - 6팀
   WorldCup2026Team(teamId: 26, nameKo: '아르헨티나', nameEn: 'Argentina', countryCode: 'AR', confederation: 'CONMEBOL', fifaRanking: 2, bestResult: '우승'),
   WorldCup2026Team(teamId: 2382, nameKo: '에콰도르', nameEn: 'Ecuador', countryCode: 'EC', confederation: 'CONMEBOL', fifaRanking: 23, bestResult: '16강'),
-  WorldCup2026Team(teamId: 1521, nameKo: '콜롬비아', nameEn: 'Colombia', countryCode: 'CO', confederation: 'CONMEBOL', fifaRanking: 13, bestResult: '8강'),
+  WorldCup2026Team(teamId: 8, nameKo: '콜롬비아', nameEn: 'Colombia', countryCode: 'CO', confederation: 'CONMEBOL', fifaRanking: 13, bestResult: '8강'),
   WorldCup2026Team(teamId: 7, nameKo: '우루과이', nameEn: 'Uruguay', countryCode: 'UY', confederation: 'CONMEBOL', fifaRanking: 16, bestResult: '우승'),
   WorldCup2026Team(teamId: 6, nameKo: '브라질', nameEn: 'Brazil', countryCode: 'BR', confederation: 'CONMEBOL', fifaRanking: 5, bestResult: '우승'),
-  WorldCup2026Team(teamId: 1528, nameKo: '파라과이', nameEn: 'Paraguay', countryCode: 'PY', confederation: 'CONMEBOL', fifaRanking: 39, bestResult: '8강'),
+  WorldCup2026Team(teamId: 2380, nameKo: '파라과이', nameEn: 'Paraguay', countryCode: 'PY', confederation: 'CONMEBOL', fifaRanking: 39, bestResult: '8강'),
 
   // 오세아니아 (OFC) - 1팀
-  WorldCup2026Team(teamId: 1524, nameKo: '뉴질랜드', nameEn: 'New Zealand', countryCode: 'NZ', confederation: 'OFC', fifaRanking: 86, bestResult: '조별리그'),
+  WorldCup2026Team(teamId: 4673, nameKo: '뉴질랜드', nameEn: 'New Zealand', countryCode: 'NZ', confederation: 'OFC', fifaRanking: 86, bestResult: '조별리그'),
 
   // 유럽 (UEFA) - 12팀
   WorldCup2026Team(teamId: 25, nameKo: '독일', nameEn: 'Germany', countryCode: 'DE', confederation: 'UEFA', fifaRanking: 9, bestResult: '우승'),
@@ -189,7 +189,7 @@ const List<WorldCup2026Team> worldCup2026Teams = [
   WorldCup2026Team(teamId: 27, nameKo: '포르투갈', nameEn: 'Portugal', countryCode: 'PT', confederation: 'UEFA', fifaRanking: 6, bestResult: '3위'),
   WorldCup2026Team(teamId: 1118, nameKo: '네덜란드', nameEn: 'Netherlands', countryCode: 'NL', confederation: 'UEFA', fifaRanking: 7, bestResult: '준우승'),
   WorldCup2026Team(teamId: 775, nameKo: '오스트리아', nameEn: 'Austria', countryCode: 'AT', confederation: 'UEFA', fifaRanking: 24, bestResult: '3위'),
-  WorldCup2026Team(teamId: 1107, nameKo: '노르웨이', nameEn: 'Norway', countryCode: 'NO', confederation: 'UEFA', fifaRanking: 29, bestResult: '16강'),
+  WorldCup2026Team(teamId: 1090, nameKo: '노르웨이', nameEn: 'Norway', countryCode: 'NO', confederation: 'UEFA', fifaRanking: 29, bestResult: '16강'),
   WorldCup2026Team(teamId: 1, nameKo: '벨기에', nameEn: 'Belgium', countryCode: 'BE', confederation: 'UEFA', fifaRanking: 8, bestResult: '3위'),
   WorldCup2026Team(teamId: 10, nameKo: '잉글랜드', nameEn: 'England', countryCode: 'GB-ENG', confederation: 'UEFA', fifaRanking: 4, bestResult: '우승'),
   WorldCup2026Team(teamId: 3, nameKo: '크로아티아', nameEn: 'Croatia', countryCode: 'HR', confederation: 'UEFA', fifaRanking: 10, bestResult: '준우승'),
@@ -320,8 +320,8 @@ final selectedTeamCompetitionsProvider = FutureProvider<List<ApiFootballTeamLeag
 
   for (int year = currentYear; year >= currentYear - 2; year--) {
     final leagues = await service.getTeamLeagues(team.teamId, season: year);
+    // 중복 제거 (리그 ID 기준, 최신 시즌 우선)
     for (final league in leagues) {
-      // 중복 제거 (리그 ID 기준, 최신 시즌 우선)
       if (!allLeagues.containsKey(league.id)) {
         allLeagues[league.id] = league;
       }

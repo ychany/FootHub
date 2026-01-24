@@ -123,6 +123,17 @@ class ApiFootballService {
         .toList();
   }
 
+  /// 국가별 팀 조회 (국가대표팀 검색용)
+  Future<List<ApiFootballTeam>> getTeamsByCountry(String country) async {
+    final endpoint = 'teams?country=${Uri.encodeComponent(country)}';
+    final data = await _get(endpoint);
+    if (data == null || data['response'] == null) return [];
+
+    return (data['response'] as List)
+        .map((json) => ApiFootballTeam.fromJson(json))
+        .toList();
+  }
+
   /// 팀이 참가하는 리그 목록 조회
   Future<List<ApiFootballTeamLeague>> getTeamLeagues(int teamId, {int? season}) async {
     final currentSeason = season ?? DateTime.now().year;
