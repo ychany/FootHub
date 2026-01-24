@@ -8021,8 +8021,20 @@ abstract class AppLocalizations {
   /// No description provided for @patchNote_1_1_6_6.
   ///
   /// In ko, this message translates to:
-  /// **'버그 수정 및 안정성 개선'**
+  /// **'승부차기 표시 개선 (O/X 표기, 정규골 분리)'**
   String get patchNote_1_1_6_6;
+
+  /// No description provided for @patchNote_1_1_6_7.
+  ///
+  /// In ko, this message translates to:
+  /// **'알림 설정 개선 (킥오프 알림 추가, 라인업 알림 제거)'**
+  String get patchNote_1_1_6_7;
+
+  /// No description provided for @patchNote_1_1_6_8.
+  ///
+  /// In ko, this message translates to:
+  /// **'버그 수정 및 안정성 개선'**
+  String get patchNote_1_1_6_8;
 
   /// No description provided for @patchNote_1_1_5_1.
   ///

@@ -4232,7 +4232,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get patchNote_1_1_6_5 => 'Updated copyright year to 2026';
 
   @override
-  String get patchNote_1_1_6_6 => 'Bug fixes and stability improvements';
+  String get patchNote_1_1_6_6 =>
+      'Improved penalty shootout display (O/X indicators, separated from regular goals)';
+
+  @override
+  String get patchNote_1_1_6_7 =>
+      'Improved notification settings (added kickoff alert, removed lineup alert)';
+
+  @override
+  String get patchNote_1_1_6_8 => 'Bug fixes and stability improvements';
 
   @override
   String get patchNote_1_1_5_1 => 'Added app update notification';

@@ -4201,7 +4201,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get patchNote_1_1_6_5 => '저작권 연도 2026 업데이트';
 
   @override
-  String get patchNote_1_1_6_6 => '버그 수정 및 안정성 개선';
+  String get patchNote_1_1_6_6 => '승부차기 표시 개선 (O/X 표기, 정규골 분리)';
+
+  @override
+  String get patchNote_1_1_6_7 => '알림 설정 개선 (킥오프 알림 추가, 라인업 알림 제거)';
+
+  @override
+  String get patchNote_1_1_6_8 => '버그 수정 및 안정성 개선';
 
   @override
   String get patchNote_1_1_5_1 => '앱 업데이트 알림 기능 추가';

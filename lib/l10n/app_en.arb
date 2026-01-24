@@ -1978,7 +1978,9 @@
   "patchNote_1_1_6_3": "Added tournament tab to match detail standings",
   "patchNote_1_1_6_4": "Improved standings tab empty state message",
   "patchNote_1_1_6_5": "Updated copyright year to 2026",
-  "patchNote_1_1_6_6": "Bug fixes and stability improvements",
+  "patchNote_1_1_6_6": "Improved penalty shootout display (O/X indicators, separated from regular goals)",
+  "patchNote_1_1_6_7": "Improved notification settings (added kickoff alert, removed lineup alert)",
+  "patchNote_1_1_6_8": "Bug fixes and stability improvements",
 
   "patchNote_1_1_5_1": "Added app update notification",
   "patchNote_1_1_5_2": "Improved coach info (latest coach display, career period fix)",

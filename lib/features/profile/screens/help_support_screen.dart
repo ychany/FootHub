@@ -733,7 +733,7 @@ class PatchNotesScreen extends StatelessWidget {
         children: [
           _PatchNoteCard(
             version: '1.1.6',
-            buildNumber: '7',
+            buildNumber: '8',
             isLatest: true,
             latestLabel: l10n.patchNotesLatest,
             items: [
@@ -743,6 +743,8 @@ class PatchNotesScreen extends StatelessWidget {
               l10n.patchNote_1_1_6_4,
               l10n.patchNote_1_1_6_5,
               l10n.patchNote_1_1_6_6,
+              l10n.patchNote_1_1_6_7,
+              l10n.patchNote_1_1_6_8,
             ],
           ),
           const SizedBox(height: 16),
