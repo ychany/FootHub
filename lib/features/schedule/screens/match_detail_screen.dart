@@ -466,9 +466,30 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
     final allEvents = eventsAsync.valueOrNull ?? [];
     // Missed Penalty는 type=Goal이지만 실제 골이 아니므로 제외
     final goalEvents = allEvents.where((e) => e.type == 'Goal' && e.detail != 'Missed Penalty').toList();
+    final missedPenaltyEvents = allEvents.where((e) => e.type == 'Goal' && e.detail == 'Missed Penalty').toList();
     final redCardEvents = allEvents.where((e) => e.type == 'Card' && e.detail == 'Red Card').toList();
-    final homeGoalEvents = goalEvents.where((e) => e.teamId == match.homeTeam.id).toList();
-    final awayGoalEvents = goalEvents.where((e) => e.teamId == match.awayTeam.id).toList();
+
+    // 승부차기 골/실축 분리 (경기가 승부차기로 끝났고, elapsed=120인 경우)
+    // match.isPenaltyShootout 조건으로 연장전 추가시간 PK와 구분
+    final isPenaltyShootoutMatch = match.isPenaltyShootout || match.status.short == 'PEN';
+    final penaltyShootoutGoals = isPenaltyShootoutMatch
+        ? goalEvents.where((e) => e.elapsed == 120 && e.detail == 'Penalty').toList()
+        : <ApiFootballEvent>[];
+    final penaltyShootoutMisses = isPenaltyShootoutMatch
+        ? missedPenaltyEvents.where((e) => e.elapsed == 120).toList()
+        : <ApiFootballEvent>[];
+    final regularGoals = isPenaltyShootoutMatch
+        ? goalEvents.where((e) => !(e.elapsed == 120 && e.detail == 'Penalty')).toList()
+        : goalEvents;
+
+    // 정규 시간 + 연장전 골만 표시
+    final homeGoalEvents = regularGoals.where((e) => e.teamId == match.homeTeam.id).toList();
+    final awayGoalEvents = regularGoals.where((e) => e.teamId == match.awayTeam.id).toList();
+
+    // 승부차기 점수 계산
+    final homePKGoals = penaltyShootoutGoals.where((e) => e.teamId == match.homeTeam.id).length;
+    final awayPKGoals = penaltyShootoutGoals.where((e) => e.teamId == match.awayTeam.id).length;
+    final hasPenaltyShootout = penaltyShootoutGoals.isNotEmpty || penaltyShootoutMisses.isNotEmpty;
 
     // API-Football에서 자책골은 득점한 팀(수혜 팀)의 이벤트로 기록됨.
     // 따라서 자책골 보정 없이 그냥 팀별 이벤트 수를 세면 됨.
@@ -768,7 +789,7 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
           ),
 
           // 골 득점자 & 레드카드 표시 (경기 중이거나 종료된 경우)
-          if ((match.isLive || match.isFinished) && (goalEvents.isNotEmpty || redCardEvents.isNotEmpty))
+          if ((match.isLive || match.isFinished) && (regularGoals.isNotEmpty || redCardEvents.isNotEmpty))
             Padding(
               padding: const EdgeInsets.only(top: 12, left: 20, right: 20),
               child: Row(
@@ -797,6 +818,106 @@ class _MatchDetailContentState extends ConsumerState<_MatchDetailContent>
                   ),
                 ],
               ),
+            ),
+
+          // 승부차기 요약 표시
+          if (hasPenaltyShootout)
+            Builder(
+              builder: (context) {
+                // 홈팀/원정팀 승부차기 결과 (성공=true, 실패=false)를 extra 순서대로 정렬
+                final homePKResults = <MapEntry<int, bool>>[];
+                final awayPKResults = <MapEntry<int, bool>>[];
+
+                for (final goal in penaltyShootoutGoals) {
+                  final order = goal.extra ?? 0;
+                  if (goal.teamId == match.homeTeam.id) {
+                    homePKResults.add(MapEntry(order, true));
+                  } else {
+                    awayPKResults.add(MapEntry(order, true));
+                  }
+                }
+                for (final miss in penaltyShootoutMisses) {
+                  final order = miss.extra ?? 0;
+                  if (miss.teamId == match.homeTeam.id) {
+                    homePKResults.add(MapEntry(order, false));
+                  } else {
+                    awayPKResults.add(MapEntry(order, false));
+                  }
+                }
+
+                // extra 순서대로 정렬
+                homePKResults.sort((a, b) => a.key.compareTo(b.key));
+                awayPKResults.sort((a, b) => a.key.compareTo(b.key));
+
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8, left: 20, right: 20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _primaryLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        // 홈팀 PK 결과 (왼쪽)
+                        Expanded(
+                          child: Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: 3,
+                            runSpacing: 3,
+                            children: homePKResults.map((result) => Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: result.value ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                              ),
+                              child: Icon(
+                                result.value ? Icons.check : Icons.close,
+                                size: 8,
+                                color: Colors.white,
+                              ),
+                            )).toList(),
+                          ),
+                        ),
+                        // PK 점수 (중앙)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Text(
+                            'PK $homePKGoals - $awayPKGoals',
+                            style: const TextStyle(
+                              color: _primary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        // 원정팀 PK 결과 (오른쪽)
+                        Expanded(
+                          child: Wrap(
+                            alignment: WrapAlignment.start,
+                            spacing: 3,
+                            runSpacing: 3,
+                            children: awayPKResults.map((result) => Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: result.value ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                              ),
+                              child: Icon(
+                                result.value ? Icons.check : Icons.close,
+                                size: 8,
+                                color: Colors.white,
+                              ),
+                            )).toList(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
 
           const SizedBox(height: 16),
