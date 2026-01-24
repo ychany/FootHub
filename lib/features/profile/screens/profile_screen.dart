@@ -1091,7 +1091,7 @@ class _AppInfoState extends State<_AppInfo> {
           ),
           const SizedBox(height: 2),
           Text(
-            '© 2025 FootHub. All rights reserved.',
+            '© 2026 FootHub. All rights reserved.',
             style: TextStyle(
               color: Colors.grey.shade400,
               fontSize: 11,
