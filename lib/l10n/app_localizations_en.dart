@@ -4216,6 +4216,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get patchNotesLatest => 'Latest';
 
   @override
+  String get patchNote_1_1_6_1 => 'Added \'Major\' filter to schedule tab';
+
+  @override
+  String get patchNote_1_1_6_2 => 'Improved World Cup country ID matching';
+
+  @override
+  String get patchNote_1_1_6_3 =>
+      'Added tournament tab to match detail standings';
+
+  @override
+  String get patchNote_1_1_6_4 => 'Improved standings tab empty state message';
+
+  @override
+  String get patchNote_1_1_6_5 => 'Updated copyright year to 2026';
+
+  @override
+  String get patchNote_1_1_6_6 => 'Bug fixes and stability improvements';
+
+  @override
   String get patchNote_1_1_5_1 => 'Added app update notification';
 
   @override

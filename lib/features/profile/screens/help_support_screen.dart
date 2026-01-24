@@ -732,10 +732,23 @@ class PatchNotesScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           _PatchNoteCard(
-            version: '1.1.5',
-            buildNumber: '6',
+            version: '1.1.6',
+            buildNumber: '7',
             isLatest: true,
             latestLabel: l10n.patchNotesLatest,
+            items: [
+              l10n.patchNote_1_1_6_1,
+              l10n.patchNote_1_1_6_2,
+              l10n.patchNote_1_1_6_3,
+              l10n.patchNote_1_1_6_4,
+              l10n.patchNote_1_1_6_5,
+              l10n.patchNote_1_1_6_6,
+            ],
+          ),
+          const SizedBox(height: 16),
+          _PatchNoteCard(
+            version: '1.1.5',
+            buildNumber: '6',
             items: [
               l10n.patchNote_1_1_5_1,
               l10n.patchNote_1_1_5_2,

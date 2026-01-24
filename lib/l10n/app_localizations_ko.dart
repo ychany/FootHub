@@ -4186,6 +4186,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get patchNotesLatest => '최신';
 
   @override
+  String get patchNote_1_1_6_1 => '일정탭 \'주요\' 필터 추가';
+
+  @override
+  String get patchNote_1_1_6_2 => '월드컵 국가 ID 매칭 개선';
+
+  @override
+  String get patchNote_1_1_6_3 => '경기상세 순위탭 토너먼트 탭 추가';
+
+  @override
+  String get patchNote_1_1_6_4 => '순위 탭 안내 문구 개선';
+
+  @override
+  String get patchNote_1_1_6_5 => '저작권 연도 2026 업데이트';
+
+  @override
+  String get patchNote_1_1_6_6 => '버그 수정 및 안정성 개선';
+
+  @override
   String get patchNote_1_1_5_1 => '앱 업데이트 알림 기능 추가';
 
   @override

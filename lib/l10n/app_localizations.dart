@@ -7988,6 +7988,42 @@ abstract class AppLocalizations {
   /// **'최신'**
   String get patchNotesLatest;
 
+  /// No description provided for @patchNote_1_1_6_1.
+  ///
+  /// In ko, this message translates to:
+  /// **'일정탭 \'주요\' 필터 추가'**
+  String get patchNote_1_1_6_1;
+
+  /// No description provided for @patchNote_1_1_6_2.
+  ///
+  /// In ko, this message translates to:
+  /// **'월드컵 국가 ID 매칭 개선'**
+  String get patchNote_1_1_6_2;
+
+  /// No description provided for @patchNote_1_1_6_3.
+  ///
+  /// In ko, this message translates to:
+  /// **'경기상세 순위탭 토너먼트 탭 추가'**
+  String get patchNote_1_1_6_3;
+
+  /// No description provided for @patchNote_1_1_6_4.
+  ///
+  /// In ko, this message translates to:
+  /// **'순위 탭 안내 문구 개선'**
+  String get patchNote_1_1_6_4;
+
+  /// No description provided for @patchNote_1_1_6_5.
+  ///
+  /// In ko, this message translates to:
+  /// **'저작권 연도 2026 업데이트'**
+  String get patchNote_1_1_6_5;
+
+  /// No description provided for @patchNote_1_1_6_6.
+  ///
+  /// In ko, this message translates to:
+  /// **'버그 수정 및 안정성 개선'**
+  String get patchNote_1_1_6_6;
+
   /// No description provided for @patchNote_1_1_5_1.
   ///
   /// In ko, this message translates to:
