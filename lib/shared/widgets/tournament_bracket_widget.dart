@@ -72,10 +72,10 @@ class TournamentBracketWidget extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.emoji_events_outlined, size: 48, color: _textSecondary),
+              Icon(Icons.leaderboard_outlined, size: 48, color: _textSecondary),
               const SizedBox(height: 16),
               Text(
-                l10n.noScheduledMatches,
+                l10n.noStandingsData,
                 style: TextStyle(color: _textSecondary, fontSize: 14),
               ),
             ],

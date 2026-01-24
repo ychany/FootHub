@@ -3604,9 +3604,26 @@ class _StandingsTab extends ConsumerWidget {
           return _buildCupStandingsWithSubTabs(context, ref, standingsKey);
         }
 
-        // 컵 대회인데 순위 데이터가 없으면 토너먼트만 표시
-        if (isCup && !hasStandings) {
-          return _TournamentBracketTab(leagueId: leagueId, season: season);
+        // 순위 데이터가 없으면 빈 상태 표시
+        if (!hasStandings) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.leaderboard_outlined, size: 48, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  AppLocalizations.of(context)!.noStandingsData,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // 컵 대회이면 서브탭 표시 (조별리그 | 토너먼트)
+        if (isCup) {
+          return _buildCupStandingsWithSubTabs(context, ref, standingsKey);
         }
 
         // 리그인 경우 순위표만 표시
@@ -3619,32 +3636,20 @@ class _StandingsTab extends ConsumerWidget {
           leagueLogo: match.league.logo,
         );
       },
-      loading: () {
-        // 로딩 중에는 컵 대회면 서브탭 포함하여 표시
-        if (isCup) {
-          return _buildCupStandingsWithSubTabs(context, ref, standingsKey);
-        }
-        return const Center(child: LoadingIndicator());
-      },
-      error: (_, __) {
-        // 에러 시 컵 대회면 토너먼트만 표시
-        if (isCup) {
-          return _TournamentBracketTab(leagueId: leagueId, season: season);
-        }
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
-              const SizedBox(height: 12),
-              Text(
-                AppLocalizations.of(context)!.cannotLoadData,
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-            ],
-          ),
-        );
-      },
+      loading: () => const Center(child: LoadingIndicator()),
+      error: (_, __) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text(
+              AppLocalizations.of(context)!.cannotLoadData,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -3749,10 +3754,10 @@ class _TournamentBracketTab extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.emoji_events_outlined, size: 48, color: Colors.grey.shade400),
+                Icon(Icons.leaderboard_outlined, size: 48, color: Colors.grey.shade400),
                 const SizedBox(height: 16),
                 Text(
-                  AppLocalizations.of(context)!.noScheduledMatches,
+                  AppLocalizations.of(context)!.noStandingsData,
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                 ),
               ],
