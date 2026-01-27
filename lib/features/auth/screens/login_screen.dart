@@ -21,6 +21,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLogin = true;
   bool _obscurePassword = true;
+  bool _agreedToTerms = false;
 
   @override
   void dispose() {
@@ -128,12 +129,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 24),
 
+                    // 회원가입 시 이용약관 동의
+                    if (!_isLogin) ...[
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Checkbox(
+                              value: _agreedToTerms,
+                              onChanged: (value) {
+                                setState(() => _agreedToTerms = value ?? false);
+                              },
+                              activeColor: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => _showTermsOfService(),
+                              child: RichText(
+                                text: TextSpan(
+                                  style: AppTextStyles.body2.copyWith(
+                                    color: AppColors.textSecondaryLight,
+                                  ),
+                                  children: [
+                                    TextSpan(text: l10n.agreeToTermsPrefix),
+                                    TextSpan(
+                                      text: l10n.termsOfService,
+                                      style: const TextStyle(
+                                        color: AppColors.primary,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                    TextSpan(text: l10n.agreeToTermsSuffix),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
                     // 제출 버튼
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: isLoading ? null : _submit,
+                        onPressed: isLoading || (!_isLogin && !_agreedToTerms) ? null : _submit,
                         child: isLoading
                             ? const SizedBox(
                                 width: 24,
@@ -302,6 +348,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _signInWithApple() {
     ref.read(authNotifierProvider.notifier).signInWithApple();
+  }
+
+  void _showTermsOfService() {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.termsOfServiceTitle),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: SingleChildScrollView(
+            child: Text(
+              l10n.termsOfServiceContent,
+              style: AppTextStyles.body2,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showForgotPassword() {

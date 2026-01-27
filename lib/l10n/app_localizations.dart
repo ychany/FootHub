@@ -5426,6 +5426,36 @@ abstract class AppLocalizations {
   /// **'이용약관'**
   String get termsOfService;
 
+  /// No description provided for @agreeToTermsPrefix.
+  ///
+  /// In ko, this message translates to:
+  /// **''**
+  String get agreeToTermsPrefix;
+
+  /// No description provided for @agreeToTermsSuffix.
+  ///
+  /// In ko, this message translates to:
+  /// **'에 동의합니다'**
+  String get agreeToTermsSuffix;
+
+  /// No description provided for @termsRequired.
+  ///
+  /// In ko, this message translates to:
+  /// **'회원가입을 위해 이용약관에 동의해주세요'**
+  String get termsRequired;
+
+  /// No description provided for @termsOfServiceTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'이용약관'**
+  String get termsOfServiceTitle;
+
+  /// No description provided for @termsOfServiceContent.
+  ///
+  /// In ko, this message translates to:
+  /// **'FootHub 서비스 이용약관\n\n제1조 (목적)\n본 약관은 FootHub(이하 \'앱\')가 제공하는 서비스의 이용과 관련하여 앱과 이용자 간의 권리, 의무 및 책임 사항을 규정함을 목적으로 합니다.\n\n제2조 (커뮤니티 이용 규칙)\n1. 이용자는 다음 행위를 해서는 안 됩니다:\n   - 타인을 비방, 모욕, 협박하는 행위\n   - 음란물, 폭력적 콘텐츠 게시\n   - 스팸, 광고성 게시물 작성\n   - 허위 정보 유포\n   - 타인의 개인정보 침해\n   - 저작권 등 지적재산권 침해\n\n2. 앱은 위반 콘텐츠에 대해 다음 조치를 취할 수 있습니다:\n   - 해당 콘텐츠의 삭제\n   - 위반 사용자의 서비스 이용 제한 또는 영구 정지\n\n제3조 (신고 및 처리)\n1. 이용자는 부적절한 콘텐츠를 신고할 수 있습니다.\n2. 앱은 신고된 콘텐츠를 24시간 이내에 검토하고 적절한 조치를 취합니다.\n\n제4조 (면책조항)\n앱은 이용자가 게시한 콘텐츠에 대해 책임지지 않습니다. 단, 신고된 콘텐츠에 대해서는 신속히 검토 및 조치합니다.\n\n제5조 (약관 동의)\n본 서비스를 이용함으로써 본 약관에 동의하는 것으로 간주됩니다.'**
+  String get termsOfServiceContent;
+
   /// No description provided for @supportWebsite.
   ///
   /// In ko, this message translates to:
@@ -8033,8 +8063,20 @@ abstract class AppLocalizations {
   /// No description provided for @patchNote_1_1_6_8.
   ///
   /// In ko, this message translates to:
-  /// **'버그 수정 및 안정성 개선'**
+  /// **'회원가입 시 이용약관 동의 추가'**
   String get patchNote_1_1_6_8;
+
+  /// No description provided for @patchNote_1_1_6_9.
+  ///
+  /// In ko, this message translates to:
+  /// **'앱 추적 투명성(ATT) 권한 요청 추가'**
+  String get patchNote_1_1_6_9;
+
+  /// No description provided for @patchNote_1_1_6_10.
+  ///
+  /// In ko, this message translates to:
+  /// **'버그 수정 및 안정성 개선'**
+  String get patchNote_1_1_6_10;
 
   /// No description provided for @patchNote_1_1_5_1.
   ///

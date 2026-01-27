@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'l10n/app_localizations.dart';
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
@@ -50,6 +52,17 @@ void main() async {
 
   // AdMob 초기화
   await AdService().initialize();
+
+  // iOS ATT 권한 요청 (광고 추적 투명성)
+  if (Platform.isIOS) {
+    // 약간의 딜레이 후 ATT 요청 (앱 UI가 준비된 후)
+    Future.delayed(const Duration(milliseconds: 500), () async {
+      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+      if (status == TrackingStatus.notDetermined) {
+        await AppTrackingTransparency.requestTrackingAuthorization();
+      }
+    });
+  }
 
   runApp(
     const ProviderScope(

@@ -2828,6 +2828,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get termsOfService => 'Terms of Service';
 
   @override
+  String get agreeToTermsPrefix => 'I agree to the ';
+
+  @override
+  String get agreeToTermsSuffix => '';
+
+  @override
+  String get termsRequired => 'Please agree to the Terms of Service to sign up';
+
+  @override
+  String get termsOfServiceTitle => 'Terms of Service';
+
+  @override
+  String get termsOfServiceContent =>
+      'FootHub Terms of Service\n\nArticle 1 (Purpose)\nThese terms define the rights, obligations, and responsibilities between FootHub (\'the App\') and users regarding the use of services provided.\n\nArticle 2 (Community Guidelines)\n1. Users must not engage in:\n   - Defaming, insulting, or threatening others\n   - Posting obscene or violent content\n   - Creating spam or promotional posts\n   - Spreading false information\n   - Violating others\' privacy\n   - Infringing copyrights or intellectual property\n\n2. The App may take the following actions for violations:\n   - Removal of the violating content\n   - Restriction or permanent suspension of the violating user\n\nArticle 3 (Reporting and Processing)\n1. Users may report inappropriate content.\n2. The App will review reported content within 24 hours and take appropriate action.\n\nArticle 4 (Disclaimer)\nThe App is not responsible for content posted by users. However, reported content will be promptly reviewed and addressed.\n\nArticle 5 (Agreement)\nBy using this service, you are deemed to have agreed to these terms.';
+
+  @override
   String get supportWebsite => 'Support Website';
 
   @override
@@ -4240,7 +4256,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Improved notification settings (added kickoff alert, removed lineup alert)';
 
   @override
-  String get patchNote_1_1_6_8 => 'Bug fixes and stability improvements';
+  String get patchNote_1_1_6_8 => 'Added Terms of Service agreement on sign up';
+
+  @override
+  String get patchNote_1_1_6_9 =>
+      'Added App Tracking Transparency (ATT) permission request';
+
+  @override
+  String get patchNote_1_1_6_10 => 'Bug fixes and stability improvements';
 
   @override
   String get patchNote_1_1_5_1 => 'Added app update notification';
