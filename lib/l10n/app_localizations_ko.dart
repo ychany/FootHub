@@ -449,9 +449,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get leagueStandings => '리그 순위';
 
   @override
-  String get seasonRecord => '시즌 성적';
-
-  @override
   String get checkLeagueStandings => '각 리그 순위표 확인';
 
   @override
@@ -2355,6 +2352,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String careerTeamCount(int count) {
     return '경력: $count개 팀';
   }
+
+  @override
+  String get seasonRecord => '시즌 성적';
 
   @override
   String get seasonRecordTitle => '시즌 기록';
