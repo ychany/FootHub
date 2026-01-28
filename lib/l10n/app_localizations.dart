@@ -956,6 +956,12 @@ abstract class AppLocalizations {
   /// **'리그 순위'**
   String get leagueStandings;
 
+  /// Season record for comparison tab
+  ///
+  /// In ko, this message translates to:
+  /// **'시즌 성적'**
+  String get seasonRecord;
+
   /// Check league standings
   ///
   /// In ko, this message translates to:
@@ -4561,12 +4567,6 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'경력: {count}개 팀'**
   String careerTeamCount(int count);
-
-  /// No description provided for @seasonRecord.
-  ///
-  /// In ko, this message translates to:
-  /// **'시즌 성적'**
-  String get seasonRecord;
 
   /// No description provided for @seasonRecordTitle.
   ///

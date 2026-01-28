@@ -573,6 +573,10 @@
   "@leagueStandings": {
     "description": "League standings"
   },
+  "seasonRecord": "시즌 기록",
+  "@seasonRecord": {
+    "description": "Season record for comparison tab"
+  },
   "checkLeagueStandings": "각 리그 순위표 확인",
   "@checkLeagueStandings": {
     "description": "Check league standings"

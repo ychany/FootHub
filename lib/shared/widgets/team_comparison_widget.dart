@@ -67,8 +67,8 @@ class TeamComparisonTab extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. 리그 순위 비교
-          _buildSectionHeader(l10n.leagueStandings, Icons.leaderboard),
+          // 1. 시즌 기록 비교
+          _buildSectionHeader(l10n.seasonRecord, Icons.leaderboard),
           const SizedBox(height: 12),
           _buildStandingsComparison(
               context, homeStandingAsync, awayStandingAsync),
@@ -135,7 +135,7 @@ class TeamComparisonTab extends ConsumerWidget {
     );
   }
 
-  // 1. 리그 순위 비교
+  // 1. 시즌 기록 비교
   Widget _buildStandingsComparison(
     BuildContext context,
     AsyncValue<ApiFootballStanding?> homeAsync,

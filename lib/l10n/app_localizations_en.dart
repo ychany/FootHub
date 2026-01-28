@@ -451,6 +451,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get leagueStandings => 'League Standings';
 
   @override
+  String get seasonRecord => 'Season Record';
+
+  @override
   String get checkLeagueStandings => 'Check league standings';
 
   @override
@@ -2357,9 +2360,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String careerTeamCount(int count) {
     return 'Career: $count teams';
   }
-
-  @override
-  String get seasonRecord => 'Season Record';
 
   @override
   String get seasonRecordTitle => 'Season Record';
